@@ -652,7 +652,8 @@
                     });
                 });
 
-                // Undo/Redoと編集状態の管理
+
+                // --- Undo/Redoと編集状態の管理 ---
                 const historyManager = {};
                 let activeInputId = null;
                 const generalDefaultValues = {};
@@ -718,7 +719,8 @@
                     }
                 });
 
-                // ボタンの処理
+
+                // --- ボタンの処理 ---
                 document.getElementById('global-undo-button').addEventListener('click', () => {
                     if (activeInputId && historyManager[activeInputId] && historyManager[activeInputId].index > 0) {
                         const data = historyManager[activeInputId];
@@ -796,7 +798,8 @@
                 const therapistNotes = "{{ therapist_notes|urlencode }}";
                 const queryParams = `?patient_id=${patientId}&therapist_notes=${therapistNotes}`;
 
-                // 1. Gemini単体（汎用モデル）のストリーム接続
+
+                // --- 1. Gemini単体（汎用モデル）のストリーム接続 ---
                 const generalApiUrl = "{{ url_for('generate_general_stream') }}" + queryParams;
                 const generalEventSource = new EventSource(generalApiUrl);
 
@@ -847,7 +850,8 @@
                     generalEventSource.close();
                 });
 
-                // 2. RAG（特化モデル）のストリーム接続 
+
+                // --- 2. RAG（特化モデル）のストリーム接続 ---
                 const ragApiUrl = `/api/generate/rag/${ragPipelineName}` + queryParams;
                 const ragEventSource = new EventSource(ragApiUrl);
 
