@@ -267,6 +267,7 @@ class RAGExecutor:
 
         final_prompt = self._construct_prompt(patient_facts, final_docs)
 
+
         logger.info("--- Generating Final Answer with RAG ---") # loggerを使用
         logger.info("Final Prompt:\n" + final_prompt) # loggerを使用
         
