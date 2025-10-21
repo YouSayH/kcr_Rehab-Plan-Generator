@@ -7,11 +7,27 @@ import importlib
 # gemini_client.pyで定義されている、アプリケーション本体のデータ構造スキーマをインポート
 # from gemini_client import RehabPlanSchema # 循環参照が発生してしまいます。
 from schemas import RehabPlanSchema
+import logging
 
 # Rehab_RAGライブラリへのパスを追加
 REHAB_RAG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), 'Rehab_RAG'))
 if REHAB_RAG_PATH not in sys.path:
     sys.path.append(REHAB_RAG_PATH)
+
+log_directory = "logs"
+if not os.path.exists(log_directory):
+    os.makedirs(log_directory)
+log_file_path = os.path.join(log_directory, "gemini_prompts.log")
+
+# ロガーの設定 (ファイル出力のみ、フォーマット指定)
+# すでにgemini_client.pyで設定されている場合は不要だが、念のため追加
+logger = logging.getLogger(__name__) # 新しいロガーインスタンスを取得
+if not logger.hasHandlers(): # ハンドラが未設定の場合のみ設定
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
 
 def get_instance(module_name, class_name, params={}):
     """モジュール名とクラス名からインスタンスを動的に生成するヘルパー関数"""
@@ -253,6 +269,10 @@ class RAGExecutor:
             })
 
         final_prompt = self._construct_prompt(query_for_retrieval, final_docs)
+
+        logger.info("--- Generating Final Answer with RAG ---") # loggerを使用
+        logger.info("Final Prompt:\n" + final_prompt) # loggerを使用
+        
         print("LLMで回答生成開始")
         response = self.llm.generate(final_prompt, response_schema=RehabPlanSchema)
         
