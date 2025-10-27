@@ -263,7 +263,7 @@
                 <table>
                     <tbody>
                         <tr>
-                            <th colspan="3">リハビリテーション実施計画書</th>
+                            <th colspan="3">リハビリテーション総合実施計画書</th>
                         </tr>
                         <tr>
                             <td style="width: 33%;">患者氏名: <input type="text" id="name" name="name" class="input-field"
@@ -479,8 +479,6 @@
                                 <label class="checkbox-label"><input type="checkbox" id="func_motor_dysfunction_chk" name="func_motor_dysfunction_chk"
                                         value="on" {% if patient_data.func_motor_dysfunction_chk %}checked{% endif
                                         %}>運動機能障害</label>
-                                (<input type="text" name="cs_motor_details" class="input-field inline-input"
-                                    style="width:200px;">)
                                 <div class="sub-item">
                                     <label class="checkbox-label"><input type="checkbox" id="func_motor_paralysis_chk" name="func_motor_paralysis_chk"
                                             value="on" {% if patient_data.func_motor_paralysis_chk %}checked{% endif
@@ -1364,12 +1362,12 @@
                         </tr>
                         <tr>
                             <td style="height: 150px;">
-                                <b>治療方針（リハビリテーション実施方針）</b>
+                                <b>治療方針（リハビリテーション総合実施方針）</b>
                                 <textarea name="policy_treatment_txt" class="input-field readonly-placeholder"
                                     style="height: 120px;" readonly>（この項目はAIが自動生成します）</textarea>
                             </td>
                             <td style="height: 150px;">
-                                <b>治療内容（リハビリテーション実施内容）</b>
+                                <b>治療内容（リハビリテーション総合実施内容）</b>
                                 <textarea name="policy_content_txt" class="input-field readonly-placeholder"
                                     style="height: 120px;" readonly>（この項目はAIが自動生成します）</textarea>
                             </td>
