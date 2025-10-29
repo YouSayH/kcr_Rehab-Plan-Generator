@@ -1,8 +1,21 @@
 """
 SelfReflectiveFilter: 検索結果の関連性を自己評価・フィルタリングするコンポーネント
 """
-from tqdm import tqdm
 import time
+import math
+from typing import List, Dict
+from pydantic import BaseModel, Field
+from tqdm import tqdm
+import logging
+
+logger = logging.getLogger(__name__)
+
+class DocumentRelevance(BaseModel):
+    document_index: int = Field(description="評価対象ドキュメントのバッチ内でのインデックス (0から始まる)")
+    is_relevant: bool = Field(description="質問に対して関連性があるか (True: 関連あり, False: 関連なし)")
+
+class RelevanceEvaluationBatch(BaseModel):
+    evaluations: List[DocumentRelevance] = Field(description="各ドキュメントの関連性評価のリスト")
 
 class SelfReflectiveFilter:
     """
@@ -25,9 +38,11 @@ class SelfReflectiveFilter:
       回答の精度と信頼性を大幅に向上させます。
     - ハルシネーション（AIがもっともらしい嘘をつく現象）のリスクを低減します。
     """
-    def __init__(self, llm):
+    def __init__(self, llm, batch_size: int = 10):
         self.llm = llm
-        print("Self-Reflective Filterが初期化されました。")
+        self.batch_size = batch_size
+        print(f"Self-Reflective Filterが初期化されました。(バッチサイズ: {self.batch_size})")
+        logger.info(f"Self-Reflective Filterが初期化されました。(バッチサイズ: {self.batch_size})")
 
     def filter(self, query: str, documents: list[str], metadatas: list[dict]) -> tuple[list[str], list[dict]]:
         """
@@ -36,25 +51,73 @@ class SelfReflectiveFilter:
         filtered_docs = []
         filtered_metadatas = []
         
-        print(f"  - {len(documents)}件の文書を自己評価フィルタリング中...")
-        for doc, meta in tqdm(zip(documents, metadatas), total=len(documents), desc="Self-Reflecting"):
-            prompt = f"""あなたは、与えられた文書がユーザーの質問に答える上で関連性があるか評価する専門家です。
-以下の「質問」と「文書」を比較し、文書が質問に対する直接的な答えや有用な根拠を含む場合は [RELEVANT]、
-そうでない場合は [IRRELEVANT] とだけ答えてください。
+        num_batches = math.ceil(len(documents) / self.batch_size)
+        print(f"  - {len(documents)}件の文書を{num_batches}バッチに分割して自己評価フィルタリング中...")
+        logger.info(f"  - {len(documents)}件の文書を{num_batches}バッチに分割して自己評価フィルタリング中...")
+
+        for i in tqdm(range(num_batches), desc="Self-Reflecting Batches"):
+            start_index = i * self.batch_size
+            end_index = start_index + self.batch_size
+            batch_docs = documents[start_index:end_index]
+            batch_metadatas = metadatas[start_index:end_index]
+
+            if not batch_docs:
+                continue
+
+            prompt = f"""あなたは、与えられた複数の文書がユーザーの質問に答える上で関連性があるか評価する専門家です。
+以下の「質問」と「文書リスト」を比較し、各文書が質問に対する直接的な答えや有用な根拠を含むか評価してください。
 
 # 質問
 "{query}"
 
-# 文書
-"{doc}"
+# 文書リスト (各文書には [index] が付与されています)
+"""
+            
+            for idx, doc in enumerate(batch_docs):
+                prompt += f"--- Document [ {idx} ] ---\n{doc}\n"
 
-# あなたの評価:"""
+            prompt += f"""
+# あなたの評価
+各文書について、質問との関連性を評価し、以下のJSON形式で結果を返してください。
+`is_relevant` は、関連性がある場合は true、ない場合は false としてください。
+```json
+{{
+  "evaluations": [
+    {{ "document_index": 0, "is_relevant": <true_or_false> }},
+    {{ "document_index": 1, "is_relevant": <true_or_false> }},
+    ... (文書リストの全インデックスについて評価)
+  ]
+}}
+```"""
+
+
+
             
-            time.sleep(10) # APIレート制限対策
-            response = self.llm.generate(prompt, temperature=0.0, max_output_tokens=100)
-            
-            if "[RELEVANT]" in response:
-                filtered_docs.append(doc)
-                filtered_metadatas.append(meta)
-        
+            time.sleep(1) # APIレート制限対策            
+            response = self.llm.generate(
+                prompt,
+                temperature=0.0,
+                response_schema=RelevanceEvaluationBatch # 定義したスキーマを指定
+            )
+
+            if isinstance(response, RelevanceEvaluationBatch) and response.evaluations:
+                valid_indices = {eval_item.document_index for eval_item in response.evaluations if eval_item.is_relevant}
+                
+                for idx, (doc, meta) in enumerate(zip(batch_docs, batch_metadatas)):
+                    if idx in valid_indices:
+                        filtered_docs.append(doc)
+                        filtered_metadatas.append(meta)
+                logger.debug(f"バッチ {i+1}/{num_batches}: {len(valid_indices)}件が関連ありと判断されました。")
+
+            elif isinstance(response, dict) and "error" in response:
+                 logger.error(f"バッチ {i+1}/{num_batches} の評価中にLLMエラーが発生しました: {response['error']}")
+            else:
+                logger.warning(f"バッチ {i+1}/{num_batches} の評価で予期しない応答形式を受け取りました。応答: {response}")
+                # エラー時は安全のため、このバッチのドキュメントは含めないか、あるいは全て含めるか選択
+                # ここでは含めない選択とする
+                # filtered_docs.extend(batch_docs)
+                # filtered_metadatas.extend(batch_metadatas)
+
+
+        logger.info(f"  - フィルタリングの結果、{len(filtered_docs)}件の文書が残りました。")
         return filtered_docs, filtered_metadatas

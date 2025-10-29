@@ -320,6 +320,7 @@ def generate_plan():
     try:
         patient_id = int(request.form.get("patient_id"))
         therapist_notes = request.form.get("therapist_notes", "")
+        model_choice = request.form.get("model_choice", "both")
         print(f"こっちはジェネレートプラン無印　DEBUG [app.py]: therapist_notes from URL = '{therapist_notes[:100]}...'")
 
         # 権限チェック
@@ -360,7 +361,10 @@ def generate_plan():
             general_plan=general_plan,
             specialized_plan=specialized_plan,
             therapist_notes=therapist_notes, # 独立して渡す
-            is_generating=True  # JavaScriptで生成処理をキックするためのフラグ
+            is_generating=True,  # JavaScriptで生成処理をキックするためのフラグ
+            model_to_generate=model_choice,
+            editable_keys=editable_keys,
+            item_key_to_japanese=ITEM_KEY_TO_JAPANESE
         )
 
     except (ValueError, TypeError):
@@ -532,7 +536,7 @@ def save_plan():
         # この患者IDに紐づく suggestion_likes テーブルのレコードをすべて削除
         database.delete_all_likes_for_patient(patient_id)
 
-        flash("リハビリテーション実施計画書が正常に作成・保存されました。", "success")
+        flash("リハビリテーション総合実施計画書が正常に作成・保存されました。", "success")
 
         # ファイルダウンロードとページ移動を同時に行うための中間ページを表示
         return render_template(

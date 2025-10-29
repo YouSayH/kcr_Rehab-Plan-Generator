@@ -172,17 +172,17 @@ query_components:
   # (注意) DB構築時(build_components)と必ず同じEmbedderを使用してください。
   embedder:
     # 例1: ローカルモデル (デフォルト)ー＞今後のデフォルトはgemini
-    module: rag_components.embedders.sentence_transformer_embedder
-    class: SentenceTransformerEmbedder
-    params:
-      model_name: "cl-nagoya/ruri-v3-310m"
-      device: "auto"
+    # module: rag_components.embedders.sentence_transformer_embedder
+    # class: SentenceTransformerEmbedder
+    # params:
+    #   model_name: "cl-nagoya/ruri-v3-310m"
+    #   device: "auto"
 
     # 例2: Gemini API
-    # module: rag_components.embedders.gemini_embedder
-    # class: GeminiEmbedder
-    # params:
-    #   model_name: "gemini-embedding-001"
+    module: rag_components.embedders.gemini_embedder
+    class: GeminiEmbedder
+    params:
+      model_name: "gemini-embedding-001"
 
 
 
@@ -229,24 +229,29 @@ query_components:
   # [リランカー (Reranker)]
   # 検索結果をより高精度に並べ替えます。無効にする場合はセクションごとコメントアウト。
   reranker:
-    module: rag_components.rerankers.cross_encoder_reranker
-    class: CrossEncoderReranker
-    params:
-      model_name: "BAAI/bge-reranker-v2-m3"
+    # module: rag_components.rerankers.cross_encoder_reranker
+    # class: CrossEncoderReranker
+    # params:
+    #   model_name: "BAAI/bge-reranker-v2-m3"
 
+    module: rag_components.rerankers.gemini_embedding_reranker
+    class: GeminiEmbeddingReranker
+    params: {} # embedderは RAGExecutor によって自動的に注入される想定
 
 
   # [フィルタ (Filter)]
   # 検索結果のノイズを除去します。いずれか一つを有効化するか、セクションごとコメントアウトして無効化。
   filter:
-    - module: rag_components.filters.nli_filter
-      class: NLIFilter
-      params:
-        model_name: "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
+    # - module: rag_components.filters.nli_filter
+    #   class: NLIFilter
+    #   params:
+    #     model_name: "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
     # ↑例1: NLIFilter (自然言語推論による矛盾フィルタ)↑
 
-    # - module: rag_components.filters.self_reflective_filter
-    #   class: SelfReflectiveFilter
+    - module: rag_components.filters.self_reflective_filter
+      class: SelfReflectiveFilter
+      params:
+        batch_size: 10
     # ↑例2: SelfReflectiveFilter (LLMによる自己評価フィルタ)↑
 
 
