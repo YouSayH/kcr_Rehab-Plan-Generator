@@ -1,4 +1,3 @@
-# Rehab_RAG/rag_components/rerankers/gemini_embedding_reranker.py
 import numpy as np
 from ..embedders.gemini_embedder import GeminiEmbedder # Embedderをインポート
 

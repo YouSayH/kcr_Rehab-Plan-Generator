@@ -18,6 +18,8 @@ import logging
 from datetime import datetime
 from ragas.run_config import RunConfig
 import time
+import yaml
+from query_rag import RAGPipeline, load_active_pipeline_config
 
 # グローバル変数
 # このスクリプト(evaluate_rag.py)は'evaluation'フォルダにあるという前提で、プロジェクトのルートディレクトリを特定します。
@@ -28,6 +30,8 @@ load_dotenv(dotenv_path=dotenv_path)
 
 # プロジェクトルートをPythonのモジュール検索パスに追加し、他の自作モジュールをインポートできるようにします。
 sys.path.append(PROJECT_ROOT)
+# sys.path.insert(0, PROJECT_ROOT)
+
 
 
 def setup_logger(log_dir: str, experiment_name: str, limit: int = None):
@@ -57,36 +61,26 @@ def setup_logger(log_dir: str, experiment_name: str, limit: int = None):
     )
     return log_filepath
 
-def load_rag_pipeline_from_path(experiment_path: str):
-    """
-    指定された実験パスからRAGPipelineクラスとload_config関数を動的に読み込む。
-    これにより、評価スクリプトはどの実験パイプラインにも対応できます。
-    """
-    query_rag_path = os.path.join(PROJECT_ROOT, experiment_path, 'query_rag.py')
-    if not os.path.exists(query_rag_path):
-        raise FileNotFoundError(f"`query_rag.py` が見つかりません: {query_rag_path}")
-    spec = importlib.util.spec_from_file_location("query_rag", query_rag_path)
-    query_rag_module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(query_rag_module)
-    RAGPipeline = getattr(query_rag_module, 'RAGPipeline')
-    load_config = getattr(query_rag_module, 'load_config')
-    return RAGPipeline, load_config
+# def load_rag_pipeline_from_path(experiment_path: str):
+#     """
+#     指定された実験パスからRAGPipelineクラスとload_config関数を動的に読み込む。
+#     これにより、評価スクリプトはどの実験パイプラインにも対応できます。
+#     """
+#     query_rag_path = os.path.join(PROJECT_ROOT, experiment_path, 'query_rag.py')
+#     if not os.path.exists(query_rag_path):
+#         raise FileNotFoundError(f"`query_rag.py` が見つかりません: {query_rag_path}")
+#     spec = importlib.util.spec_from_file_location("query_rag", query_rag_path)
+#     query_rag_module = importlib.util.module_from_spec(spec)
+#     spec.loader.exec_module(query_rag_module)
+#     RAGPipeline = getattr(query_rag_module, 'RAGPipeline')
+#     load_config = getattr(query_rag_module, 'load_config')
+#     return RAGPipeline, load_config
 
-def run_evaluation(experiment_path: str, log_dir: str, limit: int = None):
+def run_evaluation(experiment_path: str, config: dict, log_dir: str, limit: int = None):
     """
     指定された実験パスのRAGパイプラインを評価するメインの関数。
     """
-    # 1. RAGパイプラインとテストデータセットの読み込み
-    try:
-        RAGPipeline, load_config = load_rag_pipeline_from_path(experiment_path)
-    except (FileNotFoundError, AttributeError) as e:
-        logging.error(f"エラー: RAGパイプラインの読み込みに失敗しました。パスが正しいか確認してください。")
-        logging.error(f"詳細: {e}")
-        sys.exit(1)
-
     logging.info("RAGパイプラインを初期化中...")
-    config_path = os.path.join(PROJECT_ROOT, experiment_path, 'config.yaml')
-    config = load_config(config_path)
     rag_pipeline = RAGPipeline(config)
     
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -140,7 +134,7 @@ def run_evaluation(experiment_path: str, log_dir: str, limit: int = None):
         # これにより、APIコールの「嵐」が発生するのを防ぎます。
         max_workers=1,
         # タイムアウトを長めに設定し、langchainライブラリの自動リトライが待機する時間を確保します。
-        timeout=300,
+        timeout=100,
         max_wait=600, 
     )
 
@@ -179,23 +173,31 @@ def run_evaluation(experiment_path: str, log_dir: str, limit: int = None):
 
 if __name__ == '__main__':
     # スクリプト実行時に渡される引数を解釈します。
-    parser = argparse.ArgumentParser(description="RAGパイプラインを評価するスクリプト")
-    parser.add_argument("experiment_path", type=str, help="評価対象の実験フォルダのパス (例: experiments/your_experiment)")
+    parser = argparse.ArgumentParser(description="`rag_config.yaml`で指定されたRAGパイプラインを評価するスクリプト")
     parser.add_argument("--limit", type=int, default=None, help="評価する質問の最大件数を指定します。 (例: --limit 3)")
     args = parser.parse_args()
     
+    try:
+        # load_active_pipeline_config を使って設定を読み込む
+        config = load_active_pipeline_config(os.path.join(PROJECT_ROOT, 'rag_config.yaml'))
+        # 読み込んだconfig情報から実験名とパスを復元
+        active_pipeline_name = os.path.basename(os.path.dirname(config['config_file_path']))
+        experiment_path = os.path.join('experiments', active_pipeline_name)
+    except (FileNotFoundError, ValueError) as e:
+        print(f"エラー: `rag_config.yaml` の読み込み、またはアクティブなパイプライン設定の解決に失敗しました。")
+        print(f"詳細: {e}")
+        sys.exit(1)
+
     # ログと結果を保存するためのディレクトリを定義し、存在しない場合は作成する
     script_dir = os.path.dirname(os.path.abspath(__file__))
     log_dir = os.path.join(script_dir, 'logs')
-    os.makedirs(log_dir, exist_ok=True) # exist_ok=Trueでフォルダが既に存在してもエラーにならない
+    os.makedirs(log_dir, exist_ok=True)
     
-    # 引数を解釈した「後」でロガーを設定することで、ファイル名に引数の情報を含めることができます。
-    experiment_name = os.path.basename(args.experiment_path)
-    # setup_loggerに新しいlog_dirを渡す
-    log_filepath = setup_logger(log_dir, experiment_name, args.limit)
+    # ロガー設定
+    log_filepath = setup_logger(log_dir, active_pipeline_name, args.limit)
 
     # ログに実行開始を記録
-    logging.info(f"--- '{args.experiment_path}' の評価を開始します ---")
+    logging.info(f"--- `rag_config.yaml` の設定に基づき、'{experiment_path}' の評価を開始します ---")
     logging.info(f"全ログは '{log_filepath}' に保存されます。")
     
     # .envファイルからAPIキーが読み込めているか最終チェック
@@ -206,4 +208,5 @@ if __name__ == '__main__':
         sys.exit(1)
         
     # run_evaluation関数に log_dir を渡す
-    run_evaluation(args.experiment_path, log_dir, args.limit)
+    # run_evaluation(args.experiment_path, log_dir, args.limit)
+    run_evaluation(experiment_path, config, log_dir, args.limit)

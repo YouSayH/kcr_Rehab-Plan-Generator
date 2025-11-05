@@ -29,8 +29,18 @@ class StructuredMarkdownChunker:
             list[dict]: チャンク情報の辞書(`id`, `text`, `metadata`)のリスト。
         """
         with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
+            full_content = f.read()
 
+        content = full_content # content 変数に一旦全体を入れる
+        # --- YAMLメタデータブロックの処理を追加 ---
+        if content.startswith('---'): # 先頭が '---' かチェック
+            parts = content.split('---', 2) # '---' で最大2回分割
+            if len(parts) >= 3: # 3つ以上の部分に分割できたら (--- メタデータ --- 本文)
+                # 最初の---と次の---の間がメタデータ、その次が本文
+                content = parts[2].strip() # parts[2] (本文部分) を content とする
+            else:
+                # --- が1つしかないなど、想定外の形式の場合は元のコンテンツを使用
+                content = full_content # 失敗したら元の全体を使う
         chunks = []
 
         # 章タイトル(# H1)を抽出し、メタデータとして利用する

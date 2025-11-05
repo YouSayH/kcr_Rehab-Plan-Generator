@@ -22,7 +22,7 @@ class GeminiEmbedder:
     - RAGのユースケースに合わせて `task_type` を指定することで、検索精度を最適化できる。
     """
 
-    def __init__(self, model_name: str = "gemini-embedding-001", batch_size: int = 32, requests_per_minute: int = 60):
+    def __init__(self, model_name: str = "gemini-embedding-001", batch_size: int = 32, requests_per_minute: int = 750):
         """
         コンストラクタ。Geminiクライアントを初期化し、レート制限設定を保存します。
         
