@@ -1,5 +1,5 @@
 -- =================================================================
--- リハビリテーション実施計画書 自動作成システム用データベーススキーマ
+-- リハビリテーション総合実施計画書 自動作成システム用データベーススキーマ
 -- =================================================================
 -- TODO あくまでもテスト用に作ったものなので、作り直す必要があります。
 
@@ -425,534 +425,10 @@ UPDATE `username` = `username`,
 
 
 
--- =================================================================
--- 1人目の患者: 田中 翔 (19歳 男性)
--- 疾患: 右膝前十字靭帯(ACL)損傷および内側半月板損傷術後
--- 背景: 大学のサッカー部活動中に受傷。競技復帰を強く希望している。
--- =================================================================
--- 1. 患者情報の登録
-INSERT INTO patients (
-        `patient_id`,
-        `name`,
-        `date_of_birth`,
-        `gender`
-    )
-VALUES (
-        1,
-        '田中 翔',
-        '2006-04-10',
-        '男'
-    );
--- 2. 担当職員の関連付け (山田さんと佐藤さんが担当)
-INSERT INTO staff_patients (`staff_id`, `patient_id`)
-VALUES (1, 1),
-    (2, 1);
--- 3. リハビリテーション計画書の登録
-INSERT INTO rehabilitation_plans (
-        `plan_id`,
-        `patient_id`,
-        `created_by_staff_id`,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        `header_evaluation_date`,
-        `header_disease_name_txt`,
-        `header_onset_date`,
-        `header_rehab_start_date`,
-        `header_therapy_pt_chk`,
-        `header_therapy_ot_chk`,
-        `header_therapy_st_chk`,
-        -- 併存疾患・リスク・特記事項
-        `main_risks_txt`,
-        `main_contraindications_txt`,
-        -- 心身機能・構造
-        `func_pain_chk`,
-        `func_pain_txt`,
-        `func_rom_limitation_chk`,
-        `func_rom_limitation_txt`,
-        `func_muscle_weakness_chk`,
-        `func_muscle_weakness_txt`,
-        `func_nutritional_disorder_chk`,
-        `func_nutritional_disorder_txt`,
-        -- ADL (FIM/BI) - 術後早期のため移動・セルフケア能力が低下
-        `adl_eating_fim_start_val`,
-        `adl_eating_fim_current_val`,
-        `adl_grooming_fim_start_val`,
-        `adl_grooming_fim_current_val`,
-        `adl_bathing_fim_start_val`,
-        `adl_bathing_fim_current_val`,
-        `adl_dressing_upper_fim_start_val`,
-        `adl_dressing_upper_fim_current_val`,
-        `adl_dressing_lower_fim_start_val`,
-        `adl_dressing_lower_fim_current_val`,
-        `adl_toileting_fim_start_val`,
-        `adl_toileting_fim_current_val`,
-        `adl_bladder_management_fim_start_val`,
-        `adl_bladder_management_fim_current_val`,
-        `adl_bowel_management_fim_start_val`,
-        `adl_bowel_management_fim_current_val`,
-        `adl_transfer_bed_chair_wc_fim_start_val`,
-        `adl_transfer_bed_chair_wc_fim_current_val`,
-        `adl_transfer_toilet_fim_start_val`,
-        `adl_transfer_toilet_fim_current_val`,
-        `adl_transfer_tub_shower_fim_start_val`,
-        `adl_transfer_tub_shower_fim_current_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_start_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_current_val`,
-        `adl_locomotion_stairs_fim_start_val`,
-        `adl_locomotion_stairs_fim_current_val`,
-        `adl_comprehension_fim_start_val`,
-        `adl_comprehension_fim_current_val`,
-        `adl_expression_fim_start_val`,
-        `adl_expression_fim_current_val`,
-        `adl_social_interaction_fim_start_val`,
-        `adl_social_interaction_fim_current_val`,
-        `adl_problem_solving_fim_start_val`,
-        `adl_problem_solving_fim_current_val`,
-        `adl_memory_fim_start_val`,
-        `adl_memory_fim_current_val`,
-        `adl_equipment_and_assistance_details_txt`,
-        -- 栄養
-        `nutrition_height_chk`,
-        `nutrition_height_val`,
-        `nutrition_weight_chk`,
-        `nutrition_weight_val`,
-        `nutrition_bmi_chk`,
-        `nutrition_bmi_val`,
-        `nutrition_method_oral_chk`,
-        `nutrition_method_oral_meal_chk`,
-        -- 目標・方針・署名
-        `goals_1_month_txt`,
-        `goals_at_discharge_txt`,
-        `goals_discharge_destination_chk`,
-        `goals_discharge_destination_txt`,
-        `policy_treatment_txt`,
-        `policy_content_txt`,
-        `signature_rehab_doctor_txt`,
-        `signature_pt_txt`,
-        `signature_ot_txt`,
-        `signature_explanation_date`,
-        `signature_explainer_txt`,
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        `goal_p_residence_chk`,
-        `goal_p_residence_slct`,
-        `goal_p_schooling_chk`,
-        `goal_p_schooling_status_needs_consideration_chk`,
-        `goal_p_hobby_chk`,
-        `goal_p_hobby_txt`,
-        -- 目標(活動)
-        `goal_a_indoor_mobility_chk`,
-        `goal_a_indoor_mobility_assistance_chk`,
-        `goal_a_indoor_mobility_equipment_chk`,
-        `goal_a_indoor_mobility_equipment_txt`,
-        `goal_a_outdoor_mobility_chk`,
-        `goal_a_outdoor_mobility_assistance_chk`,
-        `goal_a_bathing_chk`,
-        `goal_a_bathing_assistance_chk`,
-        `goal_a_bathing_type_shower_chk`,
-        `goal_a_bathing_assistance_transfer_chk`,
-        `goal_a_public_transport_chk`,
-        `goal_a_public_transport_assistance_chk`,
-        -- 具体的な対応方針
-        `goal_p_action_plan_txt`,
-        `goal_a_action_plan_txt`,
-        `goal_s_env_action_plan_txt`
-    )
-VALUES (
-        1,
-        1,
-        1,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        '2025-10-04',
-        '右膝前十字靭帯(ACL)損傷、内側半月板損傷術後',
-        '2025-09-15',
-        '2025-09-22',
-        TRUE,
-        TRUE,
-        FALSE,
-        -- 併存疾患・リスク・特記事項
-        '術後創部の感染リスク。体重免荷制限の遵守が必要。無理な可動域訓練による再断裂リスク。',
-        '術後6週までは医師の指示なく右下肢への荷重は禁忌。',
-        -- 心身機能・構造
-        TRUE,
-        '右膝の術後痛および運動時痛あり。NRS 4/10。鎮痛薬でコントロール中。',
-        TRUE,
-        '右膝関節の可動域制限あり。評価時屈曲100度、伸展-5度。',
-        TRUE,
-        '右大腿四頭筋を中心に右下肢全体の筋力低下が著明 (MMT 3レベル)。',
-        TRUE,
-        '軽度の鉄欠乏性貧血の既往あり。食事指導にて経過観察中。',
-        -- ADL (FIM/BI)
-        7,
-        7,
-        -- 整容
-        7,
-        7,
-        -- 清拭
-        4,
-        5,
-        -- 更衣(上半身)
-        7,
-        7,
-        -- 更衣(下半身)
-        4,
-        5,
-        -- トイレ動作
-        5,
-        6,
-        -- 排尿管理
-        7,
-        7,
-        -- 排便管理
-        7,
-        7,
-        -- 移乗(ベッド・椅子・車椅子)
-        5,
-        6,
-        -- 移乗(トイレ)
-        5,
-        6,
-        -- 移乗(風呂)
-        3,
-        4,
-        -- 移動(歩行・車椅子)
-        2,
-        3,
-        -- 階段
-        1,
-        1,
-        -- 理解
-        7,
-        7,
-        -- 表出
-        7,
-        7,
-        -- 社会的交流
-        7,
-        7,
-        -- 問題解決
-        7,
-        7,
-        -- 記憶
-        7,
-        7,
-        '移動は松葉杖を使用し右下肢完全免荷。入浴にはシャワーチェア、滑り止めマットを使用。',
-        -- 栄養
-        TRUE,
-        175.0,
-        TRUE,
-        65.0,
-        TRUE,
-        21.2,
-        TRUE,
-        TRUE,
-        -- 目標・方針・署名
-        '松葉杖を用いた監視下での病棟内移動が自立する。右膝関節可動域が屈曲120度、伸展0度まで改善する。',
-        '杖なしでの屋外歩行が自立し、ジョギングが可能なレベルまで筋力・機能が回復する。大学への復学とサッカー部への段階的復帰。',
-        TRUE,
-        '自宅（一人暮らしのアパート）',
-        '医師の術後リハビリテーションプロトコルを遵守し、段階的に関節可動域、筋力、荷重の負荷を高めていく。物理療法（アイシング、電気刺激）を併用し、疼痛管理と機能回復を促進する。',
-        '【理学療法】: 関節可動域訓練(他動・自動)、大腿四頭筋セッティング、SLR、下肢筋力強化訓練(非荷重下)。\n【作業療法】: 松葉杖でのADL（入浴、更衣、トイレ）動作指導、家屋環境を想定した動作練習。',
-        '鈴木 一郎',
-        '山田 太郎',
-        '佐藤 花子',
-        '2025-10-04',
-        '山田 太郎',
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        TRUE,
-        '自宅',
-        TRUE,
-        TRUE,
-        TRUE,
-        '大学のサッカー部活動への完全復帰。レギュラーとして試合に出場する。',
-        -- 目標(活動)
-        TRUE,
-        TRUE,
-        TRUE,
-        '松葉杖',
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        -- 具体的な対応方針
-        '退院後の通学方法（公共交通機関の利用）やオンライン授業の活用についてソーシャルワーカーと連携し検討する。競技復帰に向けた心理的サポートも考慮する。',
-        '段階的な荷重練習（部分荷重→全荷重）と歩行訓練（平行棒内→松葉杖→独歩）を実施。自主トレーニングメニューを指導し、病棟での実践を促す。',
-        '退院後の生活（特に家事動作）を想定し、自助具の検討や動作方法の工夫を指導する。'
-    );
 
 
 -- =================================================================
--- 2人目の患者: 鈴木 美咲 (35歳 女性)
--- 疾患: 頚椎症性脊髄症術後
--- 背景: Webデザイナー。長年のデスクワークが影響。両手の痺れと歩行障害で手術。
---       合併症として2型糖尿病があり、食事・運動療法も並行している。
--- =================================================================
--- 1. 患者情報の登録
-INSERT INTO patients (
-        `patient_id`,
-        `name`,
-        `date_of_birth`,
-        `gender`
-    )
-VALUES (
-        2,
-        '鈴木 美咲',
-        '1990-07-20',
-        '女'
-    );
--- 2. 担当職員の関連付け (山田さんと佐藤さんが担当)
-INSERT INTO staff_patients (`staff_id`, `patient_id`)
-VALUES (1, 2),
-    (2, 2);
--- 3. リハビリテーション計画書の登録
-INSERT INTO rehabilitation_plans (
-        `plan_id`,
-        `patient_id`,
-        `created_by_staff_id`,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        `header_evaluation_date`,
-        `header_disease_name_txt`,
-        `header_onset_date`,
-        `header_rehab_start_date`,
-        `header_therapy_pt_chk`,
-        `header_therapy_ot_chk`,
-        `header_therapy_st_chk`,
-        -- 併存疾患・リスク・特記事項
-        `main_comorbidities_txt`,
-        `main_risks_txt`,
-        `main_contraindications_txt`,
-        -- 心身機能・構造
-        `func_risk_factors_chk`,
-        `func_risk_diabetes_chk`,
-        `func_pain_chk`,
-        `func_pain_txt`,
-        `func_muscle_weakness_chk`,
-        `func_muscle_weakness_txt`,
-        `func_motor_dysfunction_chk`,
-        `func_motor_paralysis_chk`,
-        `func_motor_ataxia_chk`,
-        `func_sensory_dysfunction_chk`,
-        `func_sensory_superficial_chk`,
-        `func_sensory_deep_chk`,
-        `func_basic_standing_balance_chk`,
-        `func_basic_standing_balance_partial_assistance_chk`,
-        -- ADL (FIM/BI) - 手指の巧緻性低下と歩行の不安定性により全体的に低下
-        `adl_eating_fim_start_val`,
-        `adl_eating_fim_current_val`,
-        `adl_grooming_fim_start_val`,
-        `adl_grooming_fim_current_val`,
-        `adl_bathing_fim_start_val`,
-        `adl_bathing_fim_current_val`,
-        `adl_dressing_upper_fim_start_val`,
-        `adl_dressing_upper_fim_current_val`,
-        `adl_dressing_lower_fim_start_val`,
-        `adl_dressing_lower_fim_current_val`,
-        `adl_toileting_fim_start_val`,
-        `adl_toileting_fim_current_val`,
-        `adl_bladder_management_fim_start_val`,
-        `adl_bladder_management_fim_current_val`,
-        `adl_bowel_management_fim_start_val`,
-        `adl_bowel_management_fim_current_val`,
-        `adl_transfer_bed_chair_wc_fim_start_val`,
-        `adl_transfer_bed_chair_wc_fim_current_val`,
-        `adl_transfer_toilet_fim_start_val`,
-        `adl_transfer_toilet_fim_current_val`,
-        `adl_transfer_tub_shower_fim_start_val`,
-        `adl_transfer_tub_shower_fim_current_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_start_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_current_val`,
-        `adl_locomotion_stairs_fim_start_val`,
-        `adl_locomotion_stairs_fim_current_val`,
-        `adl_comprehension_fim_start_val`,
-        `adl_comprehension_fim_current_val`,
-        `adl_expression_fim_start_val`,
-        `adl_expression_fim_current_val`,
-        `adl_equipment_and_assistance_details_txt`,
-        -- 栄養
-        `nutrition_height_chk`,
-        `nutrition_height_val`,
-        `nutrition_weight_chk`,
-        `nutrition_weight_val`,
-        `nutrition_bmi_chk`,
-        `nutrition_bmi_val`,
-        `nutrition_method_oral_chk`,
-        `nutrition_method_oral_meal_chk`,
-        `nutrition_required_energy_val`,
-        `nutrition_required_protein_val`,
-        -- 目標・方針・署名
-        `goals_1_month_txt`,
-        `goals_at_discharge_txt`,
-        `goals_discharge_destination_chk`,
-        `goals_discharge_destination_txt`,
-        `policy_treatment_txt`,
-        `policy_content_txt`,
-        `signature_rehab_doctor_txt`,
-        `signature_pt_txt`,
-        `signature_ot_txt`,
-        `signature_explanation_date`,
-        `signature_explainer_txt`,
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        `goal_p_residence_chk`,
-        `goal_p_residence_slct`,
-        `goal_p_return_to_work_chk`,
-        `goal_p_return_to_work_status_slct`,
-        `goal_p_hobby_chk`,
-        `goal_p_hobby_txt`,
-        -- 目標(活動)
-        `goal_a_writing_chk`,
-        `goal_a_writing_other_chk`,
-        `goal_a_writing_other_txt`,
-        `goal_a_ict_chk`,
-        `goal_a_ict_assistance_chk`,
-        `goal_a_housework_meal_chk`,
-        `goal_a_housework_meal_partial_chk`,
-        `goal_a_housework_meal_partial_txt`,
-        -- 対応を要する項目
-        `goal_s_env_assistive_device_chk`,
-        `goal_s_env_assistive_device_txt`,
-        -- 具体的な対応方針
-        `goal_p_action_plan_txt`,
-        `goal_a_action_plan_txt`,
-        `goal_s_env_action_plan_txt`
-    )
-VALUES (
-        2,
-        2,
-        2,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        '2025-10-04',
-        '頚椎症性脊髄症術後',
-        '2025-09-20',
-        '2025-09-25',
-        TRUE,
-        TRUE,
-        FALSE,
-        -- 併存疾患・リスク・特記事項
-        '2型糖尿病（血糖コントロールは経口薬で良好）、片頭痛',
-        '術後合併症（深部静脈血栓症）。血糖値の変動に注意。頚部の過度な伸展・屈曲は避ける。',
-        '頚椎カラーを常時装着。医師の許可なく外さないこと。',
-        -- 心身機能・構造
-        TRUE,
-        TRUE,
-        TRUE,
-        '頚部痛および両上肢のしびれ感。特に右手指先に強い。NRS 5/10。',
-        TRUE,
-        '両上肢、特に手指の巧緻運動に関わる内在筋の筋力低下あり (MMT 4-レベル)。',
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        -- ADL (FIM/BI)
-        5,
-        6,
-        -- 整容
-        5,
-        5,
-        -- 清拭
-        5,
-        5,
-        -- 更衣(上半身)
-        4,
-        5,
-        -- 更衣(下半身)
-        5,
-        6,
-        -- トイレ動作
-        5,
-        6,
-        -- 排尿管理
-        7,
-        7,
-        -- 排便管理
-        7,
-        7,
-        -- 移乗(ベッド・椅子・車椅子)
-        6,
-        6,
-        -- 移乗(トイレ)
-        6,
-        6,
-        -- 移乗(風呂)
-        5,
-        5,
-        -- 移動(歩行・車椅子)
-        4,
-        5,
-        -- 階段
-        2,
-        3,
-        -- 理解
-        7,
-        7,
-        -- 表出
-        7,
-        7,
-        '歩行は監視下で自立も、ふらつきあり。食事は柄付きのスプーン・フォークを使用。更衣はボタンエイド等の自助具を検討中。',
-        -- 栄養
-        TRUE,
-        160.0,
-        TRUE,
-        58.0,
-        TRUE,
-        22.7,
-        TRUE,
-        TRUE,
-        1600,
-        60,
-        -- 目標・方針・署名
-        '屋内でのT字杖歩行が安定する。手指巧緻性の改善（ペグボードで30秒→45秒）。簡単な調理（野菜を切るなど）が監視下で可能となる。',
-        '杖なしでの屋外歩行が安定し、公共交通機関を利用して安全に通勤できる。PCのキーボード・マウス操作が実用レベルまで回復し、デスクワークへ復帰する。',
-        TRUE,
-        '自宅（夫と二人暮らし）',
-        '頚椎への負担を避けた体幹・四肢の機能訓練を中心に進める。糖尿病内科と連携し、運動療法中の血糖管理に注意する。職場復帰に向け、産業医や会社担当者との連携も視野に入れる。',
-        '【理学療法】: バランス訓練、歩行訓練（姿勢矯正、不整地歩行）、下肢筋力強化、全身持久力訓練。\n【作業療法】: 手指巧緻動作訓練（ペグ、粘土、書字）、ADL指導（自助具の選定・使用訓練）、PC操作の再獲得訓練。',
-        '鈴木 一郎',
-        '山田 太郎',
-        '佐藤 花子',
-        '2025-10-04',
-        '佐藤 花子',
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        TRUE,
-        '自宅',
-        TRUE,
-        '休職中',
-        TRUE,
-        'お菓子作り、観葉植物の世話',
-        -- 目標(活動)
-        TRUE,
-        TRUE,
-        '手指の痺れにより文字が乱れるため、改善が必要。',
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        '包丁操作など、細かい作業に一部介助・監視を要する。',
-        -- 対応を要する項目
-        TRUE,
-        'PC作業用のリストレスト、キーボードの種類変更、太柄の調理器具などを検討。',
-        -- 具体的な対応方針
-        '復職に向け、仕事内容（作業時間、休憩の取り方）について会社側と調整が必要。そのための情報提供や面談設定をMSWと連携して行う。',
-        '手指巧緻性改善のため、趣味のお菓子作りや植物の世話を課題として取り入れ、意欲の向上を図る。調理やPC操作など具体的な場面を想定した訓練を強化する。',
-        '身体機能の回復に合わせて、職場環境（机、椅子、PC周辺）の調整を提案する。'
-    );
-
-
--- =================================================================
--- 3人目の患者: 佐藤 健一 (68歳 男性)
+-- 1人目の患者: 佐藤 健一 (68歳 男性)
 -- 疾患: 左変形性股関節症による人工股関節全置換術後
 -- 背景: 趣味のゴルフと旅行に意欲的。骨粗鬆症と高血圧の既往あり。
 -- =================================================================
@@ -964,18 +440,17 @@ INSERT INTO patients (
         `gender`
     )
 VALUES (
-        3,
+        1,
         '佐藤 健一',
         '1957-11-05',
         '男'
     );
 -- 2. 担当職員の関連付け (山田さんと佐藤さんが担当)
 INSERT INTO staff_patients (`staff_id`, `patient_id`)
-VALUES (1, 3),
-    (2, 3);
+VALUES (1, 1),
+    (2, 1);
 -- 3. リハビリテーション計画書の登録
 INSERT INTO rehabilitation_plans (
-        `plan_id`,
         `patient_id`,
         `created_by_staff_id`,
         -- 【1枚目】----------------------------------------------------
@@ -1100,8 +575,7 @@ INSERT INTO rehabilitation_plans (
         `goal_s_3rd_party_action_plan_txt`
     )
 VALUES (
-        3,
-        3,
+        1,
         1,
         -- 【1枚目】----------------------------------------------------
         -- ヘッダー・基本情報
@@ -1195,11 +669,11 @@ VALUES (
         '自宅（妻と二人暮らし）',
         NULL,
         '【理学療法】: 股関節周囲筋力強化、バランス訓練、歩行訓練（歩行器→T字杖）、階段昇降訓練。\n【作業療法】: ADL指導（更衣、入浴、トイレ動作の工夫、自助具の活用）、家事動作訓練（調理、洗濯）、高所作業やかがむ動作の練習。',
-        '田中 次郎',
-        '山田 太郎',
-        '佐藤 花子',
+        '',
+        '',
+        '',
         '2025-10-04',
-        '山田 太郎',
+        '',
         -- 【2枚目】----------------------------------------------------
         -- 目標(参加)
         TRUE,
@@ -1239,1057 +713,536 @@ VALUES (
         NULL
     );
 
-
 -- =================================================================
--- 4人目の患者: 高橋 芳子 (75歳 女性)
--- 疾患: 腰部脊柱管狭窄症（L4/5）術後
--- 背景: 術前の間欠性跛行、両下肢の痺れが改善。しかし、下肢筋力低下と
---       バランス能力低下が残存し、転倒への恐怖心がある。
---       高血圧、脂質異常症で内服治療中。物忘れを自覚している。
+-- 新規患者: 渡辺 明子 (70歳 女性)
+-- 疾患: 右変形性膝関節症による人工膝関節全置換術後
+-- 背景: 畑仕事が好きだが、膝の痛みで困難になっていた。術後は再び畑仕事を楽しみたいと希望。
+--       高血圧、脂質異常症の既往あり。
 -- =================================================================
 -- 1. 患者情報の登録
 INSERT INTO patients (
-        `patient_id`,
-        `name`,
-        `date_of_birth`,
-        `gender`
-    )
+    `patient_id`,
+    `name`,
+    `date_of_birth`,
+    `gender`
+)
 VALUES (
-        4,
-        '高橋 芳子',
-        '1950-02-15',
-        '女'
-    );
+    2,                 -- 次の利用可能なIDを指定（例として8）
+    '渡辺 明子',
+    '1955-03-15',      -- 70歳になる生年月日
+    '女'
+);
+-- 2. 担当職員の関連付け (山田さんと佐藤さんが担当)
+INSERT INTO staff_patients (`staff_id`, `patient_id`)
+VALUES (1, 2),
+       (2, 2);
+-- 3. リハビリテーション計画書（事実情報のみ）の登録
+INSERT INTO rehabilitation_plans (
+    `plan_id`,                     -- 自動採番されるため指定しない
+    `patient_id`,
+    `created_by_staff_id`,
+    -- 【1枚目】----------------------------------------------------
+    -- ヘッダー・基本情報
+    `header_evaluation_date`,
+    `header_disease_name_txt`,
+    `header_onset_date`,           -- 手術日
+    `header_rehab_start_date`,
+    `header_therapy_pt_chk`,
+    `header_therapy_ot_chk`,
+    `header_therapy_st_chk`,
+    -- 併存疾患・リスク・特記事項
+    `main_comorbidities_txt`,
+    `main_risks_txt`,              -- AI生成のためNULL
+    `main_contraindications_txt`,  -- AI生成のためNULL
+    -- 心身機能・構造
+    `func_risk_factors_chk`,
+    `func_risk_hypertension_chk`,
+    `func_risk_dyslipidemia_chk`,
+    `func_pain_chk`,
+    `func_pain_txt`,
+    `func_rom_limitation_chk`,
+    `func_rom_limitation_txt`,
+    `func_muscle_weakness_chk`,
+    `func_muscle_weakness_txt`,
+    `func_basic_standing_balance_chk`,
+    `func_basic_standing_balance_partial_assistance_chk`,
+    -- ADL (FIM/BI) - 術後早期
+    `adl_eating_fim_start_val`, `adl_eating_fim_current_val`, `adl_eating_bi_start_val`, `adl_eating_bi_current_val`,
+    `adl_grooming_fim_start_val`, `adl_grooming_fim_current_val`, `adl_grooming_bi_start_val`, `adl_grooming_bi_current_val`,
+    `adl_bathing_fim_start_val`, `adl_bathing_fim_current_val`, `adl_bathing_bi_start_val`, `adl_bathing_bi_current_val`,
+    `adl_dressing_upper_fim_start_val`, `adl_dressing_upper_fim_current_val`,
+    `adl_dressing_lower_fim_start_val`, `adl_dressing_lower_fim_current_val`, `adl_dressing_bi_start_val`, `adl_dressing_bi_current_val`,
+    `adl_toileting_fim_start_val`, `adl_toileting_fim_current_val`, `adl_toileting_bi_start_val`, `adl_toileting_bi_current_val`,
+    `adl_bladder_management_fim_start_val`, `adl_bladder_management_fim_current_val`, `adl_bladder_management_bi_start_val`, `adl_bladder_management_bi_current_val`,
+    `adl_bowel_management_fim_start_val`, `adl_bowel_management_fim_current_val`, `adl_bowel_management_bi_start_val`, `adl_bowel_management_bi_current_val`,
+    `adl_transfer_bed_chair_wc_fim_start_val`, `adl_transfer_bed_chair_wc_fim_current_val`,
+    `adl_transfer_toilet_fim_start_val`, `adl_transfer_toilet_fim_current_val`,
+    `adl_transfer_tub_shower_fim_start_val`, `adl_transfer_tub_shower_fim_current_val`, `adl_transfer_bi_start_val`, `adl_transfer_bi_current_val`,
+    `adl_locomotion_walk_walkingAids_wc_fim_start_val`, `adl_locomotion_walk_walkingAids_wc_fim_current_val`, `adl_locomotion_walk_walkingAids_wc_bi_start_val`, `adl_locomotion_walk_walkingAids_wc_bi_current_val`,
+    `adl_locomotion_stairs_fim_start_val`, `adl_locomotion_stairs_fim_current_val`, `adl_locomotion_stairs_bi_start_val`, `adl_locomotion_stairs_bi_current_val`,
+    `adl_comprehension_fim_start_val`, `adl_comprehension_fim_current_val`,
+    `adl_expression_fim_start_val`, `adl_expression_fim_current_val`,
+    `adl_social_interaction_fim_start_val`, `adl_social_interaction_fim_current_val`,
+    `adl_problem_solving_fim_start_val`, `adl_problem_solving_fim_current_val`,
+    `adl_memory_fim_start_val`, `adl_memory_fim_current_val`,
+    `adl_equipment_and_assistance_details_txt`, -- AI生成のためNULL
+    -- 栄養
+    `nutrition_height_chk`, `nutrition_height_val`,
+    `nutrition_weight_chk`, `nutrition_weight_val`,
+    `nutrition_bmi_chk`, `nutrition_bmi_val`,
+    `nutrition_method_oral_chk`, `nutrition_method_oral_meal_chk`,
+    -- 社会保障サービス
+    `social_care_level_status_chk`, `social_care_level_care_slct`, `social_care_level_care_num2_slct`,
+    -- 目標・方針・署名
+    `goals_1_month_txt`,           -- AI生成のためNULL
+    `goals_at_discharge_txt`,      -- AI生成のためNULL
+    `goals_discharge_destination_chk`, `goals_discharge_destination_txt`,
+    `policy_treatment_txt`,        -- AI生成のためNULL
+    `policy_content_txt`,          -- AI生成のためNULL
+    `signature_rehab_doctor_txt`, `signature_pt_txt`, `signature_ot_txt`, `signature_explanation_date`, `signature_explainer_txt`,
+    -- 【2枚目】----------------------------------------------------
+    -- 目標(参加)
+    `goal_p_residence_chk`, `goal_p_residence_slct`,
+    `goal_p_social_activity_chk`, `goal_p_social_activity_txt`,
+    `goal_p_hobby_chk`, `goal_p_hobby_txt`,
+    -- 目標(活動)
+    `goal_a_indoor_mobility_chk`, `goal_a_indoor_mobility_assistance_chk`, `goal_a_indoor_mobility_equipment_chk`, `goal_a_indoor_mobility_equipment_txt`,
+    `goal_a_outdoor_mobility_chk`, `goal_a_outdoor_mobility_assistance_chk`, `goal_a_outdoor_mobility_equipment_chk`, `goal_a_outdoor_mobility_equipment_txt`,
+    `goal_a_bathing_chk`, `goal_a_bathing_assistance_chk`, `goal_a_bathing_type_shower_chk`,
+    `goal_a_housework_meal_chk`, `goal_a_housework_meal_partial_chk`, `goal_a_housework_meal_partial_txt`,
+    -- 対応を要する項目
+    `goal_s_env_home_modification_chk`, `goal_s_env_home_modification_txt`,
+    `goal_s_env_assistive_device_chk`, `goal_s_env_assistive_device_txt`,
+    `goal_s_env_care_insurance_chk`, `goal_s_env_care_insurance_details_txt`, `goal_s_env_care_insurance_home_rehab_chk`, `goal_s_env_care_insurance_day_care_chk`,
+    `goal_s_3rd_party_main_caregiver_chk`, `goal_s_3rd_party_main_caregiver_txt`,
+    -- 具体的な対応方針
+    `goal_p_action_plan_txt`,      -- AI生成のためNULL
+    `goal_a_action_plan_txt`,      -- AI生成のためNULL
+    `goal_s_env_action_plan_txt`,  -- AI生成のためNULL
+    `goal_s_3rd_party_action_plan_txt` -- AI生成のためNULL
+)
+VALUES (
+    NULL, -- plan_id は自動採番
+    2,    -- patient_id
+    1,    -- created_by_staff_id (例: yamadaさん)
+    -- 【1枚目】----------------------------------------------------
+    -- ヘッダー・基本情報
+    '2025-10-29',                                    -- 計画評価実施日
+    '右変形性膝関節症による人工膝関節全置換術後',          -- 算定病名
+    '2025-10-15',                                    -- 手術日
+    '2025-10-16',                                    -- リハ開始日
+    TRUE, TRUE, FALSE,                               -- PT, OT, ST
+    -- 併存疾患・リスク・特記事項
+    '高血圧症、脂質異常症（いずれも内服コントロール中）', -- 併存疾患
+    NULL,                                            -- リスク (AI生成)
+    NULL,                                            -- 禁忌 (AI生成)
+    -- 心身機能・構造
+    TRUE, TRUE, TRUE,                                -- 危険因子, 高血圧, 脂質異常症
+    TRUE, '右膝術創部周囲の疼痛および運動時痛あり。NRS 6/10。鎮痛薬使用中。', -- 疼痛
+    TRUE, '右膝関節ROM 屈曲90度、伸展-5度。',          -- ROM制限
+    TRUE, '右大腿四頭筋を中心に右下肢筋力低下（MMT 3レベル）。', -- 筋力低下
+    TRUE, TRUE,                                      -- 立位保持チェック, 一部介助
+    -- ADL (FIM/BI) - 術後早期
+    7, 7, 10, 10,  -- 食事
+    5, 5, 5, 5,    -- 整容
+    2, 3, 0, 0,    -- 入浴
+    6, 6,          -- 更衣(上)
+    3, 4, 5, 5,    -- 更衣(下), 更衣(BI)
+    4, 5, 5, 5,    -- トイレ動作
+    7, 7, 10, 10,  -- 排尿管理
+    7, 7, 10, 10,  -- 排便管理
+    3, 4,          -- 移乗(ベッド)
+    3, 4,          -- 移乗(トイレ)
+    1, 2, 5, 5,    -- 移乗(浴槽), 移乗(BI)
+    2, 3, 5, 5,    -- 移動(歩行/車椅子)
+    1, 1, 0, 0,    -- 階段
+    7, 7,          -- 理解
+    7, 7,          -- 表出
+    7, 7,          -- 社会的交流
+    6, 6,          -- 問題解決
+    7, 7,          -- 記憶
+    NULL,          -- 使用用具・介助内容 (AI生成)
+    -- 栄養
+    TRUE, 155.0, TRUE, 58.0, TRUE, 24.2, TRUE, TRUE, -- 身長, 体重, BMI, 経口, 食事
+    -- 社会保障サービス
+    TRUE, TRUE, TRUE,                                -- 介護保険状況, 要介護, 要介護2
+    -- 目標・方針・署名
+    NULL, NULL,                                      -- 短期目標, 長期目標 (AI生成)
+    TRUE, '自宅（長男夫婦と同居）',                    -- 退院先
+    NULL, NULL,                                      -- 治療方針, 治療内容 (AI生成)
+    '医師A', '理学療法士B', '作業療法士C', '2025-10-29', '理学療法士B', -- 署名
+    -- 【2枚目】----------------------------------------------------
+    -- 目標(参加)
+    TRUE, 'home_detached',                           -- 住居場所(自宅戸建)
+    TRUE, '近所の友人との交流、地域の老人会活動への参加。', -- 社会活動
+    TRUE, '畑仕事（野菜作り）、編み物',                -- 趣味
+    -- 目標(活動)
+    TRUE, TRUE, TRUE, '歩行器',                      -- 屋内移動
+    TRUE, TRUE, TRUE, 'シルバーカー',                   -- 屋外移動
+    TRUE, TRUE, TRUE,                                -- 入浴
+    TRUE, TRUE, '簡単な調理（野菜洗い、米とぎ）、洗濯物たたみ', -- 家事
+    -- 対応を要する項目
+    TRUE, '自宅玄関の段差解消、浴室・トイレへの手すり設置。', -- 住宅改修
+    TRUE, '歩行器、シルバーカー、シャワーチェア、補高便座。', -- 福祉機器
+    TRUE, '要介護2認定済み。', TRUE, TRUE,             -- 介護保険, 訪問リハ, デイケア
+    TRUE, '長男の妻（日中の見守り、家事援助）',          -- 主介護者
+    -- 具体的な対応方針
+    NULL, NULL, NULL, NULL                           -- (AI生成)
+);
+
+
+-- =================================================================
+-- 新規患者: 伊藤 良子 (75歳 女性)
+-- 疾患: 左変形性股関節症による人工股関節全置換術後
+-- 背景: 以前は活発にゲートボールを楽しんでいたが、股関節痛のため断念。術後は再びゲートボール仲間と交流したいと希望。
+--       心房細動、骨粗鬆症の既往あり。
+-- =================================================================
+-- 1. 患者情報の登録
+INSERT INTO patients (
+    `patient_id`,
+    `name`,
+    `date_of_birth`,
+    `gender`
+)
+VALUES (
+    3,                 -- 次の利用可能なIDを指定
+    '伊藤 良子',
+    '1950-10-29',      -- 75歳になる生年月日
+    '女'
+);
+-- 2. 担当職員の関連付け (山田さんと佐藤さんが担当)
+INSERT INTO staff_patients (`staff_id`, `patient_id`)
+VALUES (1, 3),
+       (2, 3);
+-- 3. リハビリテーション計画書（事実情報のみ）の登録
+INSERT INTO rehabilitation_plans (
+    `plan_id`,                     -- 自動採番されるため指定しない
+    `patient_id`,
+    `created_by_staff_id`,
+    -- 【1枚目】----------------------------------------------------
+    -- ヘッダー・基本情報
+    `header_evaluation_date`,
+    `header_disease_name_txt`,
+    `header_onset_date`,           -- 手術日
+    `header_rehab_start_date`,
+    `header_therapy_pt_chk`,
+    `header_therapy_ot_chk`,
+    `header_therapy_st_chk`,
+    -- 併存疾患・リスク・特記事項
+    `main_comorbidities_txt`,
+    `main_risks_txt`,              -- AI生成のためNULL
+    `main_contraindications_txt`,  -- AI生成のためNULL
+    -- 心身機能・構造
+    `func_circulatory_disorder_chk`, `func_circulatory_arrhythmia_chk`, `func_circulatory_arrhythmia_status_slct`, -- 心房細動
+    `func_pain_chk`,
+    `func_pain_txt`,
+    `func_rom_limitation_chk`,
+    `func_rom_limitation_txt`,
+    `func_muscle_weakness_chk`,
+    `func_muscle_weakness_txt`,
+    `func_basic_standing_balance_chk`,
+    `func_basic_standing_balance_assistance_chk`, -- バランスは介助レベル
+    -- ADL (FIM/BI) - 術後早期
+    `adl_eating_fim_start_val`, `adl_eating_fim_current_val`, `adl_eating_bi_start_val`, `adl_eating_bi_current_val`,
+    `adl_grooming_fim_start_val`, `adl_grooming_fim_current_val`, `adl_grooming_bi_start_val`, `adl_grooming_bi_current_val`,
+    `adl_bathing_fim_start_val`, `adl_bathing_fim_current_val`, `adl_bathing_bi_start_val`, `adl_bathing_bi_current_val`,
+    `adl_dressing_upper_fim_start_val`, `adl_dressing_upper_fim_current_val`,
+    `adl_dressing_lower_fim_start_val`, `adl_dressing_lower_fim_current_val`, `adl_dressing_bi_start_val`, `adl_dressing_bi_current_val`,
+    `adl_toileting_fim_start_val`, `adl_toileting_fim_current_val`, `adl_toileting_bi_start_val`, `adl_toileting_bi_current_val`,
+    `adl_bladder_management_fim_start_val`, `adl_bladder_management_fim_current_val`, `adl_bladder_management_bi_start_val`, `adl_bladder_management_bi_current_val`,
+    `adl_bowel_management_fim_start_val`, `adl_bowel_management_fim_current_val`, `adl_bowel_management_bi_start_val`, `adl_bowel_management_bi_current_val`,
+    `adl_transfer_bed_chair_wc_fim_start_val`, `adl_transfer_bed_chair_wc_fim_current_val`,
+    `adl_transfer_toilet_fim_start_val`, `adl_transfer_toilet_fim_current_val`,
+    `adl_transfer_tub_shower_fim_start_val`, `adl_transfer_tub_shower_fim_current_val`, `adl_transfer_bi_start_val`, `adl_transfer_bi_current_val`,
+    `adl_locomotion_walk_walkingAids_wc_fim_start_val`, `adl_locomotion_walk_walkingAids_wc_fim_current_val`, `adl_locomotion_walk_walkingAids_wc_bi_start_val`, `adl_locomotion_walk_walkingAids_wc_bi_current_val`,
+    `adl_locomotion_stairs_fim_start_val`, `adl_locomotion_stairs_fim_current_val`, `adl_locomotion_stairs_bi_start_val`, `adl_locomotion_stairs_bi_current_val`,
+    `adl_comprehension_fim_start_val`, `adl_comprehension_fim_current_val`,
+    `adl_expression_fim_start_val`, `adl_expression_fim_current_val`,
+    `adl_social_interaction_fim_start_val`, `adl_social_interaction_fim_current_val`,
+    `adl_problem_solving_fim_start_val`, `adl_problem_solving_fim_current_val`,
+    `adl_memory_fim_start_val`, `adl_memory_fim_current_val`,
+    `adl_equipment_and_assistance_details_txt`, -- AI生成のためNULL
+    -- 栄養
+    `nutrition_height_chk`, `nutrition_height_val`,
+    `nutrition_weight_chk`, `nutrition_weight_val`,
+    `nutrition_bmi_chk`, `nutrition_bmi_val`,
+    `nutrition_method_oral_chk`, `nutrition_method_oral_meal_chk`,
+    -- 社会保障サービス
+    `social_care_level_status_chk`, `social_care_level_care_slct`, `social_care_level_care_num1_slct`,
+    -- 目標・方針・署名
+    `goals_1_month_txt`,           -- AI生成のためNULL
+    `goals_at_discharge_txt`,      -- AI生成のためNULL
+    `goals_discharge_destination_chk`, `goals_discharge_destination_txt`,
+    `policy_treatment_txt`,        -- AI生成のためNULL
+    `policy_content_txt`,          -- AI生成のためNULL
+    `signature_rehab_doctor_txt`, `signature_pt_txt`, `signature_ot_txt`, `signature_explanation_date`, `signature_explainer_txt`,
+    -- 【2枚目】----------------------------------------------------
+    -- 目標(参加)
+    `goal_p_residence_chk`, `goal_p_residence_slct`,
+    `goal_p_social_activity_chk`, `goal_p_social_activity_txt`,
+    `goal_p_hobby_chk`, `goal_p_hobby_txt`,
+    -- 目標(活動)
+    `goal_a_indoor_mobility_chk`, `goal_a_indoor_mobility_assistance_chk`, `goal_a_indoor_mobility_equipment_chk`, `goal_a_indoor_mobility_equipment_txt`,
+    `goal_a_outdoor_mobility_chk`, `goal_a_outdoor_mobility_assistance_chk`, `goal_a_outdoor_mobility_equipment_chk`, `goal_a_outdoor_mobility_equipment_txt`,
+    `goal_a_bathing_chk`, `goal_a_bathing_assistance_chk`, `goal_a_bathing_type_shower_chk`,
+    `goal_a_housework_meal_chk`, `goal_a_housework_meal_partial_chk`, `goal_a_housework_meal_partial_txt`,
+    -- 対応を要する項目
+    `goal_s_env_assistive_device_chk`, `goal_s_env_assistive_device_txt`,
+    `goal_s_env_care_insurance_chk`, `goal_s_env_care_insurance_details_txt`, `goal_s_env_care_insurance_home_care_chk`,
+    `goal_s_3rd_party_main_caregiver_chk`, `goal_s_3rd_party_main_caregiver_txt`,
+    -- 具体的な対応方針
+    `goal_p_action_plan_txt`,      -- AI生成のためNULL
+    `goal_a_action_plan_txt`,      -- AI生成のためNULL
+    `goal_s_env_action_plan_txt`,  -- AI生成のためNULL
+    `goal_s_3rd_party_action_plan_txt` -- AI生成のためNULL
+)
+VALUES (
+    NULL, -- plan_id は自動採番
+    3,    -- patient_id
+    2,    -- created_by_staff_id (例: satoさん)
+    -- 【1枚目】----------------------------------------------------
+    -- ヘッダー・基本情報
+    '2025-10-29',                                    -- 計画評価実施日
+    '左変形性股関節症による人工股関節全置換術後',          -- 算定病名
+    '2025-10-20',                                    -- 手術日
+    '2025-10-21',                                    -- リハ開始日
+    TRUE, TRUE, FALSE,                               -- PT, OT, ST
+    -- 併存疾患・リスク・特記事項
+    '心房細動（ワーファリン内服中）、骨粗鬆症',       -- 併存疾患
+    NULL,                                            -- リスク (AI生成)
+    NULL,                                            -- 禁忌 (AI生成)
+    -- 心身機能・構造
+    TRUE, TRUE, 'yes',                               -- 循環障害, 不整脈チェック, 不整脈あり
+    TRUE, '左股関節術創部痛、動作時痛あり。NRS 5/10。安静時は軽快。', -- 疼痛
+    TRUE, '左股関節ROM 屈曲80度、伸展0度、外転20度。脱臼肢位回避指導実施中。', -- ROM制限
+    TRUE, '左股関節周囲筋（特に外転筋）の筋力低下（MMT 3レベル）。', -- 筋力低下
+    TRUE, TRUE,                                      -- 立位保持チェック, 介助レベル
+    -- ADL (FIM/BI) - 術後早期
+    7, 7, 10, 10,  -- 食事
+    6, 6, 5, 5,    -- 整容
+    3, 4, 0, 0,    -- 入浴
+    7, 7,          -- 更衣(上)
+    3, 4, 5, 5,    -- 更衣(下), 更衣(BI)
+    4, 5, 5, 5,    -- トイレ動作
+    7, 7, 10, 10,  -- 排尿管理
+    7, 7, 10, 10,  -- 排便管理
+    3, 4,          -- 移乗(ベッド)
+    3, 4,          -- 移乗(トイレ)
+    2, 3, 5, 5,    -- 移乗(浴槽), 移乗(BI)
+    2, 3, 0, 0,    -- 移動(歩行/車椅子)
+    1, 1, 0, 0,    -- 階段
+    7, 7,          -- 理解
+    7, 7,          -- 表出
+    7, 7,          -- 社会的交流
+    7, 7,          -- 問題解決
+    7, 7,          -- 記憶
+    NULL,          -- 使用用具・介助内容 (AI生成)
+    -- 栄養
+    TRUE, 150.0, TRUE, 50.0, TRUE, 22.2, TRUE, TRUE, -- 身長, 体重, BMI, 経口, 食事
+    -- 社会保障サービス
+    TRUE, TRUE, TRUE,                                -- 介護保険状況, 要介護, 要介護1
+    -- 目標・方針・署名
+    NULL, NULL,                                      -- 短期目標, 長期目標 (AI生成)
+    TRUE, '自宅（独居）',                              -- 退院先
+    NULL, NULL,                                      -- 治療方針, 治療内容 (AI生成)
+    '医師B', '理学療法士D', '作業療法士E', '2025-10-29', '作業療法士E', -- 署名
+    -- 【2枚目】----------------------------------------------------
+    -- 目標(参加)
+    TRUE, 'home_apartment',                          -- 住居場所(自宅マンション)
+    TRUE, 'ゲートボール仲間との交流再開。',             -- 社会活動
+    TRUE, 'ゲートボール（軽度なプレー）、読書',          -- 趣味
+    -- 目標(活動)
+    TRUE, TRUE, TRUE, '歩行器',                      -- 屋内移動
+    TRUE, TRUE, TRUE, 'T字杖',                       -- 屋外移動 (目標はT字杖)
+    TRUE, TRUE, TRUE,                                -- 入浴
+    TRUE, TRUE, '簡単な調理（電子レンジ使用など）、洗濯（洗濯機操作）', -- 家事
+    -- 対応を要する項目
+    TRUE, 'ソックスエイド、リーチャー、長柄ブラシ',      -- 福祉機器
+    TRUE, '要介護1認定済み。', TRUE,                   -- 介護保険, 訪問介護
+    TRUE, '近隣に住む長女（週2-3回訪問）',              -- 主介護者
+    -- 具体的な対応方針
+    NULL, NULL, NULL, NULL                           -- (AI生成)
+);
+
+
+-- =================================================================
+-- 新規患者: 木村 さゆり (65歳 女性)
+-- 疾患: 関節リウマチによる両変形性膝関節症に対する右人工膝関節全置換術後
+-- 背景: 長年関節リウマチを患い、膝の変形と痛みが進行。日常生活に支障をきたし手術に至る。
+--       活動意欲は高いが、リウマチによる他関節の痛みや易疲労性も考慮が必要。
+--       合併症としてシェーグレン症候群あり。
+-- =================================================================
+-- 1. 患者情報の登録
+INSERT INTO patients (
+    `patient_id`,
+    `name`,
+    `date_of_birth`,
+    `gender`
+)
+VALUES (
+    4,                -- 次の利用可能なIDを指定
+    '木村 さゆり',
+    '1960-06-10',      -- 65歳になる生年月日
+    '女'
+);
 -- 2. 担当職員の関連付け (山田さんと佐藤さんが担当)
 INSERT INTO staff_patients (`staff_id`, `patient_id`)
 VALUES (1, 4),
-    (2, 4);
--- 3. リハビリテーション計画書の登録
+       (2, 4);
+-- 3. リハビリテーション計画書（事実情報のみ）の登録
 INSERT INTO rehabilitation_plans (
-        `plan_id`,
-        `patient_id`,
-        `created_by_staff_id`,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        `header_evaluation_date`,
-        `header_disease_name_txt`,
-        `header_onset_date`,
-        `header_rehab_start_date`,
-        `header_therapy_pt_chk`,
-        `header_therapy_ot_chk`,
-        `header_therapy_st_chk`,
-        -- 併存疾患・リスク・特記事項
-        `main_comorbidities_txt`,
-        `main_risks_txt`,
-        `main_contraindications_txt`,
-        -- 心身機能・構造
-        `func_risk_factors_chk`,
-        `func_risk_hypertension_chk`,
-        `func_risk_dyslipidemia_chk`,
-        `func_pain_chk`,
-        `func_pain_txt`,
-        `func_muscle_weakness_chk`,
-        `func_muscle_weakness_txt`,
-        `func_motor_dysfunction_chk`,
-        `func_motor_ataxia_chk`,
-        `func_sensory_dysfunction_chk`,
-        `func_sensory_superficial_chk`,
-        `func_behavioral_psychiatric_disorder_chk`,
-        `func_behavioral_psychiatric_disorder_txt`,
-        `func_basic_standing_balance_chk`,
-        `func_basic_standing_balance_assistance_chk`,
-        -- ADL (FIM/BI) - 歩行能力とバランス低下により移動、入浴、更衣で介助を要する
-        `adl_eating_fim_start_val`,
-        `adl_eating_fim_current_val`,
-        `adl_grooming_fim_start_val`,
-        `adl_grooming_fim_current_val`,
-        `adl_bathing_fim_start_val`,
-        `adl_bathing_fim_current_val`,
-        `adl_dressing_upper_fim_start_val`,
-        `adl_dressing_upper_fim_current_val`,
-        `adl_dressing_lower_fim_start_val`,
-        `adl_dressing_lower_fim_current_val`,
-        `adl_toileting_fim_start_val`,
-        `adl_toileting_fim_current_val`,
-        `adl_bladder_management_fim_start_val`,
-        `adl_bladder_management_fim_current_val`,
-        `adl_bowel_management_fim_start_val`,
-        `adl_bowel_management_fim_current_val`,
-        `adl_transfer_bed_chair_wc_fim_start_val`,
-        `adl_transfer_bed_chair_wc_fim_current_val`,
-        `adl_transfer_toilet_fim_start_val`,
-        `adl_transfer_toilet_fim_current_val`,
-        `adl_transfer_tub_shower_fim_start_val`,
-        `adl_transfer_tub_shower_fim_current_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_start_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_current_val`,
-        `adl_locomotion_stairs_fim_start_val`,
-        `adl_locomotion_stairs_fim_current_val`,
-        `adl_memory_fim_start_val`,
-        `adl_memory_fim_current_val`,
-        `adl_equipment_and_assistance_details_txt`,
-        -- 栄養
-        `nutrition_height_chk`,
-        `nutrition_height_val`,
-        `nutrition_weight_chk`,
-        `nutrition_weight_val`,
-        `nutrition_bmi_chk`,
-        `nutrition_bmi_val`,
-        `nutrition_method_oral_chk`,
-        `nutrition_method_oral_meal_chk`,
-        -- 社会保障サービス
-        `social_care_level_status_chk`,
-        `social_care_level_applying_chk`,
-        -- 目標・方針・署名
-        `goals_1_month_txt`,
-        `goals_at_discharge_txt`,
-        `goals_discharge_destination_chk`,
-        `goals_discharge_destination_txt`,
-        `policy_treatment_txt`,
-        `policy_content_txt`,
-        `signature_rehab_doctor_txt`,
-        `signature_pt_txt`,
-        `signature_ot_txt`,
-        `signature_explanation_date`,
-        `signature_explainer_txt`,
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        `goal_p_residence_chk`,
-        `goal_p_residence_slct`,
-        `goal_p_social_activity_chk`,
-        `goal_p_social_activity_txt`,
-        `goal_p_hobby_chk`,
-        `goal_p_hobby_txt`,
-        -- 目標(活動)
-        `goal_a_outdoor_mobility_chk`,
-        `goal_a_outdoor_mobility_assistance_chk`,
-        `goal_a_outdoor_mobility_equipment_chk`,
-        `goal_a_outdoor_mobility_equipment_txt`,
-        `goal_a_bathing_chk`,
-        `goal_a_bathing_assistance_chk`,
-        `goal_a_bathing_assistance_transfer_chk`,
-        `goal_a_housework_meal_chk`,
-        `goal_a_housework_meal_partial_chk`,
-        `goal_a_housework_meal_partial_txt`,
-        -- 対応を要する項目
-        `goal_s_psychological_support_chk`,
-        `goal_s_psychological_support_txt`,
-        `goal_s_env_home_modification_chk`,
-        `goal_s_env_home_modification_txt`,
-        `goal_s_env_care_insurance_chk`,
-        `goal_s_env_care_insurance_details_txt`,
-        `goal_s_3rd_party_main_caregiver_chk`,
-        `goal_s_3rd_party_main_caregiver_txt`,
-        -- 具体的な対応方針
-        `goal_p_action_plan_txt`,
-        `goal_a_action_plan_txt`,
-        `goal_s_psychological_action_plan_txt`,
-        `goal_s_env_action_plan_txt`
-    )
+    `plan_id`,                     -- 自動採番されるため指定しない
+    `patient_id`,
+    `created_by_staff_id`,
+    -- 【1枚目】----------------------------------------------------
+    -- ヘッダー・基本情報
+    `header_evaluation_date`,
+    `header_disease_name_txt`,
+    `header_onset_date`,           -- 手術日
+    `header_rehab_start_date`,
+    `header_therapy_pt_chk`,
+    `header_therapy_ot_chk`,
+    `header_therapy_st_chk`,
+    -- 併存疾患・リスク・特記事項
+    `main_comorbidities_txt`,
+    `main_risks_txt`,              -- AI生成のためNULL
+    `main_contraindications_txt`,  -- AI生成のためNULL
+    -- 心身機能・構造
+    `func_pain_chk`,               -- リウマチによる他関節痛も考慮
+    `func_pain_txt`,
+    `func_rom_limitation_chk`,     -- 術側膝以外にもリウマチによる可動域制限がある可能性
+    `func_rom_limitation_txt`,
+    `func_muscle_weakness_chk`,
+    `func_muscle_weakness_txt`,
+    `func_other_chk`,              -- 易疲労性など
+    `func_other_txt`,
+    `func_basic_standing_balance_chk`,
+    `func_basic_standing_balance_partial_assistance_chk`,
+    -- ADL (FIM/BI) - 術後早期、リウマチの影響も加味
+    `adl_eating_fim_start_val`, `adl_eating_fim_current_val`, `adl_eating_bi_start_val`, `adl_eating_bi_current_val`,
+    `adl_grooming_fim_start_val`, `adl_grooming_fim_current_val`, `adl_grooming_bi_start_val`, `adl_grooming_bi_current_val`,
+    `adl_bathing_fim_start_val`, `adl_bathing_fim_current_val`, `adl_bathing_bi_start_val`, `adl_bathing_bi_current_val`,
+    `adl_dressing_upper_fim_start_val`, `adl_dressing_upper_fim_current_val`,
+    `adl_dressing_lower_fim_start_val`, `adl_dressing_lower_fim_current_val`, `adl_dressing_bi_start_val`, `adl_dressing_bi_current_val`,
+    `adl_toileting_fim_start_val`, `adl_toileting_fim_current_val`, `adl_toileting_bi_start_val`, `adl_toileting_bi_current_val`,
+    `adl_bladder_management_fim_start_val`, `adl_bladder_management_fim_current_val`, `adl_bladder_management_bi_start_val`, `adl_bladder_management_bi_current_val`,
+    `adl_bowel_management_fim_start_val`, `adl_bowel_management_fim_current_val`, `adl_bowel_management_bi_start_val`, `adl_bowel_management_bi_current_val`,
+    `adl_transfer_bed_chair_wc_fim_start_val`, `adl_transfer_bed_chair_wc_fim_current_val`,
+    `adl_transfer_toilet_fim_start_val`, `adl_transfer_toilet_fim_current_val`,
+    `adl_transfer_tub_shower_fim_start_val`, `adl_transfer_tub_shower_fim_current_val`, `adl_transfer_bi_start_val`, `adl_transfer_bi_current_val`,
+    `adl_locomotion_walk_walkingAids_wc_fim_start_val`, `adl_locomotion_walk_walkingAids_wc_fim_current_val`, `adl_locomotion_walk_walkingAids_wc_bi_start_val`, `adl_locomotion_walk_walkingAids_wc_bi_current_val`,
+    `adl_locomotion_stairs_fim_start_val`, `adl_locomotion_stairs_fim_current_val`, `adl_locomotion_stairs_bi_start_val`, `adl_locomotion_stairs_bi_current_val`,
+    `adl_comprehension_fim_start_val`, `adl_comprehension_fim_current_val`,
+    `adl_expression_fim_start_val`, `adl_expression_fim_current_val`,
+    `adl_social_interaction_fim_start_val`, `adl_social_interaction_fim_current_val`,
+    `adl_problem_solving_fim_start_val`, `adl_problem_solving_fim_current_val`,
+    `adl_memory_fim_start_val`, `adl_memory_fim_current_val`,
+    `adl_equipment_and_assistance_details_txt`, -- AI生成のためNULL
+    -- 栄養
+    `nutrition_height_chk`, `nutrition_height_val`,
+    `nutrition_weight_chk`, `nutrition_weight_val`,
+    `nutrition_bmi_chk`, `nutrition_bmi_val`,
+    `nutrition_method_oral_chk`, `nutrition_method_oral_meal_chk`,
+    -- 社会保障サービス
+    `social_care_level_status_chk`, `social_care_level_support_chk`, `social_care_level_support_num2_slct`, -- 例: 要支援2
+    `social_disability_certificate_physical_chk`, `social_disability_certificate_physical_type_txt`, `social_disability_certificate_physical_rank_val`, -- リウマチによる身体障害者手帳
+    -- 目標・方針・署名
+    `goals_1_month_txt`,           -- AI生成のためNULL
+    `goals_at_discharge_txt`,      -- AI生成のためNULL
+    `goals_discharge_destination_chk`, `goals_discharge_destination_txt`,
+    `policy_treatment_txt`,        -- AI生成のためNULL
+    `policy_content_txt`,          -- AI生成のためNULL
+    `signature_rehab_doctor_txt`, `signature_pt_txt`, `signature_ot_txt`, `signature_explanation_date`, `signature_explainer_txt`,
+    -- 【2枚目】----------------------------------------------------
+    -- 目標(参加)
+    `goal_p_residence_chk`, `goal_p_residence_slct`,
+    `goal_p_social_activity_chk`, `goal_p_social_activity_txt`,
+    `goal_p_hobby_chk`, `goal_p_hobby_txt`,
+    -- 目標(活動)
+    `goal_a_indoor_mobility_chk`, `goal_a_indoor_mobility_assistance_chk`, `goal_a_indoor_mobility_equipment_chk`, `goal_a_indoor_mobility_equipment_txt`,
+    `goal_a_outdoor_mobility_chk`, `goal_a_outdoor_mobility_assistance_chk`, `goal_a_outdoor_mobility_equipment_chk`, `goal_a_outdoor_mobility_equipment_txt`,
+    `goal_a_dressing_chk`, `goal_a_dressing_assistance_chk`, -- 更衣に介助が必要
+    `goal_a_bathing_chk`, `goal_a_bathing_assistance_chk`, `goal_a_bathing_type_shower_chk`,
+    `goal_a_housework_meal_chk`, `goal_a_housework_meal_partial_chk`, `goal_a_housework_meal_partial_txt`,
+    -- 対応を要する項目
+    `goal_s_env_assistive_device_chk`, `goal_s_env_assistive_device_txt`, -- 自助具
+    `goal_s_env_care_insurance_chk`, `goal_s_env_care_insurance_details_txt`, `goal_s_env_care_insurance_home_care_chk`, -- 訪問介護
+    `goal_s_3rd_party_main_caregiver_chk`, `goal_s_3rd_party_main_caregiver_txt`,
+    -- 具体的な対応方針
+    `goal_p_action_plan_txt`,      -- AI生成のためNULL
+    `goal_a_action_plan_txt`,      -- AI生成のためNULL
+    `goal_s_env_action_plan_txt`,  -- AI生成のためNULL
+    `goal_s_3rd_party_action_plan_txt` -- AI生成のためNULL
+)
 VALUES (
-        4,
-        4,
-        1,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        '2025-10-04',
-        '腰部脊柱管狭窄症術後',
-        '2025-09-18',
-        '2025-09-21',
-        TRUE,
-        TRUE,
-        FALSE,
-        -- 併存疾患・リスク・特記事項
-        '高血圧症、脂質異常症、骨粗鬆症、軽度認知障害（MCI）の疑い',
-        '転倒・転落リスク高。術後せん妄のリスクあり。環境変化による混乱に注意。',
-        '腰椎コルセットを日中装着。長時間の座位は避け、30分に一度は立ち上がるように指導。',
-        -- 心身機能・構造
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        '術後創部痛は軽快。両下肢に痺れ（しびれ）感が残存。',
-        TRUE,
-        '両下肢、特に足関節背屈筋力の低下あり（MMT 3+）。体幹筋力も低下。',
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        '転倒への恐怖心、活動への意欲低下が見られる。',
-        TRUE,
-        TRUE,
-        -- ADL (FIM/BI)
-        7,
-        7,
-        -- 整容
-        6,
-        6,
-        -- 清拭
-        3,
-        4,
-        -- 更衣(上半身)
-        7,
-        7,
-        -- 更衣(下半身)
-        4,
-        5,
-        -- トイレ動作
-        5,
-        6,
-        -- 排尿管理
-        7,
-        7,
-        -- 排便管理
-        7,
-        7,
-        -- 移乗(ベッド・椅子・車椅子)
-        5,
-        6,
-        -- 移乗(トイレ)
-        5,
-        6,
-        -- 移乗(風呂)
-        2,
-        3,
-        -- 移動(歩行・車椅子)
-        3,
-        4,
-        -- 階段
-        1,
-        1,
-        -- 記憶
-        6,
-        6,
-        '歩行はシルバーカーを使用。入浴はシャワーチェアと手すりを使用し、一部介助が必要。靴下の着脱にリーチャーを使用。',
-        -- 栄養
-        TRUE,
-        152.0,
-        TRUE,
-        48.0,
-        TRUE,
-        20.7,
-        TRUE,
-        TRUE,
-        -- 社会保障サービス
-        TRUE,
-        TRUE,
-        -- 目標・方針・署名
-        'シルバーカーを使用して、病棟内トイレまで安全に往復できる。下肢筋力が向上し、椅子からの立ち上がりが安定する。',
-        'T字杖歩行にて、自宅から近所の公民館（約300m）まで安全に移動できる。自宅での入浴動作が手すり使用にて自立する。',
-        TRUE,
-        '自宅（独居、近隣に長女在住）',
-        '転倒予防を最優先とし、安全な移動方法の習得を目指す。成功体験を積み重ねることで、転倒への恐怖心を軽減し、活動性を高めるアプローチを行う。',
-        '【理学療法】: 下肢・体幹筋力強化、バランス訓練、歩行訓練（シルバーカー→T字杖）。\n【作業療法】: ADL訓練（特に入浴、更衣）、福祉用具（シルバーカー、T字杖）の選定と使用訓練、家事動作訓練、認知課題（カレンダーの使用、服薬管理など）。',
-        '田中 次郎',
-        '山田 太郎',
-        '佐藤 花子',
-        '2025-10-04',
-        '山田 太郎',
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        TRUE,
-        '自宅',
-        TRUE,
-        '公民館での友人との茶話会への参加。',
-        TRUE,
-        'ベランダでのガーデニング、編み物。',
-        -- 目標(活動)
-        TRUE,
-        TRUE,
-        TRUE,
-        'T字杖',
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        '調理時の長時間の立位保持が困難。',
-        -- 対応を要する項目
-        TRUE,
-        '転倒への不安が強く、日中の活動量が低下しがち。自信を持たせるような声かけと、具体的な成功体験のフィードバックが必要。',
-        TRUE,
-        '玄関、廊下、トイレ、浴室への手すり設置。玄関の上がり框に式台の設置を検討。',
-        TRUE,
-        '要介護認定を申請中。結果に基づき、訪問リハビリ、デイケア、福祉用具貸与の利用を計画。',
-        TRUE,
-        '長女（身体的介助、精神的サポート、各種手続きの支援）',
-        -- 具体的な対応方針
-        '退院前にケアマネージャー、福祉用具専門相談員と連携し、住宅改修と福祉用具の導入を完了させる。デイケアの見学・体験利用を調整する。',
-        '屋外歩行訓練では、実際の公民館までの道のりを歩き、休憩場所の確認や危険箇所のチェックを行う。',
-        '成功体験（「今日はここまで歩けましたね」等）を具体的に伝え、本人の自信回復を促す。また、不安が強い場合は臨床心理士への相談も検討する。',
-        '住宅改修や介護保険サービスについて、本人と長女を交えてカンファレンスを実施し、退院後の生活について具体的な計画を共有する。'
-    );
-
-
--- =_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
--- 5人目の患者: 伊藤 久美子 (58歳 女性)
--- 疾患: 右肩腱板広範囲断裂術後
--- 背景: 趣味の裁縫や孫の世話に支障をきたし手術。関節リウマチの既往があり、
---       疼痛コントロールと関節保護が重要。パート（清掃業）への復帰を希望。
--- =_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=_=
--- 1. 患者情報の登録
-INSERT INTO patients (
-        `patient_id`,
-        `name`,
-        `date_of_birth`,
-        `gender`
-    )
-VALUES (
-        5,
-        '伊藤 久美子',
-        '1967-08-25',
-        '女'
-    );
--- 2. 担当職員の関連付け (山田さんと佐藤さんが担当)
-INSERT INTO staff_patients (`staff_id`, `patient_id`)
-VALUES (1, 5),
-    (2, 5);
--- 3. リハビリテーション計画書の登録
-INSERT INTO rehabilitation_plans (
-        `plan_id`,
-        `patient_id`,
-        `created_by_staff_id`,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        `header_evaluation_date`,
-        `header_disease_name_txt`,
-        `header_onset_date`,
-        `header_rehab_start_date`,
-        `header_therapy_pt_chk`,
-        `header_therapy_ot_chk`,
-        `header_therapy_st_chk`,
-        -- 併存疾患・リスク・特記事項
-        `main_comorbidities_txt`,
-        `main_risks_txt`,
-        `main_contraindications_txt`,
-        -- 心身機能・構造
-        `func_risk_factors_chk`,
-        `func_risk_omi_chk`,
-        `func_pain_chk`,
-        `func_pain_txt`,
-        `func_rom_limitation_chk`,
-        `func_rom_limitation_txt`,
-        `func_muscle_weakness_chk`,
-        `func_muscle_weakness_txt`,
-        `func_basic_rolling_chk`,
-        `func_basic_rolling_independent_chk`,
-        -- ADL (FIM/BI) - 右上肢の不動により、更衣・清拭・食事などで一部介助が必要
-        `adl_eating_fim_start_val`,
-        `adl_eating_fim_current_val`,
-        `adl_grooming_fim_start_val`,
-        `adl_grooming_fim_current_val`,
-        `adl_bathing_fim_start_val`,
-        `adl_bathing_fim_current_val`,
-        `adl_dressing_upper_fim_start_val`,
-        `adl_dressing_upper_fim_current_val`,
-        `adl_dressing_lower_fim_start_val`,
-        `adl_dressing_lower_fim_current_val`,
-        `adl_toileting_fim_start_val`,
-        `adl_toileting_fim_current_val`,
-        `adl_bladder_management_fim_start_val`,
-        `adl_bladder_management_fim_current_val`,
-        `adl_bowel_management_fim_start_val`,
-        `adl_bowel_management_fim_current_val`,
-        `adl_transfer_bed_chair_wc_fim_start_val`,
-        `adl_transfer_bed_chair_wc_fim_current_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_start_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_current_val`,
-        `adl_equipment_and_assistance_details_txt`,
-        -- 栄養
-        `nutrition_height_chk`,
-        `nutrition_height_val`,
-        `nutrition_weight_chk`,
-        `nutrition_weight_val`,
-        `nutrition_bmi_chk`,
-        `nutrition_bmi_val`,
-        `nutrition_method_oral_chk`,
-        `nutrition_method_oral_meal_chk`,
-        -- 目標・方針・署名
-        `goals_1_month_txt`,
-        `goals_at_discharge_txt`,
-        `goals_discharge_destination_chk`,
-        `goals_discharge_destination_txt`,
-        `policy_treatment_txt`,
-        `policy_content_txt`,
-        `signature_rehab_doctor_txt`,
-        `signature_pt_txt`,
-        `signature_ot_txt`,
-        `signature_explanation_date`,
-        `signature_explainer_txt`,
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        `goal_p_residence_chk`,
-        `goal_p_residence_slct`,
-        `goal_p_return_to_work_chk`,
-        `goal_p_return_to_work_status_slct`,
-        `goal_p_household_role_chk`,
-        `goal_p_household_role_txt`,
-        `goal_p_hobby_chk`,
-        `goal_p_hobby_txt`,
-        -- 目標(活動)
-        `goal_a_dressing_chk`,
-        `goal_a_dressing_assistance_chk`,
-        `goal_a_bathing_chk`,
-        `goal_a_bathing_assistance_chk`,
-        `goal_a_bathing_assistance_body_washing_chk`,
-        `goal_a_housework_meal_chk`,
-        `goal_a_housework_meal_partial_chk`,
-        `goal_a_housework_meal_partial_txt`,
-        -- 対応を要する項目
-        `goal_s_env_assistive_device_chk`,
-        `goal_s_env_assistive_device_txt`,
-        `goal_s_3rd_party_main_caregiver_chk`,
-        `goal_s_3rd_party_main_caregiver_txt`,
-        -- 具体的な対応方針
-        `goal_p_action_plan_txt`,
-        `goal_a_action_plan_txt`,
-        `goal_s_3rd_party_action_plan_txt`
-    )
-VALUES (
-        5,
-        5,
-        2,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        '2025-10-04',
-        '右肩腱板広範囲断裂術後、関節リウマチ',
-        '2025-09-25',
-        '2025-09-26',
-        TRUE,
-        TRUE,
-        FALSE,
-        -- 併存疾患・リスク・特記事項
-        '関節リウマチ（メトトレキサート内服中）、シェーグレン症候群',
-        '再断裂リスク、術後拘縮。リウマチによる他関節への炎症波及。',
-        '術後装具（ウルトラスリング）を常時装着。医師の許可なく自動運動は禁忌。',
-        -- 心身機能・構造
-        TRUE,
-        TRUE,
-        TRUE,
-        '右肩の術後痛（NRS 6/10）。リウマチによる手指の朝のこわばり。',
-        TRUE,
-        '右肩関節の他動可動域制限あり（前方挙上90度、外転60度）。',
-        TRUE,
-        '右肩関節周囲筋、特に棘上筋・棘下筋の筋力低下が著明。',
-        TRUE,
-        TRUE,
-        -- ADL (FIM/BI)
-        4,
-        5,
-        -- 整容
-        3,
-        4,
-        -- 清拭
-        2,
-        3,
-        -- 更衣(上半身)
-        3,
-        4,
-        -- 更衣(下半身)
-        7,
-        7,
-        -- トイレ動作
-        6,
-        6,
-        -- 排尿管理
-        7,
-        7,
-        -- 排便管理
-        7,
-        7,
-        -- 移乗(ベッド・椅子・車椅子)
-        7,
-        7,
-        -- 移動(歩行・車椅子)
-        7,
-        7,
-        '食事は左手で摂取。更衣は前開きの服を着用し、一部介助が必要。洗髪、背中の清拭は全面介助。',
-        -- 栄養
-        TRUE,
-        155.0,
-        TRUE,
-        52.0,
-        TRUE,
-        21.6,
-        TRUE,
-        TRUE,
-        -- 目標・方針・署名
-        '右肩の他動可動域が前方挙上120度、外転90度まで改善する。装具装着下で、更衣、食事動作が自立する。',
-        '日常生活（調理、洗濯、掃除）が自助具などを活用し、ほぼ自立する。パートタイムでの仕事に復帰する。孫を（短時間なら）抱っこできる。',
-        TRUE,
-        '自宅（夫と二人暮らし）',
-        'リウマチ内科医と連携し、関節リウマチの活動性をコントロールしながら、腱板の修復を妨げないよう慎重にリハビリを進める。関節保護の指導を徹底する。',
-        '【理学療法】: 他動関節可動域訓練、振り子運動、肩甲骨周囲筋のトレーニング。\n【作業療法】: ADL指導（利き手交換、自助具の活用）、関節保護指導、趣味（裁縫）や仕事（清掃）を想定した動作練習。',
-        '鈴木 一郎',
-        '山田 太郎',
-        '佐藤 花子',
-        '2025-10-04',
-        '佐藤 花子',
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        TRUE,
-        '自宅',
-        TRUE,
-        '休職中',
-        TRUE,
-        '孫の世話（3歳）、調理、洗濯',
-        TRUE,
-        '裁縫（小物作り）、友人とのお茶',
-        -- 目標(活動)
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        '包丁での硬い野菜の切断や、鍋の持ち運びが困難。',
-        -- 対応を要する項目
-        TRUE,
-        '調理用の万能カフ、リーチャー、ボタンエイド、長柄ブラシなど。',
-        TRUE,
-        '夫（家事の協力、精神的サポート）',
-        -- 具体的な対応方針
-        '職場（清掃パート）の上司と連携し、復帰後の業務内容（右肩への負担が少ない作業への変更など）について相談・調整を行う。',
-        '関節保護の観点から、日常生活での工夫（重いものを持たない、長時間の同一姿勢を避けるなど）を具体的に指導し、習慣化を図る。趣味の裁縫も、短時間から再開し、負担の少ない方法を一緒に考える。',
-        '夫に対し、妻の病状と術後の注意点（特に禁忌事項）を説明し、家事分担や介助方法について協力を依頼する。'
-    );
-
-
--- =================================================================
--- 6人目の患者: 渡辺 茂 (82歳 男性)
--- 疾患: 第12胸椎圧迫骨折 (骨粗鬆症性)
--- 背景: 介護老人保健施設に入所中。ベッドからのずり落ちで受傷。
---       軽度のアルツハイマー型認知症と難聴を合併しており、
---       コミュニケーションや指示の理解に時間を要することがある。
--- =================================================================
--- 1. 患者情報の登録
-INSERT INTO patients (
-        `patient_id`,
-        `name`,
-        `date_of_birth`,
-        `gender`
-    )
-VALUES (
-        6,
-        '渡辺 茂',
-        '1943-05-30',
-        '男'
-    );
--- 2. 担当職員の関連付け (山田さんと佐藤さんが担当)
-INSERT INTO staff_patients (`staff_id`, `patient_id`)
-VALUES (1, 6),
-    (2, 6);
--- 3. リハビリテーション計画書の登録
-INSERT INTO rehabilitation_plans (
-        `plan_id`,
-        `patient_id`,
-        `created_by_staff_id`,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        `header_evaluation_date`,
-        `header_disease_name_txt`,
-        `header_onset_date`,
-        `header_rehab_start_date`,
-        `header_therapy_pt_chk`,
-        `header_therapy_ot_chk`,
-        `header_therapy_st_chk`,
-        -- 併存疾患・リスク・特記事項
-        `main_comorbidities_txt`,
-        `main_risks_txt`,
-        `main_contraindications_txt`,
-        -- 心身機能・構造
-        `func_pain_chk`,
-        `func_pain_txt`,
-        `func_muscle_weakness_chk`,
-        `func_muscle_weakness_txt`,
-        `func_sensory_dysfunction_chk`,
-        `func_sensory_hearing_chk`,
-        `func_higher_brain_dysfunction_chk`,
-        `func_higher_brain_memory_chk`,
-        `func_higher_brain_attention_chk`,
-        `func_disorientation_chk`,
-        `func_disorientation_txt`,
-        `func_basic_getting_up_chk`,
-        `func_basic_getting_up_assistance_chk`,
-        `func_basic_standing_balance_chk`,
-        `func_basic_standing_balance_assistance_chk`,
-        -- ADL (FIM/BI) - 疼痛と廃用、認知機能低下により全般的に介助を要する
-        `adl_eating_fim_start_val`,
-        `adl_eating_fim_current_val`,
-        `adl_grooming_fim_start_val`,
-        `adl_grooming_fim_current_val`,
-        `adl_bathing_fim_start_val`,
-        `adl_bathing_fim_current_val`,
-        `adl_dressing_upper_fim_start_val`,
-        `adl_dressing_upper_fim_current_val`,
-        `adl_dressing_lower_fim_start_val`,
-        `adl_dressing_lower_fim_current_val`,
-        `adl_toileting_fim_start_val`,
-        `adl_toileting_fim_current_val`,
-        `adl_bladder_management_fim_start_val`,
-        `adl_bladder_management_fim_current_val`,
-        `adl_bowel_management_fim_start_val`,
-        `adl_bowel_management_fim_current_val`,
-        `adl_transfer_bed_chair_wc_fim_start_val`,
-        `adl_transfer_bed_chair_wc_fim_current_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_start_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_current_val`,
-        `adl_comprehension_fim_start_val`,
-        `adl_comprehension_fim_current_val`,
-        `adl_expression_fim_start_val`,
-        `adl_expression_fim_current_val`,
-        `adl_memory_fim_start_val`,
-        `adl_memory_fim_current_val`,
-        `adl_equipment_and_assistance_details_txt`,
-        -- 栄養
-        `nutrition_height_chk`,
-        `nutrition_height_val`,
-        `nutrition_weight_chk`,
-        `nutrition_weight_val`,
-        `nutrition_bmi_chk`,
-        `nutrition_bmi_val`,
-        `nutrition_method_oral_chk`,
-        `nutrition_method_oral_meal_chk`,
-        -- 社会保障サービス
-        `social_care_level_status_chk`,
-        `social_care_level_care_slct`,
-        `social_care_level_care_num3_slct`,
-        -- 目標・方針・署名
-        `goals_1_month_txt`,
-        `goals_at_discharge_txt`,
-        `goals_discharge_destination_chk`,
-        `goals_discharge_destination_txt`,
-        `policy_treatment_txt`,
-        `policy_content_txt`,
-        `signature_rehab_doctor_txt`,
-        `signature_pt_txt`,
-        `signature_ot_txt`,
-        `signature_explanation_date`,
-        `signature_explainer_txt`,
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        `goal_p_residence_chk`,
-        `goal_p_residence_slct`,
-        `goal_p_social_activity_chk`,
-        `goal_p_social_activity_txt`,
-        `goal_p_hobby_chk`,
-        `goal_p_hobby_txt`,
-        -- 目標(活動)
-        `goal_a_indoor_mobility_chk`,
-        `goal_a_indoor_mobility_assistance_chk`,
-        `goal_a_indoor_mobility_equipment_chk`,
-        `goal_a_indoor_mobility_equipment_txt`,
-        `goal_a_toileting_chk`,
-        `goal_a_toileting_assistance_chk`,
-        `goal_a_eating_chk`,
-        `goal_a_eating_independent_chk`,
-        -- 対応を要する項目
-        `goal_s_psychological_support_chk`,
-        `goal_s_psychological_support_txt`,
-        `goal_s_env_care_insurance_chk`,
-        `goal_s_env_care_insurance_health_facility_chk`,
-        `goal_s_3rd_party_main_caregiver_chk`,
-        `goal_s_3rd_party_main_caregiver_txt`,
-        -- 具体的な対応方針
-        `goal_p_action_plan_txt`,
-        `goal_a_action_plan_txt`,
-        `goal_s_psychological_action_plan_txt`,
-        `goal_s_3rd_party_action_plan_txt`
-    )
-VALUES (
-        6,
-        6,
-        1,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        '2025-10-04',
-        '第12胸椎圧迫骨折（骨粗鬆症性）、アルツハイマー型認知症',
-        '2025-09-12',
-        '2025-09-19',
-        TRUE,
-        TRUE,
-        FALSE,
-        -- 併存疾患・リスク・特記事項
-        'アルツハイマー型認知症（軽度）、両側感音性難聴、便秘症',
-        '転倒リスク（極めて高い）。認知機能低下による指示理解の困難さ。再骨折のリスク。',
-        '体幹装具（硬性コルセット）を常時装着。離床・移乗時は必ずナースコール。急な体幹の屈曲・回旋は禁忌。',
-        -- 心身機能・構造
-        TRUE,
-        '体動時・座位保持時の背部痛（NRS 5/10）。安静臥床で軽快。',
-        TRUE,
-        '長期臥床による全身の筋力低下（廃用症候群）。特に体幹・下肢筋が顕著。',
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        '時間や場所の見当識が不確かになることがある。',
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        -- ADL (FIM/BI)
-        5,
-        6,
-        -- 整容
-        2,
-        3,
-        -- 清拭
-        1,
-        2,
-        -- 更衣(上半身)
-        2,
-        3,
-        -- 更衣(下半身)
-        1,
-        2,
-        -- トイレ動作
-        1,
-        2,
-        -- 排尿管理
-        4,
-        4,
-        -- 排便管理
-        4,
-        4,
-        -- 移乗(ベッド・椅子・車椅子)
-        2,
-        3,
-        -- 移動(歩行・車椅子)
-        1,
-        2,
-        -- 理解
-        5,
-        5,
-        -- 表出
-        6,
-        6,
-        -- 記憶
-        4,
-        5,
-        '移動は車椅子（全介助）。ポータブルトイレ使用。食事は刻み食・トロミ付き。',
-        -- 栄養
-        TRUE,
-        160.0,
-        TRUE,
-        50.0,
-        TRUE,
-        19.5,
-        TRUE,
-        TRUE,
-        -- 社会保障サービス
-        TRUE,
-        TRUE,
-        TRUE,
-        -- 目標・方針・署名
-        'コルセット装着下で、端座位が30分安定して可能となる。車椅子への移乗が軽介助で可能となる。',
-        '歩行器を用いて、居室から食堂まで見守り歩行が可能となる。施設でのレクリエーション（書道、カラオケ）に車椅子で参加できる。',
-        TRUE,
-        '入所中の介護老人保健施設へ退所',
-        '疼痛管理を最優先とし、二次骨折を予防する。認知症の特性を理解し、簡潔で分かりやすい言葉で、繰り返し指示を伝える。本人のペースに合わせたリハビリを提供する。',
-        '【理学療法】: 疼痛のない範囲での体幹・下肢筋力強化、基本動作訓練（寝返り、起き上がり）、移乗訓練、歩行訓練。\n【作業療法】: ADL訓練、認知機能低下の進行予防（現実見当識訓練、回想法）、レクリエーション活動への参加支援。',
-        '田中 次郎',
-        '山田 太郎',
-        '佐藤 花子',
-        '2025-10-04',
-        '山田 太郎',
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        TRUE,
-        '介護老人保健施設',
-        TRUE,
-        '施設内のレクリエーション（書道、カラオケ）への参加。',
-        TRUE,
-        '書道、テレビ鑑賞（特に時代劇）',
-        -- 目標(活動)
-        TRUE,
-        TRUE,
-        TRUE,
-        '歩行器',
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        -- 対応を要する項目
-        TRUE,
-        '疼痛や認知機能低下により、リハビリへの拒否が見られることがある。安心できる環境作りと、本人の好きな活動（時代劇の話など）を導入し、意欲を引き出す工夫が必要。',
-        TRUE,
-        TRUE,
-        TRUE,
-        '施設職員（介護士、看護師、ケアマネージャー）、長男（キーパーソン）',
-        -- 具体的な対応方針
-        '退院前に施設職員とカンファレンスを実施し、リハビリの進行状況、介助方法、再骨折予防の注意点を共有する。施設の環境（ベッドの高さ、手すりの位置など）を再評価する。',
-        '本人の得意な書道や好きな時代劇の話題をリハビリに取り入れ、楽しみながら機能訓練ができるように工夫する。短い時間で集中して行い、成功体験を積ませる。',
-        '認知症の症状や対応について、長男へ改めて説明し、今後の施設での生活や医療に関する意思決定のサポートを依頼する。',
-        '施設職員と密に連携し、日中の活動性を高めるためのアプローチ（離床時間の延長、レクリエーションへの誘導など）を統一して行う。'
-    );
-
-
--- =================================================================
--- 7人目の患者: 中村 千代 (92歳 女性)
--- 疾患: 右大腿骨頸部骨折術後
--- 背景: 自宅で転倒し受傷。手術は成功したが、術後のせん妄を発症。
---       中等度のアルツハイマー型認知症があり、リハビリへの協力が
---       得られにくいことがある。うっ血性心不全の既往あり。
--- =================================================================
--- 1. 患者情報の登録
-INSERT INTO patients (
-        `patient_id`,
-        `name`,
-        `date_of_birth`,
-        `gender`
-    )
-VALUES (
-        7,
-        '中村 千代',
-        '1933-01-20',
-        '女'
-    );
--- 2. 担当職員の関連付け (山田さんと佐藤さんが担当)
-INSERT INTO staff_patients (`staff_id`, `patient_id`)
-VALUES (1, 7),
-    (2, 7);
--- 3. リハビリテーション計画書の登録
-INSERT INTO rehabilitation_plans (
-        `plan_id`,
-        `patient_id`,
-        `created_by_staff_id`,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        `header_evaluation_date`,
-        `header_disease_name_txt`,
-        `header_onset_date`,
-        `header_rehab_start_date`,
-        `header_therapy_pt_chk`,
-        `header_therapy_ot_chk`,
-        `header_therapy_st_chk`,
-        -- 併存疾患・リスク・特記事項
-        `main_comorbidities_txt`,
-        `main_risks_txt`,
-        `main_contraindications_txt`,
-        -- 心身機能・構造
-        `func_circulatory_disorder_chk`,
-        `func_circulatory_ef_chk`,
-        `func_circulatory_ef_val`,
-        `func_pressure_ulcer_chk`,
-        `func_pressure_ulcer_txt`,
-        `func_pain_chk`,
-        `func_pain_txt`,
-        `func_rom_limitation_chk`,
-        `func_rom_limitation_txt`,
-        `func_muscle_weakness_chk`,
-        `func_muscle_weakness_txt`,
-        `func_higher_brain_dysfunction_chk`,
-        `func_higher_brain_memory_chk`,
-        `func_disorientation_chk`,
-        `func_disorientation_txt`,
-        `func_basic_rolling_chk`,
-        `func_basic_rolling_assistance_chk`,
-        -- ADL (FIM/BI) - ほぼ全項目で全介助レベル
-        `adl_eating_fim_start_val`,
-        `adl_eating_fim_current_val`,
-        `adl_grooming_fim_start_val`,
-        `adl_grooming_fim_current_val`,
-        `adl_bathing_fim_start_val`,
-        `adl_bathing_fim_current_val`,
-        `adl_dressing_upper_fim_start_val`,
-        `adl_dressing_upper_fim_current_val`,
-        `adl_dressing_lower_fim_start_val`,
-        `adl_dressing_lower_fim_current_val`,
-        `adl_toileting_fim_start_val`,
-        `adl_toileting_fim_current_val`,
-        `adl_bladder_management_fim_start_val`,
-        `adl_bladder_management_fim_current_val`,
-        `adl_bowel_management_fim_start_val`,
-        `adl_bowel_management_fim_current_val`,
-        `adl_transfer_bed_chair_wc_fim_start_val`,
-        `adl_transfer_bed_chair_wc_fim_current_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_start_val`,
-        `adl_locomotion_walk_walkingAids_wc_fim_current_val`,
-        `adl_comprehension_fim_start_val`,
-        `adl_comprehension_fim_current_val`,
-        `adl_equipment_and_assistance_details_txt`,
-        -- 栄養
-        `nutrition_height_chk`,
-        `nutrition_height_val`,
-        `nutrition_weight_chk`,
-        `nutrition_weight_val`,
-        `nutrition_bmi_chk`,
-        `nutrition_bmi_val`,
-        `nutrition_method_oral_chk`,
-        `nutrition_method_oral_meal_chk`,
-        `nutrition_swallowing_diet_slct`,
-        `nutrition_swallowing_diet_code_txt`,
-        -- 社会保障サービス
-        `social_care_level_status_chk`,
-        `social_care_level_care_slct`,
-        `social_care_level_care_num5_slct`,
-        -- 目標・方針・署名
-        `goals_1_month_txt`,
-        `goals_at_discharge_txt`,
-        `goals_discharge_destination_chk`,
-        `goals_discharge_destination_txt`,
-        `policy_treatment_txt`,
-        `policy_content_txt`,
-        `signature_rehab_doctor_txt`,
-        `signature_pt_txt`,
-        `signature_ot_txt`,
-        `signature_explanation_date`,
-        `signature_explainer_txt`,
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        `goal_p_residence_chk`,
-        `goal_p_residence_slct`,
-        `goal_p_social_activity_chk`,
-        `goal_p_social_activity_txt`,
-        `goal_p_hobby_chk`,
-        `goal_p_hobby_txt`,
-        -- 目標(活動)
-        `goal_a_bed_mobility_chk`,
-        `goal_a_bed_mobility_assistance_chk`,
-        `goal_a_eating_chk`,
-        `goal_a_eating_assistance_chk`,
-        -- 対応を要する項目
-        `goal_s_psychological_support_chk`,
-        `goal_s_psychological_support_txt`,
-        `goal_s_env_care_insurance_chk`,
-        `goal_s_env_care_insurance_nursing_home_chk`,
-        `goal_s_3rd_party_main_caregiver_chk`,
-        `goal_s_3rd_party_main_caregiver_txt`,
-        -- 具体的な対応方針
-        `goal_a_action_plan_txt`,
-        `goal_s_psychological_action_plan_txt`,
-        `goal_s_3rd_party_action_plan_txt`
-    )
-VALUES (
-        7,
-        7,
-        1,
-        -- 【1枚目】----------------------------------------------------
-        -- ヘッダー・基本情報
-        '2025-10-04',
-        '右大腿骨頸部骨折術後、アルツハイマー型認知症',
-        '2025-09-15',
-        '2025-09-20',
-        TRUE,
-        TRUE,
-        FALSE,
-        -- 併存疾患・リスク・特記事項
-        'うっ血性心不全(CHF)、高度骨粗鬆症、高血圧症、中等度アルツハイマー型認知症',
-        '転倒・再骨折リスク（極めて高い）。心不全増悪。認知症によるリハビリへの不参加・混乱。褥瘡発生リスク。',
-        '医師の指示に基づく荷重制限の厳守。心機能の指標（血圧、SpO2）を常にモニタリングし、増悪の兆候があれば即時中止する。',
-        -- 心身機能・構造
-        TRUE,
-        TRUE,
-        45,
-        TRUE,
-        '仙骨部に発赤あり（d1）。',
-        TRUE,
-        '右股関節の術後痛。体動時に表情をしかめることがある。非言語的な疼痛サインに注意。',
-        TRUE,
-        '両下肢に関節拘縮あり。特に膝伸展制限（-20度）。',
-        TRUE,
-        '全身の廃用性筋力低下が著明 (MMT 2レベル)。',
-        TRUE,
-        TRUE,
-        TRUE,
-        '時間、場所の見当識障害が常時あり。人物誤認も時折みられる。',
-        TRUE,
-        TRUE,
-        -- ADL (FIM/BI)
-        1,
-        2,
-        -- 整容
-        1,
-        1,
-        -- 清拭
-        1,
-        1,
-        -- 更衣(上半身)
-        1,
-        1,
-        -- 更衣(下半身)
-        1,
-        1,
-        -- トイレ動作
-        1,
-        1,
-        -- 排尿管理
-        1,
-        1,
-        -- 排便管理
-        1,
-        1,
-        -- 移乗(ベッド・椅子・車椅子)
-        1,
-        1,
-        -- 移動(歩行・車椅子)
-        1,
-        1,
-        -- 理解
-        3,
-        4,
-        '全介助。食事は一部介助で経口摂取。移動はリクライニング式車椅子。排泄はオムツ使用。',
-        -- 栄養
-        TRUE,
-        145.0,
-        TRUE,
-        38.0,
-        TRUE,
-        18.1,
-        TRUE,
-        TRUE,
-        '嚥下調整食3',
-        '3-1',
-        -- 社会保障サービス
-        TRUE,
-        TRUE,
-        TRUE,
-        -- 目標・方針・署名
-        'ベッド上での安楽な座位（ギャッジアップ60度）が30分以上可能となる。褥瘡の増悪がない。',
-        '苦痛なく日中をリクライニング車椅子で過ごせる。家族との面会時に、穏やかな表情でコミュニケーションが図れる。',
-        TRUE,
-        '介護老人保健施設または特別養護老人ホームへの入所を検討中',
-        'QOL（生活の質）の維持・向上を主目的とする。疼痛管理と褥瘡予防を徹底し、本人が穏やかに過ごせる環境を提供する。家族の意向を尊重し、今後の療養先についてMSWと連携して支援する。',
-        '【理学療法/作業療法共通】: 拘縮予防のための他動関節可動域訓練、褥瘡予防のための体位変換、安楽なシーティング（座位姿勢）の調整。',
-        '田中 次郎',
-        '山田 太郎',
-        '佐藤 花子',
-        '2025-10-04',
-        '山田 太郎',
-        -- 【2枚目】----------------------------------------------------
-        -- 目標(参加)
-        TRUE,
-        '介護老人保健施設',
-        TRUE,
-        '施設のデイルームで過ごす時間を設ける。',
-        TRUE,
-        '音楽鑑賞（昔の歌謡曲）、家族の写真を見ること。',
-        -- 目標(活動)
-        TRUE,
-        TRUE,
-        TRUE,
-        TRUE,
-        -- 対応を要する項目
-        TRUE,
-        '認知症の周辺症状（BPSD）として、夕方になると不安が強くなる（夕暮れ症候群）。リハビリへの拒否が強いことがある。',
-        TRUE,
-        TRUE,
-        TRUE,
-        '長男夫婦（キーパーソン、意思決定者）',
-        -- 具体的な対応方針
-        'スライディングボードやリフトなどの福祉用具を活用した移乗練習。ベッド上でのポジショニングと体位変換の徹底。',
-        '本人の好きな音楽を聴きながら、穏やかな雰囲気の中でリハビリを行う。非薬物療法（バリデーション療法など）を用いて、不安の軽減を図る。',
-        '長男夫婦と定期的に面談し、病状と今後の見通しを共有する。施設入所に関する情報提供と手続きをMSWが中心となって進める。'
-    );
-
-
-
-
-
+    NULL, -- plan_id は自動採番
+    4,   -- patient_id
+    1,    -- created_by_staff_id (例: yamadaさん)
+    -- 【1枚目】----------------------------------------------------
+    -- ヘッダー・基本情報
+    '2025-10-29',                                    -- 計画評価実施日
+    '関節リウマチによる両変形性膝関節症、右人工膝関節全置換術後', -- 算定病名
+    '2025-10-18',                                    -- 手術日
+    '2025-10-19',                                    -- リハ開始日
+    TRUE, TRUE, FALSE,                               -- PT, OT, ST
+    -- 併存疾患・リスク・特記事項
+    '関節リウマチ（生物学的製剤使用中）、シェーグレン症候群、骨粗鬆症', -- 併存疾患
+    NULL,                                            -- リスク (AI生成)
+    NULL,                                            -- 禁忌 (AI生成)
+    -- 心身機能・構造
+    TRUE, '右膝術部痛(NRS 4/10)。左膝、両手指にもリウマチによる痛みあり(NRS 3/10)。', -- 疼痛
+    TRUE, '右膝ROM 屈曲95度、伸展-10度。両手指PIP, DIP関節にも軽度可動域制限あり。', -- ROM制限
+    TRUE, '右下肢筋力低下(MMT 3+)。リウマチによる全身倦怠感、易疲労性あり。', -- 筋力低下
+    TRUE, '易疲労性あり。長時間の活動は困難。',         -- その他
+    TRUE, TRUE,                                      -- 立位保持チェック, 一部介助
+    -- ADL (FIM/BI) - 術後早期、リウマチの影響も加味
+    6, 6, 10, 10,  -- 食事 (手指の痛みでやや困難)
+    4, 5, 5, 5,    -- 整容 (手指、肩の動きにくさ)
+    2, 3, 0, 0,    -- 入浴 (膝、全身状態)
+    5, 5,          -- 更衣(上) (手指、肩)
+    3, 4, 5, 5,    -- 更衣(下), 更衣(BI) (膝、手指)
+    4, 5, 5, 5,    -- トイレ動作
+    7, 7, 10, 10,  -- 排尿管理
+    7, 7, 10, 10,  -- 排便管理
+    3, 4,          -- 移乗(ベッド)
+    3, 4,          -- 移乗(トイレ)
+    2, 3, 5, 5,    -- 移乗(浴槽), 移乗(BI)
+    2, 3, 0, 0,    -- 移動(歩行/車椅子)
+    1, 1, 0, 0,    -- 階段
+    7, 7,          -- 理解
+    7, 7,          -- 表出
+    7, 7,          -- 社会的交流
+    7, 7,          -- 問題解決
+    7, 7,          -- 記憶
+    NULL,          -- 使用用具・介助内容 (AI生成)
+    -- 栄養
+    TRUE, 152.0, TRUE, 45.0, TRUE, 19.5, TRUE, TRUE, -- 身長, 体重(やや低体重), BMI, 経口, 食事
+    -- 社会保障サービス
+    TRUE, TRUE, TRUE,                                -- 介護保険状況, 要支援, 要支援2
+    TRUE, '下肢機能障害', 4,                          -- 身体障害者手帳あり, 下肢, 4級
+    -- 目標・方針・署名
+    NULL, NULL,                                      -- 短期目標, 長期目標 (AI生成)
+    TRUE, '自宅（夫と二人暮らし）',                    -- 退院先
+    NULL, NULL,                                      -- 治療方針, 治療内容 (AI生成)
+    '医師C', '理学療法士F', '作業療法士G', '2025-10-29', '理学療法士F', -- 署名
+    -- 【2枚目】----------------------------------------------------
+    -- 目標(参加)
+    TRUE, 'home_detached',                           -- 住居場所(自宅戸建)
+    TRUE, '友人との散歩（30分程度）、地域の編み物教室への参加。', -- 社会活動
+    TRUE, '編み物、読書',                              -- 趣味
+    -- 目標(活動)
+    TRUE, TRUE, TRUE, '歩行器',                      -- 屋内移動
+    TRUE, TRUE, TRUE, 'シルバーカー',                   -- 屋外移動
+    TRUE, TRUE,                                      -- 更衣（介助）
+    TRUE, TRUE, TRUE,                                -- 入浴（介助、シャワー）
+    TRUE, TRUE, '食事の準備（簡単なもの）、洗濯物干し', -- 家事
+    -- 対応を要する項目
+    TRUE, '太柄カトラリー、ボタンエイド、リーチャー、編み物用補助具', -- 自助具
+    TRUE, '要支援2認定済み。', TRUE,                   -- 介護保険, 訪問介護
+    TRUE, '夫（高齢、腰痛持ち）',                      -- 主介護者
+    -- 具体的な対応方針
+    NULL, NULL, NULL, NULL                           -- (AI生成)
+);
 
 
 
