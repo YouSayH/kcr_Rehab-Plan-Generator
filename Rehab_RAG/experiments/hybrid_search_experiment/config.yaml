@@ -93,7 +93,7 @@ builder:
   # module: rag_components.builders.raptor_builder
   # class: RAPTORBuilder
   # params:
-  #   clustering_eps: 0.4
+  #   clustering_eps: 0.05
   #   min_samples: 2
   #   max_levels: 3
 
@@ -120,7 +120,7 @@ build_components:
     # module: rag_components.embedders.sentence_transformer_embedder
     # class: SentenceTransformerEmbedder
     # params:
-    #   model_name: "intfloat/multilingual-e5-large"
+    #   model_name: "cl-nagoya/ruri-v3-310m"
     #   device: "auto"
 
     # Gemini API
@@ -139,6 +139,10 @@ build_components:
     params:
       model_name: "gemini-2.5-flash-lite"
 
+    # module: rag_components.llms.ollama_llm
+    # class: OllamaLLM
+    # params:
+    #   model_name: "qwen3:8b"
 
 
   # [リトリーバー] (DefaultBuilderまたはHybrid Search実験時に必須)
@@ -166,23 +170,27 @@ query_components:
       model_name: "gemini-2.5-flash-lite"
       safety_block_none: true
 
+    # module: rag_components.llms.ollama_llm
+    # class: OllamaLLM
+    # params:
+    #   model_name: "qwen3:8b"
 
 
   # [エンベッダー] (GraphRetriever以外で必須) ユーザーの質問をベクトル化
   # (注意) DB構築時(build_components)と必ず同じEmbedderを使用してください。
   embedder:
     # 例1: ローカルモデル (デフォルト)ー＞今後のデフォルトはgemini
-    module: rag_components.embedders.sentence_transformer_embedder
-    class: SentenceTransformerEmbedder
-    params:
-      model_name: "cl-nagoya/ruri-v3-310m"
-      device: "auto"
+    # module: rag_components.embedders.sentence_transformer_embedder
+    # class: SentenceTransformerEmbedder
+    # params:
+    #   model_name: "cl-nagoya/ruri-v3-310m"
+    #   device: "auto"
 
     # 例2: Gemini API
-    # module: rag_components.embedders.gemini_embedder
-    # class: GeminiEmbedder
-    # params:
-    #   model_name: "gemini-embedding-001"
+    module: rag_components.embedders.gemini_embedder
+    class: GeminiEmbedder
+    params:
+      model_name: "gemini-embedding-001"
 
 
 
@@ -224,29 +232,39 @@ query_components:
     # module: rag_components.retrievers.graph_retriever
     # class: GraphRetriever
 
+    # 例4: ナレッジグラフ検索 + キーワード検索 + ベクトル検索
+    # module: rag_components.retrievers.combined_retriever
+    # class: CombinedRetriever
+    # params:
+    #   k: 60 # RRFのランキング定数
 
 
   # [リランカー (Reranker)]
   # 検索結果をより高精度に並べ替えます。無効にする場合はセクションごとコメントアウト。
   reranker:
-    module: rag_components.rerankers.cross_encoder_reranker
-    class: CrossEncoderReranker
-    params:
-      model_name: "BAAI/bge-reranker-v2-m3"
+    # module: rag_components.rerankers.cross_encoder_reranker
+    # class: CrossEncoderReranker
+    # params:
+    #   model_name: "BAAI/bge-reranker-v2-m3"
 
+    module: rag_components.rerankers.gemini_embedding_reranker
+    class: GeminiEmbeddingReranker
+    params: {} # embedderは RAGExecutor によって自動的に注入される想定
 
 
   # [フィルタ (Filter)]
   # 検索結果のノイズを除去します。いずれか一つを有効化するか、セクションごとコメントアウトして無効化。
   filter:
-    - module: rag_components.filters.nli_filter
-      class: NLIFilter
-      params:
-        model_name: "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
+    # - module: rag_components.filters.nli_filter
+    #   class: NLIFilter
+    #   params:
+    #     model_name: "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
     # ↑例1: NLIFilter (自然言語推論による矛盾フィルタ)↑
 
-    # - module: rag_components.filters.self_reflective_filter
-    #   class: SelfReflectiveFilter
+    - module: rag_components.filters.self_reflective_filter
+      class: SelfReflectiveFilter
+      params:
+        batch_size: 10
     # ↑例2: SelfReflectiveFilter (LLMによる自己評価フィルタ)↑
 
 
