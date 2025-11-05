@@ -121,21 +121,22 @@ class RAGExecutor:
                 if name in ['judge', 'query_enhancer', 'filter'] and 'llm' not in params:
                     params['llm'] = self.components.get('llm')
                 if name == 'retriever':
-                    if 'embedder' not in params: 
+                    if 'embedder' not in params:
                         params['embedder'] = self.components.get('embedder')
-
-                    if class_name in ['GraphRetriever', 'CombinedRetriever']:
+                    if class_name in ['GraphRetriever', 'CombinedRetriever'] and 'llm' not in params:
                         params['llm'] = self.components.get('llm')
 
-                    # 古いconfig形式でretrieverにpathが指定されていない場合、databaseセクションから補完
                     if 'path' not in params and 'database' in self.pipeline_config:
-                        db_path = self.pipeline_config.get('database', {}).get('path')
-                        if db_path:
-                            params['path'] = os.path.normpath(os.path.join(self.experiment_dir, db_path))
-                            print(f"INFO: retrieverの'path'をdatabaseセクションから補完: {params['path']}")
-
+                         db_path = self.pipeline_config.get('database', {}).get('path')
+                         if db_path:
+                             params['path'] = os.path.normpath(os.path.join(self.experiment_dir, db_path))
+                             print(f"INFO: retrieverの'path'をdatabaseセクションから補完: {params['path']}")
                     if 'collection_name' not in params and 'database' in self.pipeline_config:
                          params['collection_name'] = self.pipeline_config.get('database', {}).get('collection_name')
+
+                if name == 'reranker' and class_name == 'GeminiEmbeddingReranker':
+                    if 'embedder' not in params:
+                        params['embedder'] = self.components.get('embedder')
 
                 for key, value in params.items():
                     if isinstance(value, str) and value.startswith('@common_components.'):
