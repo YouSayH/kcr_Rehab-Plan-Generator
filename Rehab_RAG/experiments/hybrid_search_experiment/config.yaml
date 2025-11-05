@@ -93,7 +93,7 @@ builder:
   # module: rag_components.builders.raptor_builder
   # class: RAPTORBuilder
   # params:
-  #   clustering_eps: 0.4
+  #   clustering_eps: 0.05
   #   min_samples: 2
   #   max_levels: 3
 
@@ -120,7 +120,7 @@ build_components:
     # module: rag_components.embedders.sentence_transformer_embedder
     # class: SentenceTransformerEmbedder
     # params:
-    #   model_name: "intfloat/multilingual-e5-large"
+    #   model_name: "cl-nagoya/ruri-v3-310m"
     #   device: "auto"
 
     # Gemini API
@@ -139,6 +139,10 @@ build_components:
     params:
       model_name: "gemini-2.5-flash-lite"
 
+    # module: rag_components.llms.ollama_llm
+    # class: OllamaLLM
+    # params:
+    #   model_name: "qwen3:8b"
 
 
   # [リトリーバー] (DefaultBuilderまたはHybrid Search実験時に必須)
@@ -166,6 +170,10 @@ query_components:
       model_name: "gemini-2.5-flash-lite"
       safety_block_none: true
 
+    # module: rag_components.llms.ollama_llm
+    # class: OllamaLLM
+    # params:
+    #   model_name: "qwen3:8b"
 
 
   # [エンベッダー] (GraphRetriever以外で必須) ユーザーの質問をベクトル化
@@ -224,6 +232,11 @@ query_components:
     # module: rag_components.retrievers.graph_retriever
     # class: GraphRetriever
 
+    # 例4: ナレッジグラフ検索 + キーワード検索 + ベクトル検索
+    # module: rag_components.retrievers.combined_retriever
+    # class: CombinedRetriever
+    # params:
+    #   k: 60 # RRFのランキング定数
 
 
   # [リランカー (Reranker)]
