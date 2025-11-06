@@ -23,7 +23,9 @@ class BM25Retriever:
             collection_name (str): インデックスファイル名のプレフィックス。
         """
         self.index_path = os.path.join(path, f"{collection_name}_bm25.pkl")
-        self.mecab = MeCab.Tagger("-Owakati")
+        # self.mecab = MeCab.Tagger("-Owakati")
+        self.mecab = MeCab.Tagger("-Owakati -d /var/lib/mecab/dic/ipadic-utf8")
+
         self.bm25 = None
         self.chunks = []
 

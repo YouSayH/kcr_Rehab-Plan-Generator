@@ -45,8 +45,9 @@ def main():
     db_path = config['database']['path']
     full_db_path = os.path.join(SCRIPT_DIR, db_path)
     if os.path.exists(full_db_path):
-        print(f"既存のデータベース '{full_db_path}' を削除します。")
-        shutil.rmtree(full_db_path)
+        # print(f"既存のデータベース '{full_db_path}' を削除します。")
+        # shutil.rmtree(full_db_path)
+        pass
         
     print("--- データベース構築開始 ---")
 
