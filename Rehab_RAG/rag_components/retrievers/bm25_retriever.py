@@ -1,4 +1,5 @@
 import os
+import platform
 import pickle
 from rank_bm25 import BM25Okapi
 from tqdm import tqdm
@@ -24,7 +25,16 @@ class BM25Retriever:
         """
         self.index_path = os.path.join(path, f"{collection_name}_bm25.pkl")
         # self.mecab = MeCab.Tagger("-Owakati")
-        self.mecab = MeCab.Tagger("-Owakati -d /var/lib/mecab/dic/ipadic-utf8")
+        # self.mecab = MeCab.Tagger("-Owakati -d /var/lib/mecab/dic/ipadic-utf8")
+
+        if platform.system() == "Linux":
+            # Dockerコンテナ内やLinux環境の場合
+            # （Dockerfileで指定した辞書パスを明示的に指定）
+            self.mecab = MeCab.Tagger("-Owakati -d /var/lib/mecab/dic/ipadic-utf8")
+        else:
+            # WindowsやmacOSなど、その他のOSの場合
+            # （引数なしで初期化し、環境変数MECABRCなどを参照させる）
+            self.mecab = MeCab.Tagger("-Owakati")
 
         self.bm25 = None
         self.chunks = []
