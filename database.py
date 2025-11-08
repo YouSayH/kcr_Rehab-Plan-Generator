@@ -643,6 +643,11 @@ def save_patient_master_data(form_data: dict):
             # 既に処理済みのキーはスキップ
             if key in boolean_columns or key.rsplit("_", 1)[0] in processed_date_keys:
                 continue
+
+            # patient_id はオブジェクト作成時に設定済みのため、フォームの値で上書きしない
+            if key == "patient_id":
+                continue
+            
             if key not in columns:
                 continue
 

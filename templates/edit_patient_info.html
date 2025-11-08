@@ -340,10 +340,12 @@
                         <tr id="main_comorbidities_txt">
                             <td>併存疾患・合併症<br><textarea id="main_comorbidities_txt" name="main_comorbidities_txt"
                                     class="input-field">{{ patient_data.main_comorbidities_txt or '' }}</textarea></td>
-                            <td>安静度・リスク<br><textarea name="main_risks_txt" class="input-field readonly-placeholder"
-                                    readonly>（この項目はAIが自動生成します）</textarea></td>
-                            <td>禁忌・特記事項<br><textarea name="main_contraindications_txt"
-                                    class="input-field readonly-placeholder" readonly>（この項目はAIが自動生成します）</textarea></td>
+                            <!-- <td>安静度・リスク<br><textarea name="main_risks_txt" class="input-field readonly-placeholder"
+                                    readonly>（この項目はAIが自動生成します）</textarea></td> -->
+                            <td>安静度・リスク<br><textarea name="main_risks_txt" class="input-field"></textarea></td>
+                            <!-- <td>禁忌・特記事項<br><textarea name="main_contraindications_txt"
+                                    class="input-field readonly-placeholder" readonly>（この項目はAIが自動生成します）</textarea></td> -->
+                            <td>禁忌・特記事項<br><textarea name="main_contraindications_txt" class="input-field"></textarea></td>
                         </tr>
                     </tbody>
                 </table>
@@ -508,11 +510,21 @@
                         </tr>
                         <tr>
                             <td>
-                                <label class="checkbox-label"><input type="checkbox" id="func_swallowing_disorder_chk" name="func_swallowing_disorder_chk"
+                                <!-- <label class="checkbox-label"><input type="checkbox" id="func_swallowing_disorder_chk" name="func_swallowing_disorder_chk"
                                         value="on" {% if patient_data.func_swallowing_disorder_chk %}checked{% endif %}>摂食嚥下障害（<input type="text" id="func_swallowing_disorder_txt"
                                         %}>摂食嚥下障害（<input type="text" name="func_swallowing_disorder_txt"
                                         value="{{ patient_data.func_swallowing_disorder_txt or '' }}"
-                                        class="input-field inline-input" style="width:150px;"></label>）
+                                        class="input-field inline-input" style="width:150px;"></label>） -->
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="func_swallowing_disorder_chk" name="func_swallowing_disorder_chk"
+                                        value="on" {% if patient_data.func_swallowing_disorder_chk %}checked{% endif %}>
+                                    摂食嚥下障害（
+                                    <input type="text" 
+                                        id="func_swallowing_disorder_txt" 
+                                        name="func_swallowing_disorder_txt"
+                                        value="{{ patient_data.func_swallowing_disorder_txt or '' }}"
+                                        class="input-field inline-input" style="width:150px;">
+                                </label>）
                             </td>
                             <td>
                                 <label class="checkbox-label"><input type="checkbox" id="func_sensory_dysfunction_chk" name="func_sensory_dysfunction_chk"
@@ -769,8 +781,11 @@
                                         value="{{ patient_data.adl_eating_bi_current_val or '' }}"
                                         class="input-field score-input"></div>
                             </td>
-                            <td rowspan="20" rowspan="1" style="width: 450px;" class="readonly-placeholder">
+                            <!-- <td rowspan="20" rowspan="1" style="width: 450px;" class="readonly-placeholder">
                                 （この項目はAIが自動生成します）
+                            </td> -->
+                            <td rowspan="20" rowspan="1" style="width: 450px;">
+                                <textarea name="adl_equipment_and_assistance_details_txt" class="input-field" style="height: 98%; min-height: 400px; resize: vertical;">{{ patient_data.adl_equipment_and_assistance_details_txt or '' }}</textarea>
                             </td>
                         </tr>
                         <tr>
@@ -1327,10 +1342,15 @@
                 <table>
                     <tbody>
                         <tr>
-                            <td style="width:50%; height: 150px;">
+                            <!-- <td style="width:50%; height: 150px;">
                                 <b>目標（１ヶ月）</b>
                                 <textarea name="goals_1_month_txt" class="input-field readonly-placeholder"
                                     style="height: 120px;" readonly>（この項目はAIが自動生成します）</textarea>
+                            </td> -->
+                            <td style="width:50%; height: 150px;">
+                                <b>目標（１ヶ月）</b>
+                                <textarea name="goals_1_month_txt" class="input-field"
+                                    style="height: 120px;"></textarea>
                             </td>
                             <td style="height: 150px;">
                                 <b>目標（終了時）</b>
@@ -1356,20 +1376,29 @@
                                             patient_data.goals_long_term_care_needed_chk %}checked{% endif
                                             %}>長期的・継続的にケアが必要</label>
                                 </div>
-                                <textarea name="goals_at_discharge_txt" class="input-field readonly-placeholder"
-                                    readonly>（この項目はAIが自動生成します）</textarea>
+                                <textarea name="goals_at_discharge_txt" class="input-field"></textarea>
                             </td>
                         </tr>
                         <tr>
-                            <td style="height: 150px;">
+                            <!-- <td style="height: 150px;">
                                 <b>治療方針（リハビリテーション総合実施方針）</b>
                                 <textarea name="policy_treatment_txt" class="input-field readonly-placeholder"
                                     style="height: 120px;" readonly>（この項目はAIが自動生成します）</textarea>
-                            </td>
+                            </td> -->
                             <td style="height: 150px;">
+                                <b>治療方針（リハビリテーション総合実施方針）</b>
+                                <textarea name="policy_treatment_txt" class="input-field"
+                                    style="height: 120px;"></textarea>
+                            </td>
+                            <!-- <td style="height: 150px;">
                                 <b>治療内容（リハビリテーション総合実施内容）</b>
                                 <textarea name="policy_content_txt" class="input-field readonly-placeholder"
                                     style="height: 120px;" readonly>（この項目はAIが自動生成します）</textarea>
+                            </td> -->
+                            <td style="height: 150px;">
+                                <b>治療内容（リハビリテーション総合実施内容）</b>
+                                <textarea name="policy_content_txt" class="input-field"
+                                    style="height: 120px;"></textarea>
                             </td>
                         </tr>
                     </tbody>
@@ -1452,7 +1481,10 @@
                                         style="width:100px;">)
                                 </div>
                             </td>
-                            <td rowspan="6" class="readonly-placeholder"> （この項目はAIが自動生成します） </td>
+                            <!-- <td rowspan="6" class="readonly-placeholder"> （この項目はAIが自動生成します） </td> -->
+                            <td rowspan="6">
+                                <textarea name="goal_p_action_plan_txt" class="input-field" style="height: 98%; min-height: 200px; resize: vertical;">{{ patient_data.goal_p_action_plan_txt or '' }}</textarea>
+                            </td>
                         </tr>
                         <tr>
                             <td>
@@ -1559,7 +1591,10 @@
                                             %}>環境設定</label>
                                 </div>
                             </td>
-                            <td rowspan="14" class="readonly-placeholder"> （この項目はAIが自動生成します） </td>
+                            <!-- <td rowspan="14" class="readonly-placeholder"> （この項目はAIが自動生成します） </td> -->
+                            <td rowspan="14">
+                                <textarea name="goal_a_action_plan_txt" class="input-field" style="height: 98%; min-height: 200px; resize: vertical;">{{ patient_data.goal_a_action_plan_txt or '' }}</textarea>
+                            </td>
                         </tr>
                         <tr>
                             <td>
@@ -1829,7 +1864,10 @@
                                         value="{{ patient_data.goal_s_psychological_support_txt or '' }}"
                                         style="width:100px;"></label>)</label>
                             </td>
-                            <td rowspan="3" class="readonly-placeholder">（この項目はAIが自動生成します）</td>
+                            <!-- <td rowspan="3" class="readonly-placeholder">（この項目はAIが自動生成します）</td> -->
+                            <td rowspan="3">
+                                <textarea name="goal_s_psychological_action_plan_txt" class="input-field" style="height: 98%; min-height: 200px; resize: vertical;">{{ patient_data.goal_s_psychological_action_plan_txt or '' }}</textarea>
+                            </td>
                         </tr>
                         <tr>
                             <td><label class="checkbox-label"><input type="checkbox"
@@ -1859,7 +1897,10 @@
                                         name="goal_s_env_home_modification_txt"
                                         value="{{ patient_data.goal_s_env_home_modification_txt or '' }}"
                                         style="width:100px;"></label>)</label></td>
-                            <td rowspan="6" class="readonly-placeholder">（この項目はAIが自動生成します）</td>
+                            <!-- <td rowspan="6" class="readonly-placeholder">（この項目はAIが自動生成します）</td> -->
+                            <td rowspan="6">
+                                <textarea name="goal_s_env_action_plan_txt" class="input-field" style="height: 98%; min-height: 200px; resize: vertical;">{{ patient_data.goal_s_env_action_plan_txt or '' }}</textarea>
+                            </td>
                         </tr>
                         <tr>
                             <td><label class="checkbox-label"><input type="checkbox"
@@ -2000,7 +2041,10 @@
                                         name="goal_s_3rd_party_main_caregiver_txt"
                                         value="{{ patient_data.goal_s_3rd_party_main_caregiver_txt or '' }}"
                                         style="width:100px;"></label>)</label></td>
-                            <td rowspan="4" class="readonly-placeholder">（この項目はAIが自動生成します）</td>
+                            <!-- <td rowspan="4" class="readonly-placeholder">（この項目はAIが自動生成します）</td> -->
+                            <td rowspan="4">
+                                <textarea name="goal_s_3rd_party_action_plan_txt" class="input-field" style="height: 98%; min-height: 200px; resize: vertical;">{{ patient_data.goal_s_3rd_party_action_plan_txt or '' }}</textarea>
+                            </td>
                         </tr>
                         <tr>
                             <td><label class="checkbox-label"><input type="checkbox"

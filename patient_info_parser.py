@@ -102,6 +102,7 @@ class PatientInfoParser:
                 generation_config = types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=group_schema,
+                    # thinking_config=types.ThinkingConfig(thinking_budget=2000),
                 )
 
                 # リトライ処理を追加
@@ -144,7 +145,7 @@ class PatientInfoParser:
                 continue
             
             # APIのレート制限を避けるため、各グループの処理の間に短い待機時間を設ける
-            time.sleep(5)
+            time.sleep(0.5)
 
         if not final_result:
             return {"error": "患者情報の解析に失敗しました。", "details": "どのグループからも有効な情報を抽出できませんでした。"}

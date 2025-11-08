@@ -627,8 +627,12 @@ def save_patient_info():
         # 保存後、今編集していた患者が選択された状態で同ページにリダイレクト
         return redirect(url_for("edit_patient_info", patient_id=saved_patient_id))
 
+    # except Exception as e:
+    #     flash(f"情報の保存中にエラーが発生しました: {e}", "danger")
+    #     return redirect(url_for("edit_patient_info"))
     except Exception as e:
-        flash(f"情報の保存中にエラーが発生しました: {e}", "danger")
+        app.logger.error(f"save_patient_info でエラー: {e}") # ログには詳細を記録
+        flash("情報の保存中にエラーが発生しました。システム管理者にご確認ください。", "danger") # ユーザーには短いメッセージを表示
         return redirect(url_for("edit_patient_info"))
 
 
