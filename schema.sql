@@ -8,7 +8,7 @@
 CREATE DATABASE IF NOT EXISTS rehab_db CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 USE rehab_db;
 
-
+SET NAMES utf8mb4;
 
 -- 外部キー制約を一時的に無効化
 SET FOREIGN_KEY_CHECKS = 0;

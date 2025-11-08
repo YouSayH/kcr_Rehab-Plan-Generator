@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  # 1. Flaskアプリケーション (web)
+  web:
+    build: . # カレントディレクトリのDockerfileを使用
+    container_name: rehab_app_web
+    user: root
+    ports:
+      # [ローカルPCのポート]:[コンテナ内のポート]
+      - "5000:8080" # http://localhost:5000 でアクセス可能に
+    env_file:
+      - .env # .envファイルから環境変数を読み込む
+    volumes:
+      # RAG (ChromaDB) データをローカルに永続化
+      # ※パスは rag_config.yaml の active_pipeline の設定に合わせてください
+      # 例: active_pipeline: "raptor_experiment" の場合
+      - ./rag_db_data:/app/Rehab_RAG/experiments/hybrid_search_experiment/db
+      # 生成されたExcelをローカルでも確認 (任意)
+      - ./output:/app/output
+      # ログをローカルでも確認 (任意)
+      - ./logs:/app/logs
+    depends_on:
+      db: # 'db'サービス(MySQL)が起動し、ヘルスチェックが通るまで待機
+        condition: service_healthy
+    networks:
+      - rehabnet
+
+  # 2. MySQLデータベース (db)
+  db:
+    image: mysql:8.0 # Docker HubからMySQL 8.0イメージを取得
+    container_name: rehab_app_db
+    ports:
+      # ローカルPCの3307番ポートをコンテナの3306番ポートに接続
+      # (ローカルPCでMySQLが動いている場合、3306以外のポートに変更)
+      - "3307:3306"
+    env_file:
+      - .env # .envからMYSQL_ROOT_PASSWORDなどを読み込む
+    environment:
+      MYSQL_DATABASE: rehab_db # rehab_db データベースを自動作成
+    command:
+      # 文字コードと認証プラグインを指定
+      - --default-authentication-plugin=mysql_native_password
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_general_ci
+    volumes:
+      # MySQLデータをローカルに永続化
+      - mysql_data:/var/lib/mysql
+      # 初回起動時にschema.sqlを読み込ませてテーブルを自動作成
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+    networks:
+      - rehabnet
+    healthcheck:
+      # MySQLサーバーが応答可能になるまで待機
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost", "-u$$DB_USER", "-p$$DB_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+# コンテナ間通信用のネットワーク
+networks:
+  rehabnet:
+    driver: bridge
+
+# データを永続化するための名前付きボリューム
+volumes:
+  mysql_data:
+  rag_db_data:

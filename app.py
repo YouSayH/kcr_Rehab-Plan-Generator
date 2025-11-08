@@ -701,7 +701,7 @@ def regenerate_item():
         rag_executor = None
         if model_type == 'specialized':
             # TODO: pipeline_nameは将来的に動的に選択できるようにする
-            pipeline_name = "structured_semantic_chunk-hyde_prf-chromadb-gemini_embedding-reranker-nli_filter"
+            pipeline_name = "hybrid_search_experiment"
             rag_executor = get_rag_executor(pipeline_name)
             if not rag_executor:
                 raise Exception(f"パイプライン '{pipeline_name}' の Executorを取得できませんでした。")

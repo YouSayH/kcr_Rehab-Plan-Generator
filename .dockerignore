@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+
+# Python仮想環境
+venv*
+.venv*
+venv_rehab*
+
+# Pythonキャッシュ
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# 環境変数ファイル (最重要)
+.env
+*.env
+
+# Docker関連ファイル
+Dockerfile
+.dockerignore
+docker-compose.yml
+
+# 一時ファイル・ログ・出力
+output/
+logs/
+*.log
+*.csv
+
+# OS固有
+.DS_Store
+Thumbs.db
+
+# ドキュメント・スクリプト類
+*.md
+*.ps1
+create_hash.py
+
+# DBファイル
+schema.sql
+# RAGのDBデータ (ボリュームでマウントするためイメージに含めない)
+Rehab_RAG/experiments/*/db/
+
+# RAGのソースドキュメント (ビルド時には不要)
+# Rehab_RAG/source_documents/
+
+# ローカルで作成されたDBデータ (絶対にイメージに含めない)
+rag_db_data/
+mysql_data/
+Rehab_RAG/experiments/*/db/

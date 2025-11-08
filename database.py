@@ -21,7 +21,9 @@ DB_NAME = os.getenv("DB_NAME")
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}?charset=utf8mb4"
 
 # SQLAlchemyのエンジンを作成
-engine = create_engine(DATABASE_URL, echo=False)
+# engine = create_engine(DATABASE_URL, echo=False)
+# pool_recycle=3600 を追加し、接続を1時間ごとにリサイクルする
+engine = create_engine(DATABASE_URL, echo=False, pool_recycle=3600)
 
 # セッションを作成するためのクラス（ファクトリ）を定義
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
