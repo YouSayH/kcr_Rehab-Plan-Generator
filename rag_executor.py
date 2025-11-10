@@ -280,10 +280,18 @@ class RAGExecutor:
 
         if isinstance(response, dict) and "error" in response:
             answer_dict = response
-        else:
+        elif response: # <--- response が None でないことを確認
             # Pydanticモデルの場合は .model_dump() で辞書に変換
-            answer_dict = response.model_dump()
-            print("RAGモデルによる生成が完了")
+            try:
+                answer_dict = response.model_dump()
+                print("RAGモデルによる生成が完了")
+            except Exception as e:
+                print(f"model_dumpの実行中にエラーが発生しました: {e}")
+                answer_dict = {"error": f"AI応答のデータ変換に失敗しました: {e}"}
+        else:
+            # responseがNoneだった場合のフォールバック
+            print("RAGモデルの応答がNoneでした。スキーマのパースに失敗した可能性があります。")
+            answer_dict = {"error": "AIの応答が空でした (None)。スキーマのパースに失敗した可能性があります。"}
 
         # 回答(answer)と、メタデータ付きの根拠(contexts)の両方を辞書として返す
         return {
