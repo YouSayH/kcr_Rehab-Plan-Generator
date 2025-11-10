@@ -75,6 +75,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 if not app.config["SECRET_KEY"]:
     raise ValueError("環境変数 'SECRET_KEY' が .env ファイルに設定されていません。")
 
+
 # 9時間後(労働時間8時間+1時間)にタイムアウトする。
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=540)
 
