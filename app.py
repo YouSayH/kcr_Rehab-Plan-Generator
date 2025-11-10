@@ -1,7 +1,7 @@
 import os
 import json
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 import threading
 from functools import wraps
 from flask import (
@@ -67,8 +67,10 @@ ITEM_KEY_TO_JAPANESE = {
 app = Flask(__name__)
 # ユーザーのセッション情報（例: ログイン状態）を暗号化するための秘密鍵。
 # これがないとflashメッセージなどが使えない。
-# TODO 本番環境では、config.pyファイルを作成or環境変数から読み込むのが一般的。
-app.config["SECRET_KEY"] = "your-very-secret-key-for-session"
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+
+# 9時間後(労働時間8時間+1時間)にタイムアウトする。
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=540)
 
 
 login_manager = LoginManager()
