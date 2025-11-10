@@ -28,7 +28,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- =================================================================
 -- 2. 患者マスターテーブル
 -- =================================================================
--- TODO 患者情報が少ないかも。今後増やしていこうと思う。
+
 CREATE TABLE IF NOT EXISTS patients (
     `patient_id` INT AUTO_INCREMENT PRIMARY KEY COMMENT '患者を一意に識別するID',
     `name` VARCHAR(255) NOT NULL COMMENT '患者氏名',
@@ -49,7 +49,9 @@ CREATE TABLE IF NOT EXISTS staff (
     `password` VARCHAR(255) NOT NULL COMMENT 'ハッシュ化されたパスワード',
     `occupation` VARCHAR(255) NOT NULL COMMENT '職種',
     `role` VARCHAR(50) NOT NULL DEFAULT 'general' COMMENT '役割 (admin, generalなど)',
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'レコード作成日時'
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'レコード作成日時',
+    `session_token` VARCHAR(255) NULL COMMENT '同時ログイン防止用のセッショントークン',
+    INDEX `idx_session_token` (`session_token`)
 ) ENGINE = InnoDB COMMENT = '職員（アプリのユーザー）情報を格納するテーブル';
 
 

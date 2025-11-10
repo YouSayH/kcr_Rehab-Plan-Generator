@@ -3,6 +3,7 @@ import json
 from collections import defaultdict
 from datetime import date, timedelta
 import threading
+from dotenv import load_dotenv
 from functools import wraps
 from flask import (
     Flask,
@@ -36,6 +37,8 @@ import excel_writer
 from rag_executor import RAGExecutor
 from patient_info_parser import PatientInfoParser # 新しく追加
 
+load_dotenv()
+
 # show_summary.py からITEM_KEY_TO_JAPANESEを移植
 ITEM_KEY_TO_JAPANESE = {
     'main_risks_txt': '安静度・リスク',
@@ -65,9 +68,13 @@ ITEM_KEY_TO_JAPANESE = {
 }
 
 app = Flask(__name__)
-# ユーザーのセッション情報（例: ログイン状態）を暗号化するための秘密鍵。
+
+# ユーザーのセッション情報（例: ログイン状態）を暗号化するため
 # これがないとflashメッセージなどが使えない。
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+if not app.config["SECRET_KEY"]:
+    raise ValueError("環境変数 'SECRET_KEY' が .env ファイルに設定されていません。")
+
 
 # 9時間後(労働時間8時間+1時間)にタイムアウトする。
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=540)
@@ -151,15 +158,22 @@ class Staff(UserMixin):
 @login_manager.user_loader
 def load_user(staff_id):
     staff_info = database.get_staff_by_id(int(staff_id))
-    if staff_info:
-        # データベースから取得した情報を使ってStaffクラスのインスタンスを返す
-        return Staff(
-            staff_id=staff_info["id"],
-            username=staff_info["username"],
-            role=staff_info["role"],
-            occupation=staff_info["occupation"],
-        )
-    return None
+    if not staff_info:
+        return None
+    
+    # ブラウザのCookie(session)内のトークンと、DBに保存されている最新のトークンを比較
+    # staff_info は辞書なので .get() を使う
+    if session.get("session_token") != staff_info.get("session_token"):
+        # 一致しない場合 (他のPCが新しくログインしたため)
+        return None # ログインを無効化する
+
+    # トークンが一致した場合のみ、ユーザー情報を復元
+    return Staff(
+        staff_id=staff_info["id"],
+        username=staff_info["username"],
+        role=staff_info["role"],
+        occupation=staff_info["occupation"],
+    )
 
 
 # ルーティング↓
@@ -212,6 +226,23 @@ def login():
                 role=staff_info["role"],
                 occupation=staff_info["occupation"],
             )
+
+            # セッショントークン生成
+            new_token = os.urandom(24).hex() # 24バイトのランダムな文字列
+
+            # トークン保存
+            try:
+                db = database.SessionLocal()
+                db_staff = db.query(database.Staff).filter(database.Staff.id == staff.id).first()
+                if db_staff:
+                    db_staff.session_token = new_token
+                    db.commit()
+            finally:
+                db.close()
+
+            # トークンをセッションに保存
+            session["session_token"] = new_token # Flaskのセッションに保存
+
             # Flask-Loginのlogin_user関数で、ユーザーをログイン状態にする
             login_user(staff)
             # ログイン後のトップページにリダイレクト

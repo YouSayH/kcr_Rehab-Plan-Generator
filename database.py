@@ -77,6 +77,8 @@ class Staff(Base):
     role = Column(String(50), nullable=False, default="general")
     created_at = Column(TIMESTAMP)
 
+    session_token = Column(String(255), nullable=True, index=True)
+
     # Staffから担当のPatientを 'assigned_patients' という名前で参照
     assigned_patients = relationship("Patient", secondary=staff_patients_association, back_populates="staff_members")
     suggestion_likes = relationship("SuggestionLike", back_populates="staff")
