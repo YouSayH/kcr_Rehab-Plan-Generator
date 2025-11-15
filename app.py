@@ -1,8 +1,9 @@
 import os
 import json
 from collections import defaultdict
-from datetime import date
+from datetime import date, timedelta
 import threading
+from dotenv import load_dotenv
 from functools import wraps
 from flask import (
     Flask,
@@ -36,6 +37,8 @@ import excel_writer
 from rag_executor import RAGExecutor
 from patient_info_parser import PatientInfoParser # 新しく追加
 
+load_dotenv()
+
 # show_summary.py からITEM_KEY_TO_JAPANESEを移植
 ITEM_KEY_TO_JAPANESE = {
     'main_risks_txt': '安静度・リスク',
@@ -65,10 +68,16 @@ ITEM_KEY_TO_JAPANESE = {
 }
 
 app = Flask(__name__)
-# ユーザーのセッション情報（例: ログイン状態）を暗号化するための秘密鍵。
+
+# ユーザーのセッション情報（例: ログイン状態）を暗号化するため
 # これがないとflashメッセージなどが使えない。
-# TODO 本番環境では、config.pyファイルを作成or環境変数から読み込むのが一般的。
-app.config["SECRET_KEY"] = "your-very-secret-key-for-session"
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
+if not app.config["SECRET_KEY"]:
+    raise ValueError("環境変数 'SECRET_KEY' が .env ファイルに設定されていません。")
+
+
+# 9時間後(労働時間8時間+1時間)にタイムアウトする。
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=540)
 
 
 login_manager = LoginManager()
@@ -149,15 +158,22 @@ class Staff(UserMixin):
 @login_manager.user_loader
 def load_user(staff_id):
     staff_info = database.get_staff_by_id(int(staff_id))
-    if staff_info:
-        # データベースから取得した情報を使ってStaffクラスのインスタンスを返す
-        return Staff(
-            staff_id=staff_info["id"],
-            username=staff_info["username"],
-            role=staff_info["role"],
-            occupation=staff_info["occupation"],
-        )
-    return None
+    if not staff_info:
+        return None
+    
+    # ブラウザのCookie(session)内のトークンと、DBに保存されている最新のトークンを比較
+    # staff_info は辞書なので .get() を使う
+    if session.get("session_token") != staff_info.get("session_token"):
+        # 一致しない場合 (他のPCが新しくログインしたため)
+        return None # ログインを無効化する
+
+    # トークンが一致した場合のみ、ユーザー情報を復元
+    return Staff(
+        staff_id=staff_info["id"],
+        username=staff_info["username"],
+        role=staff_info["role"],
+        occupation=staff_info["occupation"],
+    )
 
 
 # ルーティング↓
@@ -210,6 +226,23 @@ def login():
                 role=staff_info["role"],
                 occupation=staff_info["occupation"],
             )
+
+            # セッショントークン生成
+            new_token = os.urandom(24).hex() # 24バイトのランダムな文字列
+
+            # トークン保存
+            try:
+                db = database.SessionLocal()
+                db_staff = db.query(database.Staff).filter(database.Staff.id == staff.id).first()
+                if db_staff:
+                    db_staff.session_token = new_token
+                    db.commit()
+            finally:
+                db.close()
+
+            # トークンをセッションに保存
+            session["session_token"] = new_token # Flaskのセッションに保存
+
             # Flask-Loginのlogin_user関数で、ユーザーをログイン状態にする
             login_user(staff)
             # ログイン後のトップページにリダイレクト
@@ -627,8 +660,12 @@ def save_patient_info():
         # 保存後、今編集していた患者が選択された状態で同ページにリダイレクト
         return redirect(url_for("edit_patient_info", patient_id=saved_patient_id))
 
+    # except Exception as e:
+    #     flash(f"情報の保存中にエラーが発生しました: {e}", "danger")
+    #     return redirect(url_for("edit_patient_info"))
     except Exception as e:
-        flash(f"情報の保存中にエラーが発生しました: {e}", "danger")
+        app.logger.error(f"save_patient_info でエラー: {e}") # ログには詳細を記録
+        flash("情報の保存中にエラーが発生しました。システム管理者にご確認ください。", "danger") # ユーザーには短いメッセージを表示
         return redirect(url_for("edit_patient_info"))
 
 
@@ -701,7 +738,7 @@ def regenerate_item():
         rag_executor = None
         if model_type == 'specialized':
             # TODO: pipeline_nameは将来的に動的に選択できるようにする
-            pipeline_name = "structured_semantic_chunk-hyde_prf-chromadb-gemini_embedding-reranker-nli_filter"
+            pipeline_name = "hybrid_search_experiment"
             rag_executor = get_rag_executor(pipeline_name)
             if not rag_executor:
                 raise Exception(f"パイプライン '{pipeline_name}' の Executorを取得できませんでした。")

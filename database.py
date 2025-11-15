@@ -21,7 +21,9 @@ DB_NAME = os.getenv("DB_NAME")
 DATABASE_URL = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_NAME}?charset=utf8mb4"
 
 # SQLAlchemyのエンジンを作成
-engine = create_engine(DATABASE_URL, echo=False)
+# engine = create_engine(DATABASE_URL, echo=False)
+# pool_recycle=3600 を追加し、接続を1時間ごとにリサイクルする
+engine = create_engine(DATABASE_URL, echo=False, pool_recycle=3600)
 
 # セッションを作成するためのクラス（ファクトリ）を定義
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -74,6 +76,8 @@ class Staff(Base):
     occupation = Column(String(255), nullable=False)
     role = Column(String(50), nullable=False, default="general")
     created_at = Column(TIMESTAMP)
+
+    session_token = Column(String(255), nullable=True, index=True)
 
     # Staffから担当のPatientを 'assigned_patients' という名前で参照
     assigned_patients = relationship("Patient", secondary=staff_patients_association, back_populates="staff_members")
@@ -641,6 +645,11 @@ def save_patient_master_data(form_data: dict):
             # 既に処理済みのキーはスキップ
             if key in boolean_columns or key.rsplit("_", 1)[0] in processed_date_keys:
                 continue
+
+            # patient_id はオブジェクト作成時に設定済みのため、フォームの値で上書きしない
+            if key == "patient_id":
+                continue
+            
             if key not in columns:
                 continue
 
