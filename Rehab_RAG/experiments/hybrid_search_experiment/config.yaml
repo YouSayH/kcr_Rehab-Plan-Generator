@@ -142,7 +142,7 @@ build_components:
     # module: rag_components.llms.ollama_llm
     # class: OllamaLLM
     # params:
-    #   model_name: "qwen3:8b"
+    #   model_name: "hf.co/unsloth/Qwen3-4B-Thinking-2507-GGUF:Q4_K_M"
 
 
   # [リトリーバー] (DefaultBuilderまたはHybrid Search実験時に必須)
@@ -173,7 +173,7 @@ query_components:
     # module: rag_components.llms.ollama_llm
     # class: OllamaLLM
     # params:
-    #   model_name: "qwen3:8b"
+    #   model_name: "hf.co/unsloth/Qwen3-4B-Thinking-2507-GGUF:Q4_K_M"
 
 
   # [エンベッダー] (GraphRetriever以外で必須) ユーザーの質問をベクトル化

@@ -3,11 +3,12 @@ import json
 import time
 from dotenv import load_dotenv
 from google import genai
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from google.genai import types
 from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
 from schemas import PATIENT_INFO_EXTRACTION_GROUPS # 分割したスキーマのリストをインポート
 import logging
+import ollama
 
 load_dotenv()
 
@@ -32,14 +33,30 @@ class PatientInfoParser:
     Gemini APIを使用して、非構造化テキストから構造化された患者情報を抽出するクラス。
     スキーマが大きすぎることによるAPIエラーを回避するため、情報を複数のグループに分けて段階的に抽出する。
     """
-    def __init__(self, api_key: str = None):
+    # def __init__(self, api_key: str = None):
+    def __init__(self, client_type: str = 'gemini'):
         # gemini_client.py と同様に、環境変数から自動でキーを読み込む方式に変更
-        if not os.getenv("GOOGLE_API_KEY") and not os.getenv("GEMINI_API_KEY"):
-            raise ValueError("APIキーが設定されていません。環境変数 'GOOGLE_API_KEY' または 'GEMINI_API_KEY' を設定してください。")
+        self.client_type = client_type
+        self.ollama_model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen3:8b")
+
+        # if not os.getenv("GOOGLE_API_KEY") and not os.getenv("GEMINI_API_KEY"):
+        #     raise ValueError("APIキーが設定されていません。環境変数 'GOOGLE_API_KEY' または 'GEMINI_API_KEY' を設定してください。")
         
-        self.client = genai.Client()
-        # 構造化出力をサポートするモデルを選択
-        self.model_name = 'gemini-2.5-flash-lite'
+        # self.client = genai.Client()
+        # # 構造化出力をサポートするモデルを選択
+        # self.model_name = 'gemini-2.5-flash-lite'
+
+        if self.client_type == 'gemini':
+            if not os.getenv("GOOGLE_API_KEY") and not os.getenv("GEMINI_API_KEY"):
+                raise ValueError("APIキーが設定されていません。環境変数 'GOOGLE_API_KEY' または 'GEMINI_API_KEY' を設定してください。")
+            self.client = genai.Client()
+            self.model_name = 'gemini-2.5-flash-lite'
+            print("PatientInfoParser: Geminiクライアントを使用します。")
+        else:
+            self.client = None # Ollamaは `ollama.chat` を直接呼ぶため不要
+            self.model_name = self.ollama_model_name
+            print(f"PatientInfoParser: Ollamaクライアントを使用します (Model: {self.model_name})。")
+
 
     def _build_prompt(self, text: str, group_schema: type[BaseModel], extracted_data_so_far: dict) -> str:
         """段階的抽出のためのプロンプトを構築する"""
@@ -72,6 +89,7 @@ class PatientInfoParser:
 ```json
 {summary}
 ```
+最重要: スキーマで定義されたキー名（例: "func_pain_txt"）を絶対に変更せず、そのまま使用してJSONを生成してください。
 
 ## カルテテキスト (全文)
 ---
@@ -95,53 +113,116 @@ class PatientInfoParser:
             print(f"--- Processing group: {group_schema.__name__} ---")
             prompt = self._build_prompt(text, group_schema, final_result)
 
-            logger.info(f"--- Parsing Group: {group_schema.__name__} ---") # loggerを使用
-            logger.info("Parsing Prompt:\n" + prompt) # loggerを使用
+            logger.info(f"--- Parsing Group: {group_schema.__name__} --- (Client: {self.client_type})")
+            logger.info("Parsing Prompt:\n" + prompt)
 
             try:
-                generation_config = types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=group_schema,
-                    # thinking_config=types.ThinkingConfig(thinking_budget=2000),
-                )
-
-                # リトライ処理を追加
-                max_retries = 3
-                backoff_factor = 2  # 初回待機時間（秒）
                 response = None
+                group_result = {}
 
-                for attempt in range(max_retries):
-                    try:
-                        response = self.client.models.generate_content(model=self.model_name, contents=prompt, config=generation_config)
-                        break  # 成功した場合はループを抜ける
-                    except (ResourceExhausted, ServiceUnavailable) as e:
-                        if attempt < max_retries - 1:
-                            wait_time = backoff_factor * (2 ** attempt)
-                            print(f"   [警告] APIレート制限またはサーバーエラー。{wait_time}秒後に再試行します... ({attempt + 1}/{max_retries})")
-                            time.sleep(wait_time)
-                        else:
-                            print(f"   [エラー] API呼び出しが{max_retries}回失敗しました。")
-                            raise e # 最終的に失敗した場合はエラーを再送出
+                if self.client_type == 'gemini':
+                    generation_config = types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=group_schema,
+                        # thinking_config=types.ThinkingConfig(thinking_budget=2000),
+                    )
+
+                    # リトライ処理を追加
+                    max_retries = 3
+                    backoff_factor = 2  # 初回待機時間（秒）
+                    # response = None
+
+                    for attempt in range(max_retries):
+                        try:
+                            response = self.client.models.generate_content(model=self.model_name, contents=prompt, config=generation_config)
+                            break  # 成功した場合はループを抜ける
+                        except (ResourceExhausted, ServiceUnavailable) as e:
+                            if attempt < max_retries - 1:
+                                wait_time = backoff_factor * (2 ** attempt)
+                                print(f"   [警告] APIレート制限またはサーバーエラー。{wait_time}秒後に再試行します... ({attempt + 1}/{max_retries})")
+                                time.sleep(wait_time)
+                            else:
+                                print(f"   [エラー] API呼び出しが{max_retries}回失敗しました。")
+                                raise e # 最終的に失敗した場合はエラーを再送出
+                            
+                    if response and response.parsed:
+                        group_result = response.parsed.model_dump(mode='json')
+                    else:
+                        print(f"   [警告] グループ {group_schema.__name__} (Gemini) の解析で有効な結果が得られませんでした。")
                 # リトライ処理ここまで
-                
-                if response and response.parsed:
-                    group_result = response.parsed.model_dump(mode='json')
-                    
-                    # データ正規化処理を追加
-                    if 'gender' in group_result and group_result['gender']:
-                        if '男性' in group_result['gender']:
-                            group_result['gender'] = '男'
-                        elif '女性' in group_result['gender']:
-                            group_result['gender'] = '女'
-                    # データ正規化処理ここまで
 
-                    final_result.update(group_result) # マージして次のステップへ
                 else:
-                    print(f"   [警告] グループ {group_schema.__name__} の解析で有効な結果が得られませんでした。")
+                    # --- 2. Ollama (Local) のロジック ---
+                    # (self.client は使わず、ollamaライブラリを直接使用)
+                    ollama_response = ollama.chat(
+                        model=self.model_name, # (self.model_name は __init__ で 'qwen3:8b' 等に設定されている)
+                        messages=[{'role': 'user', 'content': prompt}],
+                        format='json' # ストリーミングなし
+                    )
+                    
+                    raw_json_str = ollama_response['message']['content']
+                    logger.info(f"Ollama Raw Response (Parser, Group: {group_schema.__name__}):\n{raw_json_str}")
+                
+                    try:
+                        raw_response_dict = json.loads(raw_json_str)
+                        data_to_validate = {}
+                        
+                        # Ollamaが返すネストされたJSONに対応するロジック
+                        if isinstance(raw_response_dict, dict):
+                            schema_fields = set(group_schema.model_fields.keys())
+                            response_keys = set(raw_response_dict.keys())
+
+                            if schema_fields.issubset(response_keys):
+                                data_to_validate = raw_response_dict
+                            else:
+                                schema_name_key = group_schema.__name__.lower()
+                                if schema_name_key in raw_response_dict and isinstance(raw_response_dict[schema_name_key], dict):
+                                    data_to_validate = raw_response_dict[schema_name_key]
+                                elif 'properties' in raw_response_dict and isinstance(raw_response_dict['properties'], dict):
+                                     data_to_validate = raw_response_dict['properties']
+                                else:
+                                    data_to_validate = raw_response_dict
+                        else:
+                             raise ValueError("Ollamaの応答が辞書形式ではありません。")
+
+                        # Pydanticスキーマで検証
+                        group_result_obj = group_schema.model_validate(data_to_validate)
+                        # Optional[str] = Field(None, ...) にしているので、項目が足りなくてもエラーにならない
+                        group_result = group_result_obj.model_dump(mode='json')
+
+                    except (ValidationError, json.JSONDecodeError, ValueError) as e:
+                        print(f"   [警告] グループ {group_schema.__name__} (Ollama) のJSONパース/検証に失敗: {e}")
+                        logger.warning(f"Ollama (Parser) JSON Error: {e}\nData: {raw_json_str}")
+                        group_result = {} # エラー時は空の辞書
+
+                if 'gender' in group_result and group_result['gender']:
+                    if '男性' in group_result['gender']:
+                        group_result['gender'] = '男'
+                    elif '女性' in group_result['gender']:
+                        group_result['gender'] = '女'
+                
+                final_result.update(group_result)
+                # if response and response.parsed:
+                #     group_result = response.parsed.model_dump(mode='json')
+                    
+                #     # データ正規化処理を追加
+                #     if 'gender' in group_result and group_result['gender']:
+                #         if '男性' in group_result['gender']:
+                #             group_result['gender'] = '男'
+                #         elif '女性' in group_result['gender']:
+                #             group_result['gender'] = '女'
+                #     # データ正規化処理ここまで
+
+                #     final_result.update(group_result) # マージして次のステップへ
+                # else:
+                #     print(f"   [警告] グループ {group_schema.__name__} の解析で有効な結果が得られませんでした。")
+
+
+
 
             except Exception as e:
                 print(f"グループ {group_schema.__name__} の解析中にエラーが発生しました: {e}")
-                # 一つのグループで失敗しても処理を続行する
+                logger.error(f"Parser Error (Group: {group_schema.__name__}): {e}", exc_info=True)
                 continue
             
             # APIのレート制限を避けるため、各グループの処理の間に短い待機時間を設ける
