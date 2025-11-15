@@ -841,17 +841,48 @@
                 }
 
 
+                // function checkAllFinished() {
+                //     if (isGeneralFinished && isRagFinished) {
+                //         updateAllHiddenInputs(); // ここで一括更新
+                //         generationHeaderStatus.classList.remove('alert-info');
+                //         generationHeaderStatus.classList.add('alert-success');
+                //         generationHeaderStatus.innerHTML = '<div class="d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><strong>AIによる生成がすべて完了しました。</strong></div>';
+                //         generationFinishedText.style.display = 'block';
+                //         submitButton.textContent = 'この内容で確定して保存';
+                //         initializeDefaultValues();
+                //     }
+                // }
+
                 function checkAllFinished() {
+                    // 両方のストリームが完了したか（成功_finished または エラー_error）をチェック
                     if (isGeneralFinished && isRagFinished) {
-                        updateAllHiddenInputs(); // ここで一括更新
-                        generationHeaderStatus.classList.remove('alert-info');
-                        generationHeaderStatus.classList.add('alert-success');
-                        generationHeaderStatus.innerHTML = '<div class="d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><strong>AIによる生成がすべて完了しました。</strong></div>';
-                        generationFinishedText.style.display = 'block';
+                        updateAllHiddenInputs(); // 隠しフィールドの更新
+
+                        // ヘッダーのステータスを更新
+                        // (エラーリスナーが既にヘッダーを 'alert-danger' に変更していない場合のみ 'alert-success' にする)
+                        if (!generationHeaderStatus.classList.contains('alert-danger')) {
+                            generationHeaderStatus.classList.remove('alert-info');
+                            generationHeaderStatus.classList.add('alert-success');
+                            generationHeaderStatus.innerHTML = '<div class="d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><strong>AIによる生成がすべて完了しました。</strong></div>';
+                            generationFinishedText.style.display = 'block';
+                        }
+                        
+                        // 両方の処理が完了した時点で、ボタンを必ず有効化する
+                        submitButton.disabled = false;
                         submitButton.textContent = 'この内容で確定して保存';
+
                         initializeDefaultValues();
+                    
+                    } else if (isGeneralFinished && !isRagFinished) {
+                        // 通常モデルだけが完了した場合（RAG待ち）
+                        submitButton.textContent = '確定までお待ちください (RAG専門項目 生成中...)';
+                    
+                    } else if (!isGeneralFinished && isRagFinished) {
+                        // RAGモデルだけが完了した場合（通常モデル待ち）
+                        submitButton.textContent = '確定までお待ちください (通常項目 生成中...)';
                     }
-                }
+                    // どちらも完了していない場合は、ボタンのテキスト（初期状態のまま）を変更しない
+                } //checkAllFinished()
 
                 const ragPipelineName = "hybrid_search_experiment";
                 const patientId = "{{ patient_data.patient_id }}";
@@ -892,8 +923,8 @@
                 generalEventSource.addEventListener('general_finished', function (event) {
                     console.log("General model generation finished.");
                     isGeneralFinished = true;
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'この内容で確定して保存 (RAG専門項目 生成中...)';
+                    // submitButton.disabled = false;
+                    // submitButton.textContent = 'この内容で確定して保存 (RAG専門項目 生成中...)';
                     checkAllFinished();
                     generalEventSource.close();
                 });
