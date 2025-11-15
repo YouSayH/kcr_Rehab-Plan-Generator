@@ -495,7 +495,9 @@ def generate_ollama_plan_stream(patient_data: dict):
             time.sleep(1) # API負荷軽減のため
 
         print("\n--- Ollamaによる全グループの生成完了 ---")
-        yield "event: finished\ndata: {}\n\n"
+        # yield "event: finished\ndata: {}\n\n"
+        yield "event: general_finished\ndata: {}\n\n"
+
 
     except Exception as e:
         print(f"Ollamaの段階的生成処理中に予期せぬエラーが発生しました: {e}")
