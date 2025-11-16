@@ -974,6 +974,22 @@
                         if (iconEl) {
                             iconEl.innerHTML = '<i class="bi bi-patch-check-fill text-primary"></i>';
                         }
+
+                        if (modelToGenerate === 'specialized') {
+                            const mainTextarea = document.getElementById(key);
+                            if (mainTextarea) {
+                                mainTextarea.value = value;
+                                // 必要であれば readonly 解除や placeholder クリアも行う
+                                mainTextarea.readOnly = false;
+                                mainTextarea.placeholder = '';
+                                // スタイル更新とUndo/Redo履歴の初期化のためにinputイベントを発火
+                                mainTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+                                // generalSuggestions にも記録してスタイルを is-default にする (任意)
+                                if (!generalSuggestions[key]) generalSuggestions[key] = [];
+                                if (!generalSuggestions[key].includes(value)) generalSuggestions[key].push(value);
+                                updateElementStyle(mainTextarea); // スタイルを更新
+                            }
+                        }
                     });
 
                     const ragSourceContainer = document.getElementById('rag-source-container');
@@ -1070,6 +1086,24 @@
 
                 // (general も RAG も実行しないケースに対応するため)
                 checkAllFinished();
+
+
+                if (modelToGenerate === 'specialized') {
+                    console.log("RAG only mode: Setting initial view to Specialized Model.");
+                    suggestionContainers.forEach(container => {
+                        const specializedContent = container.querySelector('.suggestion-content[data-model-type="specialized"]');
+                        const generalContent = container.querySelector('.suggestion-content[data-model-type="general"]');
+                        const modelNameEl = container.querySelector('.model-name');
+                        const nextBtn = container.querySelector('.suggestion-switch-btn[data-direction="next"]'); // 「次へ」ボタンを取得
+
+                        // 通常モデルがアクティブで、特化モデルが存在する場合
+                        if (generalContent && generalContent.classList.contains('active') && specializedContent && nextBtn) {
+                            // 「次へ」ボタンをプログラム的にクリックして表示を切り替える
+                            nextBtn.click();
+                            // console.log(`Switched view for: ${container.dataset.targetId}`); // デバッグ用
+                        }
+                    });
+                }
 
                 {% endif %}
             });
