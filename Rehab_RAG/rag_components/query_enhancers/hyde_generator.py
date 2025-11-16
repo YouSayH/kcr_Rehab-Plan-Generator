@@ -13,7 +13,7 @@ class HydeQueryEnhancer:
     - 短いクエリよりも多くの検索キーワードや文脈が含まれるため、検索精度が向上する。
     - ユーザーが思いつかない専門用語などをLLMが補ってくれる。
     """
-    def __init__(self, llm):
+    def __init__(self, llm, **kwargs):
         """
         コンストラクタ。文章生成のためのLLMインスタンスを受け取ります。
         
@@ -21,6 +21,9 @@ class HydeQueryEnhancer:
             llm: GeminiLLMなど、`generate`メソッドを持つLLMラッパークラスのインスタンス。
         """
         self.llm = llm
+        # config.yaml から 'thinking_mode' を読み込む (デフォルトは None)
+        self.thinking_mode = kwargs.get('thinking_mode', None) 
+        print(f"HydeQueryEnhancer initialized. Thinking mode: {self.thinking_mode}") # 起動ログで確認
 
     def enhance(self, query: str) -> str:
         """
@@ -64,6 +67,16 @@ class HydeQueryEnhancer:
 # {query}
 
 # # 架空のガイドライン抜粋 または 架空のエビデンスサマリー (検索に使用するテキスト):"""
+
+
+        # thinking_mode に基づいてプロンプトの末尾を加工
+        if self.thinking_mode == 'on':
+            prompt += " /think"
+            print("  - HyDE: /think mode enabled.") # ログ出力
+        elif self.thinking_mode == 'off':
+            prompt += " /no_think"
+            print("  - HyDE: /no_think mode enabled.") # ログ出力
+        # self.thinking_mode が None や 'auto' の場合は何も追加しない
         
         hypothetical_answer = self.llm.generate(prompt, max_output_tokens=512)
         

@@ -212,12 +212,13 @@ query_components:
     # 例2: HydeQueryEnhancer (架空の回答を生成して検索)
     module: rag_components.query_enhancers.hyde_generator
     class: HydeQueryEnhancer
-    params:
-      llm: 
-        module: rag_components.llms.ollama_llm
-        class: OllamaLLM
-        params:
-          model_name: "hf.co/unsloth/medgemma-4b-it-GGUF:Q4_K_M"
+    # params:
+    #   thinking_mode: 'off'
+    #   llm: 
+    #     module: rag_components.llms.ollama_llm
+    #     class: OllamaLLM
+    #     params:
+    #       model_name: "hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M"
 
 
 
@@ -261,16 +262,16 @@ query_components:
   # [フィルタ (Filter)]
   # 検索結果のノイズを除去します。いずれか一つを有効化するか、セクションごとコメントアウトして無効化。
   filter:
-    - module: rag_components.filters.nli_filter
-      class: NLIFilter
-      params:
-        model_name: "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
+    # - module: rag_components.filters.nli_filter
+    #   class: NLIFilter
+    #   params:
+    #     model_name: "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
     # ↑例1: NLIFilter (自然言語推論による矛盾フィルタ)↑
 
-    # - module: rag_components.filters.self_reflective_filter
-    #   class: SelfReflectiveFilter
-    #   params:
-    #     batch_size: 10
+    - module: rag_components.filters.self_reflective_filter
+      class: SelfReflectiveFilter
+      params:
+        batch_size: 5
     # ↑例2: SelfReflectiveFilter (LLMによる自己評価フィルタ)↑
 
 
