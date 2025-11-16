@@ -507,6 +507,78 @@ def generate_ollama_plan_stream(patient_data: dict):
         yield error_event
 
 
+def generate_rag_plan_stream(patient_data: dict, rag_executor: 'RAGExecutor'):
+    """
+    指定されたRAGExecutorを使って、特化モデルによる計画案をストリーミングで生成する。
+    gemini_client.pyの同名関数をOllama用に移植したもの。
+    rag_executorが内部で使用するLLM（Ollama）を呼び出し、その結果をストリーミングする。
+    """
+    try:
+        logger.info("\n--- Ollama RAGモデルによる生成を開始 ---")
+        
+        # 1. RAGの検索クエリとLLMへの入力用に、患者データを整形
+        patient_facts = _prepare_patient_facts(patient_data)
+        
+        # 2. RAGExecutorを実行し、専門的な計画案と根拠情報を取得
+        # rag_executor.execute() は、内部で設定されたLLM (この場合はOllama) を呼び出す
+        rag_result = rag_executor.execute(patient_facts)
+
+        specialized_plan_dict = rag_result.get("answer", {})
+        contexts = rag_result.get("contexts", [])
+
+        # 3. RAGの実行結果をフロントエンドに送信
+        if "error" in specialized_plan_dict:
+            # RAG実行の内部でエラーが発生した場合
+            error_msg = f"RAG Executorからのエラー: {specialized_plan_dict['error']}"
+            logger.error(error_msg)
+            
+            # エラーをフロントエンドに通知
+            rag_keys = [f.name for f in RehabPlanSchema.model_fields.values()]
+            for key in rag_keys:
+                error_value = f"RAGエラー: {specialized_plan_dict['error']}"
+                event_data = json.dumps({"key": key, "value": error_value, "model_type": "ollama_specialized"})
+                yield f"event: update\ndata: {event_data}\n\n"
+        else:
+            # 成功した場合、取得した辞書を項目ごとにストリームに流す
+            logger.info("RAG Executorによる生成成功。結果をストリーミングします。")
+            for key, value in specialized_plan_dict.items():
+                event_data = json.dumps({"key": key, "value": str(value), "model_type": "ollama_specialized"})
+                yield f"event: update\ndata: {event_data}\n\n"
+
+            # 根拠情報(contexts)が存在すれば、それもフロントエンドに送信する
+            if contexts:
+                logger.info(f"{len(contexts)}件の根拠情報を送信します。")
+                contexts_for_frontend = []
+                for i, ctx in enumerate(contexts):
+                    metadata = ctx.get("metadata", {})
+                    contexts_for_frontend.append({
+                        "id": i + 1,
+                        "content": ctx.get("content", ""),
+                        "source": metadata.get('source', 'N/A'),
+                        "disease": metadata.get('disease', 'N/A'),
+                        "section": metadata.get('section', 'N/A'),
+                        "subsection": metadata.get('subsection', 'N/A'),
+                        "subsubsection": metadata.get('subsubsection', 'N/A')
+                    })
+                
+                context_event_data = json.dumps(contexts_for_frontend)
+                yield f"event: context_update\ndata: {context_event_data}\n\n"
+
+    except Exception as e:
+        # RAGExecutorの初期化失敗など、この関数全体に関わるエラーが発生した場合
+        logger.error(f"Ollama RAGストリームの実行中に致命的なエラーが発生しました: {e}", exc_info=True)
+        # RAGが担当する全項目にエラーメッセージを送信
+        rag_keys = [f.name for f in RehabPlanSchema.model_fields.values()]
+        for key in rag_keys:
+            error_value = f"RAG実行エラー: {e}"
+            event_data = json.dumps({"key": key, "value": error_value, "model_type": "ollama_specialized"})
+            yield f"event: update\ndata: {event_data}\n\n"
+    
+    finally:
+        # 成功・失敗にかかわらず、RAG側の処理が完了したことを必ず通知する
+        logger.info("Ollama RAGストリームが終了します。")
+        yield "event: finished\ndata: {}\n\n"
+
 def _build_ollama_regeneration_prompt(patient_facts_str: str, generated_plan_so_far: dict, item_key_to_regenerate: str, current_text: str, instruction: str, rag_context: Optional[str] = None, schema: Optional[Type[BaseModel]] = None) -> str:
     """Ollama用の項目再生成プロンプトを構築する"""
     

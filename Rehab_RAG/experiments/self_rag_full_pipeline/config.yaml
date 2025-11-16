@@ -213,6 +213,7 @@ query_components:
     module: rag_components.query_enhancers.hyde_generator
     class: HydeQueryEnhancer
     # params:
+      # thinking_mode: 'off'
     #   llm: 
     #     module: rag_components.llms.ollama_llm
     #     class: OllamaLLM
