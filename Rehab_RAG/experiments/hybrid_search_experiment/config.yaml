@@ -117,32 +117,32 @@ build_components:
   # [エンベッダー] テキストをどうベクトル化するか (GraphBuilder以外で必須)
   embedder:
     # ローカルモデル (デフォルト)→今後のデフォルトはgeminiで使う
-    # module: rag_components.embedders.sentence_transformer_embedder
-    # class: SentenceTransformerEmbedder
-    # params:
-    #   model_name: "cl-nagoya/ruri-v3-310m"
-    #   device: "auto"
+    module: rag_components.embedders.sentence_transformer_embedder
+    class: SentenceTransformerEmbedder
+    params:
+      model_name: "cl-nagoya/ruri-v3-310m"
+      device: "auto"
 
     # Gemini API
-    module: rag_components.embedders.gemini_embedder
-    class: GeminiEmbedder
-    params:
-      model_name: "gemini-embedding-001"
+    # module: rag_components.embedders.gemini_embedder
+    # class: GeminiEmbedder
+    # params:
+    #   model_name: "gemini-embedding-001"
 
 
 
 
   # [LLM] (RAPTOR/GraphBuilder使用時に必須) 要約やグラフ抽出に使用
   llm:
-    module: rag_components.llms.gemini_llm
-    class: GeminiLLM
-    params:
-      model_name: "gemini-2.5-flash-lite"
-
-    # module: rag_components.llms.ollama_llm
-    # class: OllamaLLM
+    # module: rag_components.llms.gemini_llm
+    # class: GeminiLLM
     # params:
-    #   model_name: "hf.co/unsloth/Qwen3-4B-Thinking-2507-GGUF:Q4_K_M"
+    #   model_name: "gemini-2.5-flash-lite"
+
+    module: rag_components.llms.ollama_llm
+    class: OllamaLLM
+    params:
+      model_name: "hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M"
 
 
   # [リトリーバー] (DefaultBuilderまたはHybrid Search実験時に必須)
@@ -164,33 +164,33 @@ build_components:
 query_components:
   # [LLM] (必須) 最終的な回答生成や、各種コンポーネント内で使用
   llm:
-    module: rag_components.llms.gemini_llm
-    class: GeminiLLM
-    params:
-      model_name: "gemini-2.5-flash-lite"
-      safety_block_none: true
-
-    # module: rag_components.llms.ollama_llm
-    # class: OllamaLLM
+    # module: rag_components.llms.gemini_llm
+    # class: GeminiLLM
     # params:
-    #   model_name: "hf.co/unsloth/Qwen3-4B-Thinking-2507-GGUF:Q4_K_M"
+    #   model_name: "gemini-2.5-flash-lite"
+    #   safety_block_none: true
+
+    module: rag_components.llms.ollama_llm
+    class: OllamaLLM
+    params:
+      model_name: "hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M"
 
 
   # [エンベッダー] (GraphRetriever以外で必須) ユーザーの質問をベクトル化
   # (注意) DB構築時(build_components)と必ず同じEmbedderを使用してください。
   embedder:
     # 例1: ローカルモデル (デフォルト)ー＞今後のデフォルトはgemini
-    # module: rag_components.embedders.sentence_transformer_embedder
-    # class: SentenceTransformerEmbedder
-    # params:
-    #   model_name: "cl-nagoya/ruri-v3-310m"
-    #   device: "auto"
+    module: rag_components.embedders.sentence_transformer_embedder
+    class: SentenceTransformerEmbedder
+    params:
+      model_name: "cl-nagoya/ruri-v3-310m"
+      device: "auto"
 
     # 例2: Gemini API
-    module: rag_components.embedders.gemini_embedder
-    class: GeminiEmbedder
-    params:
-      model_name: "gemini-embedding-001"
+    # module: rag_components.embedders.gemini_embedder
+    # class: GeminiEmbedder
+    # params:
+    #   model_name: "gemini-embedding-001"
 
 
 
@@ -212,6 +212,12 @@ query_components:
     # 例2: HydeQueryEnhancer (架空の回答を生成して検索)
     module: rag_components.query_enhancers.hyde_generator
     class: HydeQueryEnhancer
+    params:
+      llm: 
+        module: rag_components.llms.ollama_llm
+        class: OllamaLLM
+        params:
+          model_name: "hf.co/unsloth/medgemma-4b-it-GGUF:Q4_K_M"
 
 
 
@@ -242,29 +248,29 @@ query_components:
   # [リランカー (Reranker)]
   # 検索結果をより高精度に並べ替えます。無効にする場合はセクションごとコメントアウト。
   reranker:
-    # module: rag_components.rerankers.cross_encoder_reranker
-    # class: CrossEncoderReranker
-    # params:
-    #   model_name: "BAAI/bge-reranker-v2-m3"
+    module: rag_components.rerankers.cross_encoder_reranker
+    class: CrossEncoderReranker
+    params:
+      model_name: "BAAI/bge-reranker-v2-m3"
 
-    module: rag_components.rerankers.gemini_embedding_reranker
-    class: GeminiEmbeddingReranker
-    params: {} # embedderは RAGExecutor によって自動的に注入される想定
+    # module: rag_components.rerankers.gemini_embedding_reranker
+    # class: GeminiEmbeddingReranker
+    # params: {} # embedderは RAGExecutor によって自動的に注入される想定
 
 
   # [フィルタ (Filter)]
   # 検索結果のノイズを除去します。いずれか一つを有効化するか、セクションごとコメントアウトして無効化。
   filter:
-    # - module: rag_components.filters.nli_filter
-    #   class: NLIFilter
-    #   params:
-    #     model_name: "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
+    - module: rag_components.filters.nli_filter
+      class: NLIFilter
+      params:
+        model_name: "MoritzLaurer/mDeBERTa-v3-base-mnli-xnli"
     # ↑例1: NLIFilter (自然言語推論による矛盾フィルタ)↑
 
-    - module: rag_components.filters.self_reflective_filter
-      class: SelfReflectiveFilter
-      params:
-        batch_size: 10
+    # - module: rag_components.filters.self_reflective_filter
+    #   class: SelfReflectiveFilter
+    #   params:
+    #     batch_size: 10
     # ↑例2: SelfReflectiveFilter (LLMによる自己評価フィルタ)↑
 
 

@@ -108,6 +108,19 @@ class RAGExecutor:
 
                 params = config.get('params', {}).copy() # .copy()で元のconfigを汚染しないようにする
                 class_name = config.get('class_name') or config.get('class')
+
+                # paramsの中にllmの設定が含まれているかチェック
+                if 'llm' in params and isinstance(params['llm'], dict):
+                    print(f"INFO: '{name}' コンポーネントの専用LLMを初期化します...")
+                    llm_cfg = params['llm']
+                    llm_class = llm_cfg.get('class_name') or llm_cfg.get('class')
+                    
+                    # 'llm' の設定(dict)を、LLMのインスタンス(object)に置き換える
+                    params['llm'] = get_instance(
+                        llm_cfg['module'], 
+                        llm_class, 
+                        llm_cfg.get('params', {})
+                    )
                 
                 # パスの自動解決ロジック
                 # 'path' または 'db_path' というキーを持つパラメータを絶対パスに変換
@@ -251,13 +264,10 @@ class RAGExecutor:
         final_metadatas = metadatas[:10] 
 
         if not final_docs:
-            print("関連情報が見つからなかったため、処理を終了します。")
-            return {
-                "answer": {"error": "関連する情報が見つかりませんでした。"},
-                "contexts": []
-            }
-
-        print(f"最も関連性の高い上位{len(final_docs)}件を使用します。")
+            print("警告: 関連する参考情報が見つかりませんでした。患者情報のみで生成を試みます。")
+        else:
+            print(f"最も関連性の高い上位{len(final_docs)}件を使用します。")
+           
         # 根拠情報（ドキュメントとメタデータ）をセットにしてリスト化
         final_contexts_with_metadata = []
         for i in range(len(final_docs)):
