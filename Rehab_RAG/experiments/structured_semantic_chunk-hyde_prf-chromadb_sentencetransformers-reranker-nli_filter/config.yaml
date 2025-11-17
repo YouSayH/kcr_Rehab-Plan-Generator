@@ -212,6 +212,13 @@ query_components:
     # 例2: HydeQueryEnhancer (架空の回答を生成して検索)
     module: rag_components.query_enhancers.hyde_generator
     class: HydeQueryEnhancer
+    # params:
+      # thinking_mode: 'off'
+    #   llm: 
+    #     module: rag_components.llms.ollama_llm
+    #     class: OllamaLLM
+    #     params:
+    #       model_name: "hf.co/unsloth/medgemma-4b-it-GGUF:Q4_K_M"
 
 
 

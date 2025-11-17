@@ -29,13 +29,34 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import func, text
 from pymysql.err import IntegrityError
+import logging
 
 # 自作のPythonファイルをインポート
 import database
 import gemini_client
+import ollama_client
 import excel_writer
 from rag_executor import RAGExecutor
-from patient_info_parser import PatientInfoParser # 新しく追加
+from patient_info_parser import PatientInfoParser
+
+load_dotenv()
+
+log_directory = "logs"
+if not os.path.exists(log_directory):
+    os.makedirs(log_directory)
+log_file_path = os.path.join(log_directory, "gemini_prompts.log")
+
+# ロガーの設定 (app.py専用のロガーインスタンスを取得)
+logger = logging.getLogger(__name__)
+if not logger.hasHandlers(): # ハンドラが未設定の場合のみ設定
+    logger.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+
+LLM_CLIENT_TYPE = os.getenv("LLM_CLIENT_TYPE", "gemini")
+print(f"--- LLMクライアントとして '{LLM_CLIENT_TYPE}' を使用します ---")
 
 load_dotenv()
 
@@ -74,6 +95,8 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 if not app.config["SECRET_KEY"]:
     raise ValueError("環境変数 'SECRET_KEY' が .env ファイルに設定されていません。")
+
+
 
 # 9時間後(労働時間8時間+1時間)にタイムアウトする。
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=540)
@@ -118,10 +141,18 @@ def get_rag_executor(pipeline_name: str) -> RAGExecutor:
 # 患者情報解析パーサーを初期化
 print("Initializing Patient Info Parser...")
 try:
-    patient_info_parser = PatientInfoParser()
-    print("Patient Info Parser initialized successfully.")
+    if LLM_CLIENT_TYPE == "ollama":
+        print("INFO: PatientInfoParserは現在Ollamaクライアントを自動的に使用します（要実装確認）。")
+        # 本来は patient_info_parser.py も切り替えに対応させる
+        patient_info_parser = PatientInfoParser(client_type='ollama') 
+        print("Patient Info Parser initialized successfully.")
+    else:
+        patient_info_parser = PatientInfoParser(client_type='gemini')
+        print("Patient Info Parser initialized successfully.")
+    
 except Exception as e:
     print(f"FATAL: Failed to initialize Patient Info Parser: {e}")
+    patient_info_parser = None
 
 # 管理者判別デコレータ
 # @admin_required を付けたページにアクセスがあると、
@@ -430,9 +461,18 @@ def generate_general_stream():
             
         # 担当者の所見を患者データに含める
         patient_data["therapist_notes"] = therapist_notes
-        
-        # gemini_clientに新設する、Gemini単体生成用のストリーミング関数を呼び出す
-        stream_generator = gemini_client.generate_general_plan_stream(patient_data)
+
+        stream_generator = None
+
+        if LLM_CLIENT_TYPE == "ollama":
+            print("--- Ollama (local) クライアントで汎用モデルを実行します ---")
+            logger.info(f"Calling Ollama general stream for patient_id: {patient_id}")
+            stream_generator = ollama_client.generate_ollama_plan_stream(patient_data)
+        else: # デフォルトは 'gemini'
+            print("--- Gemini (cloud) クライアントで汎用モデルを実行します ---")
+            logger.info(f"Calling Gemini general stream for patient_id: {patient_id}")
+            stream_generator = gemini_client.generate_general_plan_stream(patient_data)
+
         
         # 結果をストリーミングでフロントエンドに返す
         return Response(stream_generator, mimetype="text/event-stream")
@@ -476,10 +516,20 @@ def generate_rag_stream(pipeline_name):
         if not rag_executor:
             raise Exception(f"パイプライン '{pipeline_name}' の Executorを取得できませんでした。")
         
-        # gemini_clientに新設する、RAG実行用のストリーミング関数を呼び出す
-        stream_generator = gemini_client.generate_rag_plan_stream(patient_data, rag_executor)
-        
-        # 結果をストリーミングでフロントエンドに返す
+        stream_generator = None
+        if LLM_CLIENT_TYPE == "ollama" and hasattr(ollama_client, "generate_rag_plan_stream"):
+             print("--- Ollama (local) クライアントでRAGモデルを実行します ---")
+             logger.info(f"Calling Ollama RAG stream for patient_id: {patient_id}")
+             stream_generator = ollama_client.generate_rag_plan_stream(patient_data, rag_executor)
+        else:
+             if LLM_CLIENT_TYPE == "ollama":
+                 print("--- [警告] OllamaクライアントにRAG初期生成(generate_rag_plan_stream)が実装されていません。Geminiクライアントでフォールバックします。---")
+                 logger.warning(f"Ollama client missing 'generate_rag_plan_stream'. Falling back to Gemini.")
+             
+             print("--- Gemini (cloud) クライアントでRAGモデルを実行します ---")
+             logger.info(f"Calling Gemini RAG stream for patient_id: {patient_id}")
+             stream_generator = gemini_client.generate_rag_plan_stream(patient_data, rag_executor)
+
         return Response(stream_generator, mimetype="text/event-stream")
 
     except ValueError:
@@ -742,11 +792,21 @@ def regenerate_item():
             if not rag_executor:
                 raise Exception(f"パイプライン '{pipeline_name}' の Executorを取得できませんでした。")
 
-        # gemini_clientに新設した再生成用のストリーミング関数を呼び出す
-        stream_generator = gemini_client.regenerate_plan_item_stream(
-            patient_data=patient_data, item_key=item_key, current_text=current_text,
-            instruction=instruction, rag_executor=rag_executor
-        )
+        stream_generator = None
+        if LLM_CLIENT_TYPE == "ollama":
+            print(f"--- Ollama (local) クライアントで再生成を実行します (RAG: {'あり' if rag_executor else 'なし'}) ---")
+            logger.info(f"Calling Ollama regeneration stream for item: {item_key} (RAG: {bool(rag_executor)})")
+            stream_generator = ollama_client.regenerate_ollama_plan_item_stream(
+                patient_data=patient_data, item_key=item_key, current_text=current_text,
+                instruction=instruction, rag_executor=rag_executor
+            )
+        else: # デフォルトは 'gemini'
+            print(f"--- Gemini (cloud) クライアントで再生成を実行します (RAG: {'あり' if rag_executor else 'なし'}) ---")
+            logger.info(f"Calling Gemini regeneration stream for item: {item_key} (RAG: {bool(rag_executor)})")
+            stream_generator = gemini_client.regenerate_plan_item_stream(
+                patient_data=patient_data, item_key=item_key, current_text=current_text,
+                instruction=instruction, rag_executor=rag_executor
+            )
 
         return Response(stream_generator, mimetype="text/event-stream")
 

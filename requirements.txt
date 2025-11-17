@@ -16,3 +16,5 @@ openpyxl
 
 bcrypt
 requests
+
+# ollama

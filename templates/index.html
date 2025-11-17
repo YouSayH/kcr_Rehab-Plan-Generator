@@ -51,6 +51,24 @@
                 <textarea name="therapist_notes" id="therapist-notes" class="form-control"
                     placeholder="AIに伝えたい特記事項や、患者様の様子、目標などを入力します。"></textarea>
             </div>
+
+            <div class="form-group">
+                <label>3. AIモデルを選択</label>
+                <div class="radio-group" style="padding: 10px; line-height: 2.0;">
+                    <label class="radio-label" style="display: block; margin-bottom: 8px;">
+                        <input type="radio" name="model_choice" value="both" checked>
+                        通常モデルと特化モデル(RAG)を同時実行
+                    </label>
+                    <label class="radio-label" style="display: block; margin-bottom: 8px;">
+                        <input type="radio" name="model_choice" value="general">
+                        通常モデルのみ
+                    </label>
+                    <label class="radio-label" style="display: block;">
+                        <input type="radio" name="model_choice" value="specialized">
+                        特化モデル(RAG)のみ
+                    </label>
+                </div>
+            </div>
             <div class="form-group">
                 <button type="submit" id="submit-button" class="submit-btn">計画書を作成</button>
             </div>

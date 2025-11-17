@@ -431,6 +431,7 @@
 
 
             document.addEventListener('DOMContentLoaded', function () {
+                const modelToGenerate = "{{ model_to_generate|safe }}";
                 const suggestionContainers = document.querySelectorAll('.suggestion-container');
                 const modelNames = ["通常モデル", "特化モデル(RAG)"];
 
@@ -841,183 +842,269 @@
                 }
 
 
+                // function checkAllFinished() {
+                //     if (isGeneralFinished && isRagFinished) {
+                //         updateAllHiddenInputs(); // ここで一括更新
+                //         generationHeaderStatus.classList.remove('alert-info');
+                //         generationHeaderStatus.classList.add('alert-success');
+                //         generationHeaderStatus.innerHTML = '<div class="d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><strong>AIによる生成がすべて完了しました。</strong></div>';
+                //         generationFinishedText.style.display = 'block';
+                //         submitButton.textContent = 'この内容で確定して保存';
+                //         initializeDefaultValues();
+                //     }
+                // }
+
                 function checkAllFinished() {
+                    // 両方のストリームが完了したか（成功_finished または エラー_error）をチェック
                     if (isGeneralFinished && isRagFinished) {
-                        updateAllHiddenInputs(); // ここで一括更新
-                        generationHeaderStatus.classList.remove('alert-info');
-                        generationHeaderStatus.classList.add('alert-success');
-                        generationHeaderStatus.innerHTML = '<div class="d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><strong>AIによる生成がすべて完了しました。</strong></div>';
-                        generationFinishedText.style.display = 'block';
+                        updateAllHiddenInputs(); // 隠しフィールドの更新
+
+                        // ヘッダーのステータスを更新
+                        // (エラーリスナーが既にヘッダーを 'alert-danger' に変更していない場合のみ 'alert-success' にする)
+                        if (!generationHeaderStatus.classList.contains('alert-danger')) {
+                            generationHeaderStatus.classList.remove('alert-info');
+                            generationHeaderStatus.classList.add('alert-success');
+                            generationHeaderStatus.innerHTML = '<div class="d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><strong>AIによる生成がすべて完了しました。</strong></div>';
+                            generationFinishedText.style.display = 'block';
+                        }
+                        
+                        // 両方の処理が完了した時点で、ボタンを必ず有効化する
+                        submitButton.disabled = false;
                         submitButton.textContent = 'この内容で確定して保存';
+
                         initializeDefaultValues();
+                    
+                    } else if (isGeneralFinished && !isRagFinished) {
+                        // 通常モデルだけが完了した場合（RAG待ち）
+                        submitButton.textContent = '確定までお待ちください (RAG専門項目 生成中...)';
+                    
+                    } else if (!isGeneralFinished && isRagFinished) {
+                        // RAGモデルだけが完了した場合（通常モデル待ち）
+                        submitButton.textContent = '確定までお待ちください (通常項目 生成中...)';
                     }
-                }
+                    // どちらも完了していない場合は、ボタンのテキスト（初期状態のまま）を変更しない
+                } //checkAllFinished()
 
                 const ragPipelineName = "hybrid_search_experiment";
                 const patientId = "{{ patient_data.patient_id }}";
                 const therapistNotes = "{{ therapist_notes|urlencode }}";
                 const queryParams = `?patient_id=${patientId}&therapist_notes=${therapistNotes}`;
 
+                if (modelToGenerate === 'both' || modelToGenerate === 'general') {
+                    // --- 1. Gemini単体（汎用モデル）のストリーム接続 ---
+                    const generalApiUrl = "{{ url_for('generate_general_stream') }}" + queryParams;
+                    const generalEventSource = new EventSource(generalApiUrl);
 
-                // --- 1. Gemini単体（汎用モデル）のストリーム接続 ---
-                const generalApiUrl = "{{ url_for('generate_general_stream') }}" + queryParams;
-                const generalEventSource = new EventSource(generalApiUrl);
+                    generalEventSource.addEventListener('update', function (event) {
+                        const data = JSON.parse(event.data);
+                        const { key, value } = data;
+                        const mainTextarea = document.getElementById(key);
+                        const suggestionDiv = document.getElementById(`suggestion-general-${key}`);
+                        const iconEl = document.getElementById(`icon-${key}`);
 
-                generalEventSource.addEventListener('update', function (event) {
-                    const data = JSON.parse(event.data);
-                    const { key, value } = data;
-                    const mainTextarea = document.getElementById(key);
-                    const suggestionDiv = document.getElementById(`suggestion-general-${key}`);
-                    const iconEl = document.getElementById(`icon-${key}`);
+                        if (mainTextarea) {
+                            mainTextarea.value = value;
+                            mainTextarea.readOnly = false;
+                            mainTextarea.placeholder = '';
+                            if (!generalSuggestions[key]) generalSuggestions[key] = [];
+                            if (!generalSuggestions[key].includes(value)) generalSuggestions[key].push(value);
 
-                    if (mainTextarea) {
-                        mainTextarea.value = value;
-                        mainTextarea.readOnly = false;
-                        mainTextarea.placeholder = '';
-                        if (!generalSuggestions[key]) generalSuggestions[key] = [];
-                        if (!generalSuggestions[key].includes(value)) generalSuggestions[key].push(value);
-
-                        updateElementStyle(mainTextarea);
-                    }
-                    if (suggestionDiv) {
-                        suggestionDiv.textContent = value;
-                    }
-
-
-                    if (iconEl) {
-                        iconEl.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
-                    }
-                });
-
-                generalEventSource.addEventListener('general_finished', function (event) {
-                    console.log("General model generation finished.");
-                    isGeneralFinished = true;
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'この内容で確定して保存 (RAG専門項目 生成中...)';
-                    checkAllFinished();
-                    generalEventSource.close();
-                });
-
-                generalEventSource.addEventListener('error', function (event) {
-                    let errorMessage = "汎用モデルの生成中にエラーが発生しました。";
-                    if (event.data) {
-                        try {
-                            const data = JSON.parse(event.data);
-                            if (data.error) errorMessage = data.error;
-                        } catch (e) { /* no-op */ }
-                    }
-                    generationHeaderStatus.innerHTML = `<div class="d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>エラー:</strong> ${errorMessage}</div>`;
-                    generationHeaderStatus.classList.remove('alert-info');
-                    generationHeaderStatus.classList.add('alert-danger');
-                    isGeneralFinished = true;
-                    checkAllFinished();
-                    generalEventSource.close();
-                });
-
-                // --- 2. RAG（特化モデル）のストリーム接続 ---
-                const ragApiUrl = `/api/generate/rag/${ragPipelineName}` + queryParams;
-                const ragEventSource = new EventSource(ragApiUrl);
-
-                ragEventSource.addEventListener('update', function (event) {
-                    const data = JSON.parse(event.data);
-                    const { key, value } = data;
-                    const suggestionDiv = document.getElementById(`suggestion-specialized-${key}`);
-                    const iconEl = document.getElementById(`icon-${key}`);
-
-                    if (suggestionDiv) {
-                        suggestionDiv.textContent = value;
-                        const trimmedValue = value.trim();
-                        if (!specializedSuggestions[key]) specializedSuggestions[key] = [];
-                        if (!specializedSuggestions[key].includes(trimmedValue)) specializedSuggestions[key].push(trimmedValue);
-
-                    }
-                    if (iconEl) {
-                        iconEl.innerHTML = '<i class="bi bi-patch-check-fill text-primary"></i>';
-                    }
-
-
-                });
-
-                const ragSourceContainer = document.getElementById('rag-source-container');
-                const ragSourceList = document.getElementById('rag-source-list');
-
-                ragEventSource.addEventListener('context_update', function (event) {
-                    const contexts = JSON.parse(event.data);
-                    ragSourceList.innerHTML = '';
-                    if (contexts && contexts.length > 0) {
-                        contexts.forEach((ctx, index) => {
-                            const listItem = document.createElement('div');
-                            listItem.className = 'list-group-item list-group-item-action flex-column align-items-start mb-2';
-                            const originalContent = (ctx.content || '');
-                            let contentHtml = '';
-                            const mermaidRegex = /```mermaid([\s\S]*?)```/;
-                            const match = originalContent.match(mermaidRegex);
-                            let isMermaid = false;
-                            let mermaidCode = '';
-
-                            if (match && match[1]) {
-                                isMermaid = true;
-                                mermaidCode = match[1].trim();
-                            } else if (!originalContent.includes('```') && (originalContent.trim().startsWith('graph') || originalContent.trim().startsWith('flowchart'))) {
-                                isMermaid = true;
-                                mermaidCode = originalContent.trim();
-                            }
-
-                            if (isMermaid) {
-                                contentHtml = `<div class="mermaid">${mermaidCode}</div>`;
-                            } else {
-                                contentHtml = `<div class="markdown-body mt-2">${marked.parse(originalContent)}</div>`;
-                            }
-
-                            const sectionPath = [ctx.section, ctx.subsection, ctx.subsubsection].filter(s => s && s !== 'N/A').join(' > ');
-                            listItem.innerHTML = `
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">出典[${ctx.id}]: ${ctx.source || 'N/A'}</h5>
-                            <small class="text-muted">${ctx.disease || ''}</small>
-                        </div>
-                        ${contentHtml}
-                        <small class="text-muted">セクション: ${sectionPath || 'N/A'}</small>
-                    `;
-                            ragSourceList.appendChild(listItem);
-                        });
-                        ragSourceContainer.style.display = 'block';
-                        setTimeout(() => {
-                            try {
-                                if (window.mermaid) {
-                                    mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
-                                }
-                            } catch (e) { console.error("Mermaid rendering error:", e); }
-                        }, 100);
-                    }
-                });
-
-                ragEventSource.addEventListener('finished', function (event) {
-                    console.log("RAG model generation finished.");
-                    isRagFinished = true;
-                    checkAllFinished();
-                    ragEventSource.close();
-                });
-
-                ragEventSource.addEventListener('error', function (event) {
-                    let errorMessage = "RAGモデルの生成中にエラーが発生しました。";
-                    if (event.data) {
-                        try {
-                            const data = JSON.parse(event.data);
-                            if (data.error) errorMessage = data.error;
-                        } catch (e) { /* no-op */ }
-                    }
-                    console.error("RAG Stream Error:", errorMessage);
-                    document.querySelectorAll('.suggestion-container').forEach(container => {
-                        const specializedDiv = container.querySelector('.suggestion-content[data-model-type="specialized"] .suggestion-text');
-                        if (specializedDiv && (specializedDiv.textContent === '生成中...' || specializedDiv.textContent === '')) {
-                            specializedDiv.textContent = `エラー: ${errorMessage}`;
-                            specializedDiv.style.color = 'red';
+                            updateElementStyle(mainTextarea);
+                        }
+                        if (suggestionDiv) {
+                            suggestionDiv.textContent = value;
+                        }
+                        
+                        
+                        if (iconEl) {
+                            iconEl.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i>';
                         }
                     });
+                    
+                    generalEventSource.addEventListener('general_finished', function (event) {
+                        console.log("General model generation finished.");
+                        isGeneralFinished = true;
+                        // submitButton.disabled = false;
+                        // submitButton.textContent = 'この内容で確定して保存 (RAG専門項目 生成中...)';
+                        checkAllFinished();
+                        generalEventSource.close();
+                    });
+
+                    generalEventSource.addEventListener('error', function (event) {
+                        let errorMessage = "汎用モデルの生成中にエラーが発生しました。";
+                        if (event.data) {
+                            try {
+                                const data = JSON.parse(event.data);
+                                if (data.error) errorMessage = data.error;
+                            } catch (e) { /* no-op */ }
+                        }
+                        generationHeaderStatus.innerHTML = `<div class="d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>エラー(通常モデル):</strong> ${errorMessage}</div>`;
+                        generationHeaderStatus.classList.remove('alert-info');
+                        generationHeaderStatus.classList.add('alert-danger');
+
+                        isGeneralFinished = true; // エラーでも完了とみなす
+                        checkAllFinished();
+                        generalEventSource.close();
+                    });
+
+
+                } else {
+                    // general を実行しない場合は、即座に完了フラグを立てる
+                    isGeneralFinished = true;
+                }
+
+                if (modelToGenerate === 'both' || modelToGenerate === 'specialized') {
+                    // --- 2. RAG（特化モデル）のストリーム接続 ---
+                    const ragApiUrl = `/api/generate/rag/${ragPipelineName}` + queryParams;
+                    const ragEventSource = new EventSource(ragApiUrl);
+
+                    ragEventSource.addEventListener('update', function (event) {
+                        const data = JSON.parse(event.data);
+                        const { key, value } = data;
+                        const suggestionDiv = document.getElementById(`suggestion-specialized-${key}`);
+                        const iconEl = document.getElementById(`icon-${key}`);
+
+                        if (suggestionDiv) {
+                            suggestionDiv.textContent = value;
+                            const trimmedValue = value.trim();
+                            if (!specializedSuggestions[key]) specializedSuggestions[key] = [];
+                            if (!specializedSuggestions[key].includes(trimmedValue)) specializedSuggestions[key].push(trimmedValue);
+
+                        }
+                        if (iconEl) {
+                            iconEl.innerHTML = '<i class="bi bi-patch-check-fill text-primary"></i>';
+                        }
+
+                        if (modelToGenerate === 'specialized') {
+                            const mainTextarea = document.getElementById(key);
+                            if (mainTextarea) {
+                                mainTextarea.value = value;
+                                // 必要であれば readonly 解除や placeholder クリアも行う
+                                mainTextarea.readOnly = false;
+                                mainTextarea.placeholder = '';
+                                // スタイル更新とUndo/Redo履歴の初期化のためにinputイベントを発火
+                                mainTextarea.dispatchEvent(new Event('input', { bubbles: true }));
+                                // generalSuggestions にも記録してスタイルを is-default にする (任意)
+                                if (!generalSuggestions[key]) generalSuggestions[key] = [];
+                                if (!generalSuggestions[key].includes(value)) generalSuggestions[key].push(value);
+                                updateElementStyle(mainTextarea); // スタイルを更新
+                            }
+                        }
+                    });
+
+                    const ragSourceContainer = document.getElementById('rag-source-container');
+                    const ragSourceList = document.getElementById('rag-source-list');
+
+                    ragEventSource.addEventListener('context_update', function (event) {
+                        const contexts = JSON.parse(event.data);
+                        ragSourceList.innerHTML = '';
+                        if (contexts && contexts.length > 0) {
+                            contexts.forEach((ctx, index) => {
+                                const listItem = document.createElement('div');
+                                listItem.className = 'list-group-item list-group-item-action flex-column align-items-start mb-2';
+                                const originalContent = (ctx.content || '');
+                                let contentHtml = '';
+                                const mermaidRegex = /```mermaid([\s\S]*?)```/;
+                                const match = originalContent.match(mermaidRegex);
+                                let isMermaid = false;
+                                let mermaidCode = '';
+
+                                if (match && match[1]) {
+                                    isMermaid = true;
+                                    mermaidCode = match[1].trim();
+                                } else if (!originalContent.includes('```') && (originalContent.trim().startsWith('graph') || originalContent.trim().startsWith('flowchart'))) {
+                                    isMermaid = true;
+                                    mermaidCode = originalContent.trim();
+                                }
+
+                                if (isMermaid) {
+                                    contentHtml = `<div class="mermaid">${mermaidCode}</div>`;
+                                } else {
+                                    contentHtml = `<div class="markdown-body mt-2">${marked.parse(originalContent)}</div>`;
+                                }
+
+                                const sectionPath = [ctx.section, ctx.subsection, ctx.subsubsection].filter(s => s && s !== 'N/A').join(' > ');
+                                listItem.innerHTML = `
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">出典[${ctx.id}]: ${ctx.source || 'N/A'}</h5>
+                                <small class="text-muted">${ctx.disease || ''}</small>
+                            </div>
+                            ${contentHtml}
+                            <small class="text-muted">セクション: ${sectionPath || 'N/A'}</small>
+                        `;
+                                ragSourceList.appendChild(listItem);
+                            });
+                            ragSourceContainer.style.display = 'block';
+                            setTimeout(() => {
+                                try {
+                                    if (window.mermaid) {
+                                        mermaid.run({ nodes: document.querySelectorAll('.mermaid') });
+                                    }
+                                } catch (e) { console.error("Mermaid rendering error:", e); }
+                            }, 100);
+                        }
+                    });
+
+                    ragEventSource.addEventListener('finished', function (event) {
+                        console.log("RAG model generation finished.");
+                        isRagFinished = true;
+                        checkAllFinished();
+                        ragEventSource.close();
+                    });
+
+                    ragEventSource.addEventListener('error', function (event) {
+                        let errorMessage = "RAGモデルの生成中にエラーが発生しました。";
+                        if (event.data) {
+                            try {
+                                const data = JSON.parse(event.data);
+                                if (data.error) errorMessage = data.error;
+                            } catch (e) { /* no-op */ }
+                        }
+                        console.error("RAG Stream Error:", errorMessage);
+                        generationHeaderStatus.innerHTML = `<div class="d-flex align-items-center"><i class="bi bi-exclamation-triangle-fill me-2"></i><strong>エラー(RAGモデル):</strong> ${errorMessage}</div>`;
+                        generationHeaderStatus.classList.remove('alert-info');
+                        if (!generationHeaderStatus.classList.contains('alert-danger')) { // 他のエラーで上書きしない
+                            generationHeaderStatus.classList.add('alert-danger');
+                        }
+
+                        document.querySelectorAll('.suggestion-container').forEach(container => {
+                            const specializedDiv = container.querySelector('.suggestion-content[data-model-type="specialized"] .suggestion-text');
+                            if (specializedDiv && (specializedDiv.textContent === '生成中...' || specializedDiv.textContent === '')) {
+                                specializedDiv.textContent = `エラー: ${errorMessage}`;
+                                specializedDiv.style.color = 'red';
+                            }
+                        });
+                        isRagFinished = true; // エラーでも完了とみなす
+                        checkAllFinished();
+                        ragEventSource.close();
+                    });
+                } else {
+                    // RAG を実行しない場合は、即座に完了フラグを立てる
                     isRagFinished = true;
-                    checkAllFinished();
-                    ragEventSource.close();
-                });
+                }
+
+
+                // (general も RAG も実行しないケースに対応するため)
+                checkAllFinished();
+
+
+                if (modelToGenerate === 'specialized') {
+                    console.log("RAG only mode: Setting initial view to Specialized Model.");
+                    suggestionContainers.forEach(container => {
+                        const specializedContent = container.querySelector('.suggestion-content[data-model-type="specialized"]');
+                        const generalContent = container.querySelector('.suggestion-content[data-model-type="general"]');
+                        const modelNameEl = container.querySelector('.model-name');
+                        const nextBtn = container.querySelector('.suggestion-switch-btn[data-direction="next"]'); // 「次へ」ボタンを取得
+
+                        // 通常モデルがアクティブで、特化モデルが存在する場合
+                        if (generalContent && generalContent.classList.contains('active') && specializedContent && nextBtn) {
+                            // 「次へ」ボタンをプログラム的にクリックして表示を切り替える
+                            nextBtn.click();
+                            // console.log(`Switched view for: ${container.dataset.targetId}`); // デバッグ用
+                        }
+                    });
+                }
+
                 {% endif %}
             });
 
