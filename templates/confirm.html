@@ -72,26 +72,36 @@
 
 
         /* 編集ボタン */
-        .fixed-buttons {
+        .fixed-buttons { 
             position: fixed;
             z-index: 1000;
             display: flex;
+            flex-flow: column;
             gap: 10px;
-        }
-
-        .fixed-buttons {
-            bottom: 0;
-            left: 0;
-            right: 0;
-
-            flex-direction: row;
-            justify-content: space-evenly;
+            right: 10px; /* 画面右端からの余白 */
+            top: 50%; /* 上から50%の位置に配置 */
+            transform: translateY(-50%); /* 要素の高さの半分だけ上に移動 */
             background-color: #f8f9fa;
-            padding: 10px;
-            border-top: 1px solid #dee2e6;
-            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
+        /* 出力ボタンのサイズを固定 */
+        #submit-button {
+            height: 80px; /* ボタンの高さを固定 */
+            width: 100%; /* 親要素の幅に合わせる */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1.2; /* 行の高さを調整 */
+        }
+        /* 生成中のテキストスタイル */
+        #submit-button.generating-text {
+            font-size: 12px; /* 生成中のフォントサイズを小さくする */
+        }
         .fixed-buttons hr {
             display: none;
         }
@@ -335,9 +345,9 @@
 {% endfor %}
 <input type="hidden" name="regeneration_history" id="regeneration-history-input">
 
-<div class="form-group">
+<!-- <div class="form-group">
     <button type="submit" id="submit-button" class="submit-btn" disabled>AI生成完了までお待ちください...</button>
-</div>
+</div> -->
         </form>
         <!-- <div id="rag-source-container" style="display: none; margin-top: 30px;">
             <h2 class="section-title">AI(特化モデル)が参考にした情報源</h2>
@@ -385,14 +395,13 @@
         </div>
 
         <div class="fixed-buttons">
-
-            <!-- 編集ボタン -->
-            <div class="fixed-buttons">
-                <button id="global-undo-button" class="submit-btn">←<br>元に戻す</button>
-                <button id="global-redo-button" class="submit-btn">→<br>やり直す</button>
-                <hr>
-                <button id="reset-active-button" class="submit-btn">選択欄<br>リセット</button>
-                <button id="reset-all-button" class="submit-btn">全入力欄<br>リセット</button>
+            <button id="global-undo-button" class="submit-btn">←<br>元に戻す</button>
+            <button id="global-redo-button" class="submit-btn">→<br>やり直す</button>
+            <hr>
+            <!-- <button id="reset-active-button" class="submit-btn">選択欄<br>リセット</button> -->
+            <button id="reset-all-button" class="submit-btn">全入力欄<br>リセット</button>
+            <div class="form-group">
+                <button type="submit" id="submit-button" form="confirm-form" class="submit-btn generating-text" disabled>AI生成完了までお待ちください...</button>
             </div>
         </div>
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -783,23 +792,23 @@
                     }
                 });
 
-                document.getElementById('reset-active-button').addEventListener('click', () => {
-                    if (!activeInputId) {
-                        alert('リセットしたい入力欄を先にクリックしてください。');
-                        return;
-                    }
-                    const element = document.getElementById(activeInputId);
-                    const suggestionContainer = document.querySelector(`.suggestion-container[data-target-id="${activeInputId}"]`);
-                    if (element && suggestionContainer) {
-                        const activeSuggestion = suggestionContainer.querySelector('.suggestion-content.active .suggestion-text');
-                        if (activeSuggestion) {
-                            const resetValue = activeSuggestion.textContent.trim();
-                            element.value = resetValue;
-                            element.dispatchEvent(new Event('input', { bubbles: true })); // スタイルと履歴を更新
+                // document.getElementById('reset-active-button').addEventListener('click', () => {
+                    // if (!activeInputId) {
+                        // alert('リセットしたい入力欄を先にクリックしてください。');
+                        // return;
+                    // }
+                    // const element = document.getElementById(activeInputId);
+                    // const suggestionContainer = document.querySelector(`.suggestion-container[data-target-id="${activeInputId}"]`);
+                    // if (element && suggestionContainer) {
+                        // const activeSuggestion = suggestionContainer.querySelector('.suggestion-content.active .suggestion-text');
+                        // if (activeSuggestion) {
+                            // const resetValue = activeSuggestion.textContent.trim();
+                            // element.value = resetValue;
+                            // element.dispatchEvent(new Event('input', { bubbles: true })); // スタイルと履歴を更新
 
-                        }
-                    }
-                });
+                        // }
+                    // }
+                // });
 
                 document.getElementById('reset-all-button').addEventListener('click', () => {
                     if (!confirm('全ての入力内容を初期状態に戻します。よろしいですか？')) return;
@@ -871,6 +880,7 @@
                         // 両方の処理が完了した時点で、ボタンを必ず有効化する
                         submitButton.disabled = false;
                         submitButton.textContent = 'この内容で確定して保存';
+                        submitButton.classList.remove('generating-text'); // テキストサイズを戻す
 
                         initializeDefaultValues();
                     
