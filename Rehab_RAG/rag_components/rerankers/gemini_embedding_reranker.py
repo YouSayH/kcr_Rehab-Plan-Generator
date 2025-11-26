@@ -1,5 +1,7 @@
 import numpy as np
-from ..embedders.gemini_embedder import GeminiEmbedder # Embedderをインポート
+
+from ..embedders.gemini_embedder import GeminiEmbedder  # Embedderをインポート
+
 
 class GeminiEmbeddingReranker:
     """

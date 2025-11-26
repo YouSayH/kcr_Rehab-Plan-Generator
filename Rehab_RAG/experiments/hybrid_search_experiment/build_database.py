@@ -16,11 +16,11 @@ RAGデータベース構築スクリプト (The Builder)
 プロジェクトのルートディレクトリから、以下のコマンドで実行します。
 `python .\\experiments\\<実験名>\\build_database.py`
 """
-import yaml
 import importlib
 import os
-import shutil
 import sys
+
+import yaml
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..')))
@@ -48,12 +48,12 @@ def main():
         # print(f"既存のデータベース '{full_db_path}' を削除します。")
         # shutil.rmtree(full_db_path)
         pass
-        
+
     print("--- データベース構築開始 ---")
 
     # コンポーネントのインスタンス化
     build_cfg = config['build_components']
-    
+
     chunker_cfg = build_cfg['chunker']
     chunker = get_instance(
         module_name=chunker_cfg['module'],
@@ -67,7 +67,7 @@ def main():
         class_name=embedder_cfg['class'],
         params=embedder_cfg.get('params', {})
     )
-    
+
     # --- retrieverのインスタンス化を動的に ---
     if 'retriever' in build_cfg:
         retriever_cfg = build_cfg['retriever']
@@ -89,8 +89,8 @@ def main():
             "embedder": embedder
         }
         retriever = get_instance(
-            'rag_components.retrievers.chromadb_retriever', 
-            'ChromaDBRetriever', 
+            'rag_components.retrievers.chromadb_retriever',
+            'ChromaDBRetriever',
             retriever_params
         )
 
@@ -107,7 +107,6 @@ def main():
             chunks = chunker.chunk(file_path)
             all_chunks.extend(chunks)
             print(f"-> {len(chunks)} 個のチャンクを抽出しました。")
-            
     if not all_chunks:
         print(f"警告: '{source_path}' 内に処理対象のMarkdownファイルが見つかりませんでした。")
         return

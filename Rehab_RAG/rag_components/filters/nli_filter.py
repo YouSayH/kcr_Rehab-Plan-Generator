@@ -1,5 +1,6 @@
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
 
 class NLIFilter:
     """
@@ -23,7 +24,7 @@ class NLIFilter:
     def __init__(self, model_name: str, device: str = "auto", **kwargs):
         """
         コンストラクタ。指定されたNLIモデルをHugging Faceからロードします。
-        
+
         Args:
             model_name (str): Hugging Face上のNLIモデル名。
             device (str): "cuda", "cpu", "auto"。
@@ -32,7 +33,7 @@ class NLIFilter:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         else:
             self.device = device
-            
+
         print(f"NLIモデル ({model_name}) を {self.device} にロード中...")
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_name).to(self.device)
@@ -41,7 +42,7 @@ class NLIFilter:
     def filter(self, query: str, documents: list[str], metadatas: list[dict]) -> tuple[list[str], list[dict]]:
         """
         NLIモデルを使用して、クエリと矛盾するドキュメントを除外する。
-        
+
         Args:
             query (str): ユーザーの元の質問文 (仮説として使用)。
             documents (list[str]): 検索された文書チャンクのリスト (前提として使用)。
@@ -52,7 +53,7 @@ class NLIFilter:
         """
         filtered_docs = []
         filtered_metadatas = []
-        
+
         for doc, meta in zip(documents, metadatas):
             premise = doc
             hypothesis = query
@@ -63,7 +64,7 @@ class NLIFilter:
                 outputs = self.model(**input_data)
                 logits = outputs.logits
                 probabilities = torch.softmax(logits, dim=1).cpu().numpy()[0]
-            
+
             # モデルの出力から各ラベルの確率を取得
             # モデル設定によると、0: contradiction, 1: neutral, 2: entailment
             contradiction_score = probabilities[0] # model.config.label2id['contradiction'] is 0
@@ -72,8 +73,8 @@ class NLIFilter:
             # フィルタリングのロジック: 矛盾スコアが低く(0.5未満)、かつ含意または中立スコアがある程度高いものを採用
             # このしきい値は調整可能
             # 矛盾スコアが低く、含意または中立スコアがある程度あるものを採用
-            if contradiction_score < 0.5 and (entailment_score > 0.1 or probabilities[1] > 0.1): 
+            if contradiction_score < 0.5 and (entailment_score > 0.1 or probabilities[1] > 0.1):
                 filtered_docs.append(doc)
                 filtered_metadatas.append(meta)
-        
+
         return filtered_docs, filtered_metadatas

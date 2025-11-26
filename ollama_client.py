@@ -1,33 +1,26 @@
-import os
 import json
-import time
-import textwrap
-from datetime import date
+import logging
+import os
 import pprint
-from typing import Optional, Type, Dict
+import textwrap
+import time
+from datetime import date
+
+# RAGExecutorは循環参照を避けるため、型ヒントのみに使用します
+from typing import TYPE_CHECKING, Dict, Optional, Type
 
 # Ollamaライブラリをインポート
 import ollama
-from pydantic import BaseModel, Field, create_model, ValidationError
 from dotenv import load_dotenv
-import logging
+from pydantic import BaseModel, Field, ValidationError, create_model
 
-# RAGExecutorは循環参照を避けるため、型ヒントのみに使用します
-from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from rag_executor import RAGExecutor
 
 # 共通のスキーマ定義をインポート
 from schemas import (
-    RehabPlanSchema,
-    RisksAndPrecautions,
-    FunctionalLimitations,
-    Goals,
-    TreatmentPolicy,
-    ActionPlans,
-    CurrentAssessment,
-    ComprehensiveTreatmentPlan,
     GENERATION_GROUPS,
+    RehabPlanSchema,
 )
 
 # 初期設定
@@ -442,7 +435,7 @@ def generate_ollama_plan_stream(patient_data: dict):
                     if schema_fields.issubset(response_keys):
                         data_to_validate = raw_response_dict
                         print("   [情報] トップレベルの辞書を検証対象とします。")
-                    
+
                     # ケース2: レスポンスがスキーマ名をキーとしてネストしている
                     # (例: {"risksandprecautions": {"main_risks_txt": ...}})
                     else:
@@ -450,7 +443,7 @@ def generate_ollama_plan_stream(patient_data: dict):
                         if schema_name_key in raw_response_dict and isinstance(raw_response_dict[schema_name_key], dict):
                             data_to_validate = raw_response_dict[schema_name_key]
                             print(f"   [情報] ネストされたキー '{schema_name_key}' からデータを取り出しました。")
-                        
+
                         # ケース3: "properties" など一般的なキーでネストしている
                         else:
                             nested_keys = ['properties', 'attributes', 'data']
@@ -461,7 +454,7 @@ def generate_ollama_plan_stream(patient_data: dict):
                                     print(f"   [情報] ネストされたキー '{key}' からデータを取り出しました。")
                                     extracted = True
                                     break
-                            
+
                             # ケース4: ネスト解除失敗、トップレベルをそのまま試す
                             if not extracted:
                                 print("   [警告] ネスト構造を解決できませんでした。トップレベルの辞書を検証対象とします。")
@@ -515,10 +508,10 @@ def generate_rag_plan_stream(patient_data: dict, rag_executor: 'RAGExecutor'):
     """
     try:
         logger.info("\n--- Ollama RAGモデルによる生成を開始 ---")
-        
+
         # 1. RAGの検索クエリとLLMへの入力用に、患者データを整形
         patient_facts = _prepare_patient_facts(patient_data)
-        
+
         # 2. RAGExecutorを実行し、専門的な計画案と根拠情報を取得
         # rag_executor.execute() は、内部で設定されたLLM (この場合はOllama) を呼び出す
         rag_result = rag_executor.execute(patient_facts)
@@ -531,7 +524,7 @@ def generate_rag_plan_stream(patient_data: dict, rag_executor: 'RAGExecutor'):
             # RAG実行の内部でエラーが発生した場合
             error_msg = f"RAG Executorからのエラー: {specialized_plan_dict['error']}"
             logger.error(error_msg)
-            
+
             # エラーをフロントエンドに通知
             rag_keys = [f.name for f in RehabPlanSchema.model_fields.values()]
             for key in rag_keys:
@@ -560,7 +553,7 @@ def generate_rag_plan_stream(patient_data: dict, rag_executor: 'RAGExecutor'):
                         "subsection": metadata.get('subsection', 'N/A'),
                         "subsubsection": metadata.get('subsubsection', 'N/A')
                     })
-                
+
                 context_event_data = json.dumps(contexts_for_frontend)
                 yield f"event: context_update\ndata: {context_event_data}\n\n"
 
@@ -573,15 +566,15 @@ def generate_rag_plan_stream(patient_data: dict, rag_executor: 'RAGExecutor'):
             error_value = f"RAG実行エラー: {e}"
             event_data = json.dumps({"key": key, "value": error_value, "model_type": "ollama_specialized"})
             yield f"event: update\ndata: {event_data}\n\n"
-    
+
     finally:
         # 成功・失敗にかかわらず、RAG側の処理が完了したことを必ず通知する
         logger.info("Ollama RAGストリームが終了します。")
         yield "event: finished\ndata: {}\n\n"
 
-def _build_ollama_regeneration_prompt(patient_facts_str: str, generated_plan_so_far: dict, item_key_to_regenerate: str, current_text: str, instruction: str, rag_context: Optional[str] = None, schema: Optional[Type[BaseModel]] = None) -> str:
+def _build_ollama_regeneration_prompt(patient_facts_str: str, generated_plan_so_far: dict, item_key_to_regenerate: str, current_text: str, instruction: str, rag_context: Optional[str] = None, schema: Optional[Type[BaseModel]] = None) -> str:  # noqa: E501
     """Ollama用の項目再生成プロンプトを構築する"""
-    
+
     schema_json_str = ""
     if schema:
         try:
@@ -713,7 +706,7 @@ def regenerate_ollama_plan_item_stream(patient_data: dict, item_key: str, curren
 
         # 7. 結果のパースと検証
         logging.info(f"Ollama Regeneration Response: {accumulated_json_string}")
-        
+
         regenerated_text = ""
         try:
             json_data_raw = json.loads(accumulated_json_string)
@@ -741,7 +734,7 @@ def regenerate_ollama_plan_item_stream(patient_data: dict, item_key: str, curren
             print(f"受信データ: {accumulated_json_string}")
             logger.error(f"Ollama再生成エラー: {e}\nデータ: {accumulated_json_string}")
             regenerated_text = f"エラー: 再生成に失敗しました。{e}"
-        
+
         # 8. ストリーミング風に返す
         for char in regenerated_text:
             event_data = json.dumps({"key": item_key, "chunk": char, "model_type": model_type})
@@ -798,7 +791,7 @@ if __name__ == "__main__":
         "name": "テスト患者", "age": 75, "gender": "男性",
         "header_disease_name_txt": "脳梗塞右片麻痺",
         "therapist_notes": "テスト用所見。本人の意欲は高い。",
-        "func_pain_chk": True, 
+        "func_pain_chk": True,
         "func_muscle_weakness_chk": True,
         "func_rom_limitation_chk": False, # チェックなしの項目
     }
@@ -818,13 +811,15 @@ if __name__ == "__main__":
                 data_str = event.split("data: ", 1)[1].strip()
                 data = json.loads(data_str)
                 final_plan[data["key"]] = data["value"]
-            except Exception as e: print(f"Updateイベント解析エラー: {e}")
+            except Exception as e:
+                print(f"Updateイベント解析エラー: {e}")
         elif "event: error" in event:
             try:
                 data_str = event.split("data: ", 1)[1].strip()
                 error = json.loads(data_str)
                 print(f"!!! エラー受信: {error}")
-            except Exception as e: print(f"Errorイベント解析エラー: {e}")
+            except Exception as e:
+                print(f"Errorイベント解析エラー: {e}")
 
     if error:
         print("\n--- テスト実行中にエラーが検出されました ---")
@@ -836,7 +831,7 @@ if __name__ == "__main__":
 
     # --- 再生成のテスト ---
     print("\n\n--- Ollama クライアント 再生成テスト実行 ---")
-    
+
     # RAGExecutorのダミーモックを作成（実際のインポートを避けるため）
     class MockRAGExecutor:
         def execute(self, facts):
@@ -854,7 +849,7 @@ if __name__ == "__main__":
             instruction="もっと具体的に、高血圧の視点も加えてください。",
             rag_executor=MockRAGExecutor() # モックインスタンスを渡す
         )
-        
+
         print("\n--- 再生成ストリームイベント ---")
         regenerated_text = ""
         for event in regenerate_stream:
@@ -864,8 +859,9 @@ if __name__ == "__main__":
                     data_str = event.split("data: ", 1)[1].strip()
                     data = json.loads(data_str)
                     regenerated_text += data.get("chunk", "")
-                except Exception as e: print(f"Updateイベント解析エラー: {e}")
-        
+                except Exception as e:
+                    print(f"Updateイベント解析エラー: {e}")
+
         print("\n--- 再生成テスト完了 ---")
         print(f"最終生成テキスト:\n{regenerated_text}")
 

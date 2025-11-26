@@ -26,3 +26,5 @@ evaluation/**/*.csv
 *.zip
 create_readonly_user.py
 rag_db_data
+*db
+ruff.toml

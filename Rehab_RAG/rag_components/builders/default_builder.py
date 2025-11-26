@@ -1,8 +1,9 @@
 """
 DefaultBuilder: 従来のシンプルなDB構築プロセスをコンポーネント化したもの
 """
-import os
 import importlib
+import os
+
 
 class DefaultBuilder:
     """
@@ -31,7 +32,7 @@ class DefaultBuilder:
         """データベース構築のメイン処理"""
         # 1. 必要なコンポーネントを準備
         build_cfg = self.config['build_components']
-        
+
         chunker_cfg = build_cfg['chunker']
         chunker = self._get_instance(
             module_name=chunker_cfg['module'],
@@ -61,11 +62,11 @@ class DefaultBuilder:
             )
         else: # 古いconfigファイルのための後方互換処理
             self.retriever = self._get_instance(
-                'rag_components.retrievers.chromadb_retriever', 
-                'ChromaDBRetriever', 
+                'rag_components.retrievers.chromadb_retriever',
+                'ChromaDBRetriever',
                 retriever_params
             )
-        
+
         # 2. ドキュメントを読み込み、チャンクに分割
         # config.yamlからの相対パスを正しく解決する
         config_dir = os.path.dirname(self.db_path)
@@ -80,7 +81,7 @@ class DefaultBuilder:
                 chunks = chunker.chunk(file_path)
                 all_chunks.extend(chunks)
                 print(f"-> {len(chunks)} 個のチャンクを抽出しました。")
-                
+
         if not all_chunks:
             print(f"警告: '{source_path}' 内に処理対象のMarkdownファイルが見つかりませんでした。")
             return

@@ -1,10 +1,11 @@
 import os
 import time
+
+import backoff
+from dotenv import load_dotenv
 from google import genai
 from google.genai import types
-from dotenv import load_dotenv
 from tqdm import tqdm
-import backoff
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..'))
@@ -25,7 +26,7 @@ class GeminiEmbedder:
     def __init__(self, model_name: str = "gemini-embedding-001", batch_size: int = 32, requests_per_minute: int = 750):
         """
         コンストラクタ。Geminiクライアントを初期化し、レート制限設定を保存します。
-        
+
         Args:
             model_name (str): 使用するGeminiエンベディングモデル名。
             batch_size (int): 一度のAPIコールで処理するテキストの数。レート制限対策の要。
@@ -34,7 +35,7 @@ class GeminiEmbedder:
         """
         if not os.getenv("GEMINI_API_KEY"):
             raise ValueError("環境変数 `GEMINI_API_KEY` が設定されていません。")
-        
+
         print(f"Embeddingモデル ({model_name}) を初期化中...")
         self.client = genai.Client()
         self.model_name = model_name
@@ -66,10 +67,10 @@ class GeminiEmbedder:
         データベース構築時に使用します。レート制限を考慮してバッチ処理を行います。
         """
         all_embeddings = []
-        
+
         for i in tqdm(range(0, len(texts), self.batch_size), desc="Embedding Batches"):
             batch_texts = texts[i:i + self.batch_size]
-            
+
             try:
                 # 直接APIを呼ぶ代わりに、リトライ機能付きメソッドを呼ぶ
                 result = self._embed_content_with_retry(batch_texts)
@@ -91,16 +92,16 @@ class GeminiEmbedder:
                 all_embeddings.extend([None] * len(batch_texts))
 
             time.sleep(self.sleep_duration)
-            
+
         valid_embeddings = [emb for emb in all_embeddings if emb is not None]
-        
+
         # 最終的に有効なエンベディングが1つも無かった場合に、明確なエラーを出す
         if not valid_embeddings:
             raise RuntimeError("全てのチャンクのエンベディングに失敗しました。APIのレート制限（特にTPM）を確認してください。")
 
         if len(valid_embeddings) != len(texts):
             print(f"警告: {len(texts) - len(valid_embeddings)}個のチャンクのエンベディングに失敗しました。")
-            
+
         return valid_embeddings
 
     def embed_query(self, text: str) -> list[float]:

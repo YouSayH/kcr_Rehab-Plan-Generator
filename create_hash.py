@@ -1,8 +1,9 @@
 # コマンドライン上で
 # python create_hash.py 設定したいパスワード名
 # ハッシュ化したものが返ってくる
-from werkzeug.security import generate_password_hash
 import sys
+
+from werkzeug.security import generate_password_hash
 
 if len(sys.argv) < 2:
     print("使い方: python create_hash.py <パスワード>")

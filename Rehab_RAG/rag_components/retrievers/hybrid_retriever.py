@@ -1,5 +1,6 @@
-from .chromadb_retriever import ChromaDBRetriever
 from .bm25_retriever import BM25Retriever
+from .chromadb_retriever import ChromaDBRetriever
+
 
 class HybridRetriever:
     """
@@ -21,7 +22,7 @@ class HybridRetriever:
     def __init__(self, path: str, collection_name: str, embedder, k: int = 60):
         """
         コンストラクタ。ベクトルリトリーバーとキーワードリトリーバーを初期化します。
-        
+
         Args:
             path (str): データベースのパス。
             collection_name (str): コレクション名。
@@ -42,14 +43,14 @@ class HybridRetriever:
 
         # 2. RRFスコアを計算
         rrf_scores = {}
-        
+
         # ベクトル検索の結果を処理
         if vector_results['ids'][0]:
             for rank, doc_id in enumerate(vector_results['ids'][0]):
                 if doc_id not in rrf_scores:
                     rrf_scores[doc_id] = 0
                 rrf_scores[doc_id] += 1 / (self.k + rank + 1)
-        
+
         # キーワード検索の結果を処理
         if keyword_results['ids'][0]:
             for rank, doc_id in enumerate(keyword_results['ids'][0]):
@@ -59,7 +60,7 @@ class HybridRetriever:
 
         # 3. スコアに基づいてソート
         sorted_doc_ids = sorted(rrf_scores.keys(), key=lambda id: rrf_scores[id], reverse=True)
-        
+
         # 上位n_results件に絞り込み
         top_doc_ids = sorted_doc_ids[:n_results]
 

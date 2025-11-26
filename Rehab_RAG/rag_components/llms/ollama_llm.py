@@ -1,9 +1,10 @@
 # Rehab_RAG/rag_components/llms/ollama_llm.py
-import ollama
 import json
-from pydantic import BaseModel, ValidationError
+import logging  # ログ出力用に追加
 from typing import Optional, Type
-import logging # ログ出力用に追加
+
+import ollama
+from pydantic import BaseModel, ValidationError
 
 # ロガーの設定
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class OllamaLLM:
             logger.info(f"Generating with JSON schema enforcement: {response_schema.__name__}")
             try:
                 # PydanticモデルからJSONスキーマ辞書を取得
-                schema_dict = response_schema.model_json_schema() 
+                schema_dict = response_schema.model_json_schema()
                 format_param = schema_dict # スキーマ辞書を format に渡す
             except Exception as e:
                 logger.error(f"Pydanticモデル ({response_schema.__name__}) からJSONスキーマの取得に失敗: {e}")
@@ -64,8 +65,8 @@ class OllamaLLM:
                 try:
                     # JSON文字列をパースする必要は *ない* かもしれない (ollamaライブラリが自動でやるか確認)
                     # → ドキュメントによると .message.content は文字列なのでパースは必要
-                    json_data = json.loads(generated_content) 
-                    
+                    json_data = json.loads(generated_content)
+
                     # Pydanticモデルでバリデーション
                     validated_data = response_schema.model_validate(json_data)
                     logger.info(f"Ollama JSON Response validated successfully against {response_schema.__name__}.")

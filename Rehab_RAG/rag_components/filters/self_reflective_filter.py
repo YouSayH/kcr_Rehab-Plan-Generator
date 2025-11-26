@@ -1,12 +1,13 @@
 """
 SelfReflectiveFilter: 検索結果の関連性を自己評価・フィルタリングするコンポーネント
 """
-import time
+import logging
 import math
-from typing import List, Dict
+import time
+from typing import List
+
 from pydantic import BaseModel, Field
 from tqdm import tqdm
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +51,7 @@ class SelfReflectiveFilter:
         """
         filtered_docs = []
         filtered_metadatas = []
-        
+
         num_batches = math.ceil(len(documents) / self.batch_size)
         print(f"  - {len(documents)}件の文書を{num_batches}バッチに分割して自己評価フィルタリング中...")
         logger.info(f"  - {len(documents)}件の文書を{num_batches}バッチに分割して自己評価フィルタリング中...")
@@ -72,11 +73,11 @@ class SelfReflectiveFilter:
 
 # 文書リスト (各文書には [index] が付与されています)
 """
-            
+
             for idx, doc in enumerate(batch_docs):
                 prompt += f"--- Document [ {idx} ] ---\n{doc}\n"
 
-            prompt += f"""
+            prompt += """
 # あなたの評価
 各文書について、質問との関連性を評価し、以下のJSON形式で結果を返してください。
 `is_relevant` は、関連性がある場合は true、ない場合は false としてください。
@@ -92,8 +93,7 @@ class SelfReflectiveFilter:
 
 
 
-            
-            time.sleep(1) # APIレート制限対策            
+            time.sleep(1) # APIレート制限対策
             response = self.llm.generate(
                 prompt,
                 temperature=0.0,
@@ -102,7 +102,7 @@ class SelfReflectiveFilter:
 
             if isinstance(response, RelevanceEvaluationBatch) and response.evaluations:
                 valid_indices = {eval_item.document_index for eval_item in response.evaluations if eval_item.is_relevant}
-                
+
                 for idx, (doc, meta) in enumerate(zip(batch_docs, batch_metadatas)):
                     if idx in valid_indices:
                         filtered_docs.append(doc)

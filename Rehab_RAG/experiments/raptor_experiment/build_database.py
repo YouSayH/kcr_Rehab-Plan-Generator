@@ -1,26 +1,27 @@
 """
-RAGデータベース構築スクリプト (The Commander / 司令塔)
+RAGデータベース構築スクリプト (The Builder)
 
 [このスクリプトの役割]
-このスクリプトは、RAGパイプラインの「事前準備」フェーズの司令塔です。
-現在の役割はただ一つ、`config.yaml` で指定された「Builder」コンポーネントを
-呼び出し、データベースの構築を完全に任せることです。
+このスクリプトは、RAGパイプラインの「事前準備」フェーズを担当します。
+`config.yaml` ファイルで定義された設定に基づき、以下の処理を自動的に行います。
 
-[後方互換性]
-このスクリプトは、古いconfig.yamlファイルにも対応しています。
-- `config.yaml`に`builder:`セクションがあれば、指定されたBuilderを使います (例: RAPTORBuilder)。
-- `config.yaml`に`builder:`セクションがなければ、自動的に従来のシンプルな構築方法を
-  実行する`DefaultBuilder`が呼び出されます。
+1. 設定ファイル(`config.yaml`)を読み込む。
+2. 指定されたチャンカー(Chunker)とエンベッダー(Embedder)を動的にロードする。
+3. `source_documents` フォルダから知識源となるMarkdownファイルを読み込む。
+4. チャンカーを使って、各ファイルを意味のあるチャンク(塊)に分割する。
+5. エンベッダーを使って、各チャンクをベクトル化する。
+6. ベクトル化されたチャンクを、メタデータと共にベクトルデータベース(ChromaDB)に保存する。
 
-これにより、全ての実験でこのファイルを共通して使用できます。
+[実行方法]
+プロジェクトのルートディレクトリから、以下のコマンドで実行します。
+`python .\\experiments\\<実験名>\\build_database.py`
 """
-import yaml
 import importlib
 import os
-import shutil
 import sys
 
-# プロジェクトのルートディレクトリをPythonのパスに追加
+import yaml
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..')))
 
@@ -31,55 +32,98 @@ def load_config(config_path='config.yaml'):
         return yaml.safe_load(f)
 
 def get_instance(module_name, class_name, params={}):
-    """モジュールとクラス名からインスタンスを動的に生成するヘルパー関数"""
+    """モジュールとクラス名からインスタンスを動的に生成する"""
     module = importlib.import_module(module_name)
     class_ = getattr(module, class_name)
     return class_(**params)
 
+
 def main():
     config = load_config()
 
-    # 構築を始める前に、古いデータベースがあれば削除する
+    # 既存DBを削除
     db_path = config['database']['path']
     full_db_path = os.path.join(SCRIPT_DIR, db_path)
     if os.path.exists(full_db_path):
         # print(f"既存のデータベース '{full_db_path}' を削除します。")
         # shutil.rmtree(full_db_path)
         pass
-        
+
     print("--- データベース構築開始 ---")
 
-    # config.yamlに'builder'セクションがあるかチェック
-    if 'builder' in config:
-        # あれば、指定されたBuilderを読み込む (RAPTORなど新しい手法用)
-        builder_cfg = config['builder']
-        print(f"Builder '{builder_cfg['class']}' を使用してDBを構築します...")
-    else:
-        # なければ、自動的にDefaultBuilderを指定する (古い設定ファイル用)
-        print("config.yamlに'builder'の指定がないため、DefaultBuilderを使用します。")
-        builder_cfg = {
-            'module': 'rag_components.builders.default_builder',
-            'class': 'DefaultBuilder'
-        }
-    
-    # Builderが必要とする情報（設定全体、DBの保存場所など）を準備する
-    builder_params = builder_cfg.get('params', {})
-    builder_params['config'] = config
-    builder_params['db_path'] = full_db_path
-    
-    # 指定されたBuilderのインスタンスを動的に生成する
-    builder = get_instance(
-        module_name=builder_cfg['module'],
-        class_name=builder_cfg['class'],
-        params=builder_params
+    # コンポーネントのインスタンス化
+    build_cfg = config['build_components']
+
+    chunker_cfg = build_cfg['chunker']
+    chunker = get_instance(
+        module_name=chunker_cfg['module'],
+        class_name=chunker_cfg['class'],
+        params=chunker_cfg.get('params', {}) # paramsがない場合も考慮
     )
-    
-    # Builderに構築の実行を命令する
-    builder.build()
+
+    embedder_cfg = build_cfg['embedder']
+    embedder = get_instance(
+        module_name=embedder_cfg['module'],
+        class_name=embedder_cfg['class'],
+        params=embedder_cfg.get('params', {})
+    )
+
+    # --- retrieverのインスタンス化を動的に ---
+    if 'retriever' in build_cfg:
+        retriever_cfg = build_cfg['retriever']
+        retriever_params = {
+            "path": full_db_path,
+            "collection_name": config['database']['collection_name'],
+            "embedder": embedder,
+            **retriever_cfg.get('params', {})
+        }
+        retriever = get_instance(
+            retriever_cfg['module'],
+            retriever_cfg['class'],
+            retriever_params
+        )
+    else: # 従来のconfigファイルとの後方互換性のため
+        retriever_params = {
+            "path": full_db_path,
+            "collection_name": config['database']['collection_name'],
+            "embedder": embedder
+        }
+        retriever = get_instance(
+            'rag_components.retrievers.chromadb_retriever',
+            'ChromaDBRetriever',
+            retriever_params
+        )
+
+
+    # ドキュメントの読み込みとチャンキング
+    all_chunks = []
+    source_path = os.path.join(SCRIPT_DIR, config['source_documents_path'])
+    print(f"'{source_path}' からドキュメントを読み込みます...")
+    # ------------------
+    for filename in os.listdir(source_path):
+        if filename.endswith(".md"):
+            file_path = os.path.join(source_path, filename)
+            print(f"\nファイル '{filename}' を処理中...")
+            chunks = chunker.chunk(file_path)
+            all_chunks.extend(chunks)
+            print(f"-> {len(chunks)} 個のチャンクを抽出しました。")
+    if not all_chunks:
+        print(f"警告: '{source_path}' 内に処理対象のMarkdownファイルが見つかりませんでした。")
+        return
+
+    # データベースへの追加
+    print(f"\n合計 {len(all_chunks)} 個のチャンクをデータベースに格納します。")
+    retriever.add_documents(all_chunks)
 
     print("\n--- データベース構築完了 ---")
     print(f"データベースのパス: {os.path.abspath(full_db_path)}")
     print(f"コレクション名: {config['database']['collection_name']}")
+    # countメソッドがない場合も考慮
+    if hasattr(retriever, 'vector_retriever') and hasattr(retriever.vector_retriever, 'count'):
+         print(f"格納されたアイテム数: {retriever.vector_retriever.count()}")
+    elif hasattr(retriever, 'count'):
+         print(f"格納されたアイテム数: {retriever.count()}")
+
 
 if __name__ == "__main__":
     main()

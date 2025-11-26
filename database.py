@@ -1,13 +1,13 @@
-import os
 import json
-from datetime import date, datetime
+import os
 from collections import defaultdict
-from dotenv import load_dotenv
+from datetime import date, datetime
 
-from sqlalchemy import (create_engine, Column, Integer, String, Date, Text, Boolean, ForeignKey, DECIMAL, TIMESTAMP, Table, func)
-from sqlalchemy.orm import sessionmaker, relationship, declarative_base
-from sqlalchemy.exc import IntegrityError
+from dotenv import load_dotenv
+from sqlalchemy import DECIMAL, TIMESTAMP, Boolean, Column, Date, ForeignKey, Integer, String, Table, Text, create_engine, func
 from sqlalchemy.dialects.mysql import insert as mysql_insert
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 
 load_dotenv()
 
@@ -587,7 +587,8 @@ def save_patient_master_data(form_data: dict):
         if patient_id_str:
             patient_id = int(patient_id_str)
             patient = db.query(Patient).filter(Patient.patient_id == patient_id).first()
-            if not patient: raise Exception(f"更新対象の患者ID: {patient_id} が見つかりません。")
+            if not patient:
+                raise Exception(f"更新対象の患者ID: {patient_id} が見つかりません。")
         else:
             patient = Patient()
 
@@ -611,7 +612,7 @@ def save_patient_master_data(form_data: dict):
 
         columns = RehabilitationPlan.__table__.columns
         boolean_columns = {col.name for col in columns if isinstance(col.type, Boolean)}
-        
+
         # --- 3. データの型ごとに処理を分離して安全に値を設定 ---
 
         # 3-1. 日付フィールドの処理
@@ -619,13 +620,14 @@ def save_patient_master_data(form_data: dict):
         for key in list(form_data.keys()):
             if key.endswith(("_year", "_month", "_day")):
                 base_key = key.rsplit("_", 1)[0]
-                if base_key in processed_date_keys: continue
+                if base_key in processed_date_keys:
+                    continue
                 processed_date_keys.add(base_key)
 
                 year = form_data.get(f"{base_key}_year")
                 month = form_data.get(f"{base_key}_month")
                 day = form_data.get(f"{base_key}_day")
-                
+
                 if year and month and day:
                     try:
                         date_value = date(int(year), int(month), int(day))
@@ -649,7 +651,7 @@ def save_patient_master_data(form_data: dict):
             # patient_id はオブジェクト作成時に設定済みのため、フォームの値で上書きしない
             if key == "patient_id":
                 continue
-            
+
             if key not in columns:
                 continue
 
@@ -667,7 +669,7 @@ def save_patient_master_data(form_data: dict):
                         processed_value = str(value)
                 except (ValueError, TypeError) as e:
                     print(f"   [警告] 型変換エラー: key='{key}', value='{value}', error='{e}'")
-            
+
             setattr(new_plan, key, processed_value)
 
         # 最後に計画書の変更をコミット
@@ -751,7 +753,7 @@ def save_new_plan(patient_id: int, staff_id: int, form_data: dict, liked_items: 
         raise  # エラーを呼び出し元に通知
     finally:
         db.close()
- 
+
 def save_all_suggestion_details(
     rehabilitation_plan_id: int,
     staff_id: int,
@@ -766,7 +768,7 @@ def save_all_suggestion_details(
     try:
         details_to_save = []
         patient_info_json = json.dumps(patient_info, ensure_ascii=False, default=str)
- 
+
         # 全ての編集可能項目についてループ
         for item_key in editable_keys:
             # 【修正】いいねの有無に関わらず、AI提案が存在すればレコードを作成する
@@ -793,7 +795,7 @@ def save_all_suggestion_details(
                     patient_info_snapshot_json=patient_info_json
                 )
                 details_to_save.append(detail)
- 
+
         if details_to_save:
             db.bulk_save_objects(details_to_save)
             db.commit()
@@ -863,7 +865,7 @@ def save_regeneration_history(rehabilitation_plan_id: int, history_data: list):
                     model_type=model_type
                 )
                 history_records.append(record)
-        
+
         if history_records:
             db.bulk_save_objects(history_records)
             db.commit()
@@ -910,7 +912,7 @@ def delete_suggestion_like(patient_id: int, item_key: str, liked_model: str):
             patient_id=patient_id, item_key=item_key, liked_model=liked_model
         ).delete(synchronize_session=False)
         db.commit()
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise
     finally:
@@ -924,7 +926,7 @@ def delete_all_likes_for_patient(patient_id: int):
             SuggestionLike.patient_id == patient_id
         ).delete(synchronize_session=False)
         db.commit()
-    except Exception as e:
+    except Exception:
         db.rollback()
         raise
     finally:
@@ -980,7 +982,7 @@ def get_plan_by_id(plan_id: int):
             "gender": patient.gender,
             "date_of_birth": patient.date_of_birth,
         }
-        
+
         # patient_data を先に置き、plan_data で上書きする形で結合
         # (patient_id などが両方に含まれるため)
         final_data = {**patient_data, **plan_data}

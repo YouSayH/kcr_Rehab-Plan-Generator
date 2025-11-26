@@ -1,7 +1,6 @@
 """
 RetrievalJudge: 検索を実行すべきか判断するコンポーネント
 """
-import re
 
 class RetrievalJudge:
     """
@@ -27,7 +26,7 @@ class RetrievalJudge:
     def judge(self, query: str) -> str:
         """
         与えられたクエリに対して、検索が必要かどうかを判断します。
-        
+
         Args:
             query (str): ユーザーの質問文。
 
@@ -42,7 +41,7 @@ class RetrievalJudge:
 あなたの判断:"""
 
         response = self.llm.generate(prompt, temperature=0.0, max_output_tokens=10)
-        
+
         # LLMの回答から判断トークンを抽出
         if "[RETRIEVAL_NEEDED]" in response:
             print("  - Judgeの判断: 検索が必要 (RETRIEVAL_NEEDED)")

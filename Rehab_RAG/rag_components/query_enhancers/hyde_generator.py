@@ -2,7 +2,7 @@ class HydeQueryEnhancer:
     """
     [手法解説: HyDE (Hypothetical Document Embeddings)]
     ユーザーからの短い、あるいは曖昧な質問を、より検索に適した具体的な文章に変換するコンポーネントです。
-    
+
     仕組み:
     1. ユーザーの質問を受け取る (例: 「脳卒中のリハビリは？」)
     2. LLMに「この質問に対する完璧な回答を想像して書いてください」とお願いする。
@@ -16,19 +16,19 @@ class HydeQueryEnhancer:
     def __init__(self, llm, **kwargs):
         """
         コンストラクタ。文章生成のためのLLMインスタンスを受け取ります。
-        
+
         Args:
             llm: GeminiLLMなど、`generate`メソッドを持つLLMラッパークラスのインスタンス。
         """
         self.llm = llm
         # config.yaml から 'thinking_mode' を読み込む (デフォルトは None)
-        self.thinking_mode = kwargs.get('thinking_mode', None) 
+        self.thinking_mode = kwargs.get('thinking_mode', None)
         print(f"HydeQueryEnhancer initialized. Thinking mode: {self.thinking_mode}") # 起動ログで確認
 
     def enhance(self, query: str) -> str:
         """
         与えられたクエリから架空の理想的な回答を生成する (HyDE)。
-        
+
         Args:
             query (str): ユーザーからの元の質問文。
 
@@ -77,12 +77,12 @@ class HydeQueryEnhancer:
             prompt += " /no_think"
             print("  - HyDE: /no_think mode enabled.") # ログ出力
         # self.thinking_mode が None や 'auto' の場合は何も追加しない
-        
+
         hypothetical_answer = self.llm.generate(prompt, max_output_tokens=512)
-        
+
         # LLMがエラーを返したり、空の文字列を生成した場合は、元のクエリをそのまま使う
         if "回答を生成できませんでした" in hypothetical_answer or not hypothetical_answer.strip():
             print("HyDEの生成に失敗したため、元のクエリを検索に使用します。")
             return query
-            
+
         return hypothetical_answer

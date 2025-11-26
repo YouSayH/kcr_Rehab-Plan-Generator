@@ -1,6 +1,7 @@
+import hashlib
 import os
 import re
-import hashlib
+
 
 class StructuredMarkdownChunker:
     """
@@ -21,7 +22,7 @@ class StructuredMarkdownChunker:
         """
         Markdownファイルを解析し、構造に基づいたチャンクとメタデータのリストを生成する。
         これがこのクラスのメインの実行メソッドです。
-        
+
         Args:
             file_path (str): 処理対象のMarkdownファイルのパス。
 
@@ -51,7 +52,7 @@ class StructuredMarkdownChunker:
         # これにより、「大腿骨近位部骨折」と「変形性股関節症」の情報が混ざるのを防ぎ、文脈を維持します。
 
         sections = re.split(r'\n(##\s)', content)
-        
+
         # 最初のセクション（H2見出しより前）の処理
         current_content = sections[0]
         current_disease = "疾患総論" # H2がない場合は総論として扱う
@@ -64,22 +65,22 @@ class StructuredMarkdownChunker:
             # `re.split`の仕様上、区切り文字(##)とそれに続くコンテンツが交互にリストに入るため、2つずつ結合する
 
             current_content = sections[i] + sections[i+1]
-            
+
             disease_match = re.search(r'##\s*(.*?)\n', current_content)
             if disease_match:
                 current_disease = disease_match.group(1).strip()
-            
+
             chunk_counter = self._process_section(chunks, current_content, file_path, chapter_title, current_disease, chunk_counter)
-            
+
         return chunks
 
     def _process_section(self, chunks_list, section_content, file_path, chapter, disease, start_index):
             """
-            [最終修正版ロジック] 
+            [最終修正版ロジック]
             ヘッダーで分割し、ヘッダータイトルと本文を明確に分離する。
             """
             paragraphs = re.split(r'\n(###\s*|####\s*|#####\s*)', section_content)
-            
+
             current_section = "N/A"
             current_subsection = "N/A"
             current_subsubsection = "N/A"
@@ -100,10 +101,10 @@ class StructuredMarkdownChunker:
                 header_marker = paragraphs[i].strip()
                 if i + 1 >= len(paragraphs):
                     continue
-                
+
                 full_text_block = paragraphs[i+1]
                 block_parts = full_text_block.split('\n', 1)
-                
+
                 header_title = block_parts[0].strip()
                 text_content = block_parts[1].strip() if len(block_parts) > 1 else ""
 
@@ -127,7 +128,7 @@ class StructuredMarkdownChunker:
                 metadata = { "source": os.path.basename(file_path), "chapter": chapter, "disease": disease, "section": current_section, "subsection": current_subsection, "subsubsection": current_subsubsection }
                 unique_string = f"{file_path}:{chunk_index}:{text_content}"
                 chunk_id = hashlib.sha256(unique_string.encode()).hexdigest()
-                
+
                 # チャンクの"text"には、純粋な本文だけを保存する（これが重要）
                 chunks_list.append({"id": chunk_id, "text": text_content, "metadata": metadata})
                 chunk_index += 1
