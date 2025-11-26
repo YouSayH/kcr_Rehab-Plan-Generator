@@ -1,43 +1,42 @@
-import os
 import json
-from collections import defaultdict
-from datetime import date, timedelta
+import logging
+import os
 import threading
-from dotenv import load_dotenv
+from datetime import timedelta
 from functools import wraps
+
+from dotenv import load_dotenv
 from flask import (
     Flask,
-    request,
-    render_template,
-    flash,
     Response,
-    redirect,
-    url_for,
-    send_from_directory,
+    flash,
     jsonify,
+    redirect,
+    render_template,
+    request,
+    send_from_directory,
     session,
-    make_response
+    url_for,
 )
 from flask_login import (
     LoginManager,
     UserMixin,
-    login_user,
-    logout_user,
     current_user,
     login_required,
+    login_user,
+    logout_user,
 )
-from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import func, text
 from pymysql.err import IntegrityError
-import logging
+from sqlalchemy import text
+from werkzeug.security import check_password_hash, generate_password_hash
 
 # 自作のPythonファイルをインポート
 import database
+import excel_writer
 import gemini_client
 import ollama_client
-import excel_writer
-from rag_executor import RAGExecutor
 from patient_info_parser import PatientInfoParser
+from rag_executor import RAGExecutor
 
 load_dotenv()
 
@@ -57,6 +56,8 @@ if not logger.hasHandlers(): # ハンドラが未設定の場合のみ設定
 
 LLM_CLIENT_TYPE = os.getenv("LLM_CLIENT_TYPE", "gemini")
 print(f"--- LLMクライアントとして '{LLM_CLIENT_TYPE}' を使用します ---")
+
+load_dotenv()
 
 # show_summary.py からITEM_KEY_TO_JAPANESEを移植
 ITEM_KEY_TO_JAPANESE = {
@@ -93,6 +94,8 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 if not app.config["SECRET_KEY"]:
     raise ValueError("環境変数 'SECRET_KEY' が .env ファイルに設定されていません。")
+
+
 
 
 # 9時間後(労働時間8時間+1時間)にタイムアウトする。
@@ -141,12 +144,12 @@ try:
     if LLM_CLIENT_TYPE == "ollama":
         print("INFO: PatientInfoParserは現在Ollamaクライアントを自動的に使用します（要実装確認）。")
         # 本来は patient_info_parser.py も切り替えに対応させる
-        patient_info_parser = PatientInfoParser(client_type='ollama') 
+        patient_info_parser = PatientInfoParser(client_type='ollama')
         print("Patient Info Parser initialized successfully.")
     else:
         patient_info_parser = PatientInfoParser(client_type='gemini')
         print("Patient Info Parser initialized successfully.")
-    
+
 except Exception as e:
     print(f"FATAL: Failed to initialize Patient Info Parser: {e}")
     patient_info_parser = None
@@ -187,7 +190,7 @@ def load_user(staff_id):
     staff_info = database.get_staff_by_id(int(staff_id))
     if not staff_info:
         return None
-    
+
     # ブラウザのCookie(session)内のトークンと、DBに保存されている最新のトークンを比較
     # staff_info は辞書なので .get() を使う
     if session.get("session_token") != staff_info.get("session_token"):
@@ -317,7 +320,7 @@ def edit_patient_info():
                 # フォーム表示用に、最新の1件の計画書から患者データを構築
                 latest_plan_obj = latest_plans[0]
                 patient_obj = latest_plan_obj.patient
-                
+
                 # PatientオブジェクトとRehabilitationPlanオブジェクトから辞書を作成して結合
                 patient_dict = {c.name: getattr(patient_obj, c.name) for c in patient_obj.__table__.columns}
                 patient_dict["age"] = patient_obj.age # ageプロパティを追加
@@ -345,16 +348,16 @@ def edit_patient_info():
                     patient_data["age"] = patient_obj.age
                 else:
                     flash(f"ID:{current_patient_id}の患者データが見つかりません。", "warning")
-            
-    except Exception as e:
+
+    except Exception:
         flash("無効な患者IDです。", "danger")
     finally:
         session.close()
 
     return render_template(
-        "edit_patient_info.html", 
-        all_patients=all_patients, 
-        patient_data=patient_data, 
+        "edit_patient_info.html",
+        all_patients=all_patients,
+        patient_data=patient_data,
         plan_history=plan_history,
         current_patient_id=current_patient_id,
         fim_history_json=fim_history_json  # グラフ用データをテンプレートに渡す
@@ -455,7 +458,7 @@ def generate_general_stream():
         patient_data = database.get_patient_data_for_plan(patient_id)
         if not patient_data:
             return Response("患者データが見つかりません。", status=404)
-            
+
         # 担当者の所見を患者データに含める
         patient_data["therapist_notes"] = therapist_notes
 
@@ -470,7 +473,7 @@ def generate_general_stream():
             logger.info(f"Calling Gemini general stream for patient_id: {patient_id}")
             stream_generator = gemini_client.generate_general_plan_stream(patient_data)
 
-        
+
         # 結果をストリーミングでフロントエンドに返す
         return Response(stream_generator, mimetype="text/event-stream")
 
@@ -480,7 +483,7 @@ def generate_general_stream():
         return Response(error_event, mimetype="text/event-stream")
     except Exception as e:
         app.logger.error(f"汎用モデルのストリーム処理中にエラーが発生しました: {e}")
-        error_message = f"サーバーエラーが発生しました。詳細は管理者にお問い合わせください。"
+        error_message = "サーバーエラーが発生しました。詳細は管理者にお問い合わせください。"
         error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
         return Response(error_event, mimetype="text/event-stream")
 
@@ -507,12 +510,12 @@ def generate_rag_stream(pipeline_name):
 
         # 担当者の所見を患者データに含める
         patient_data["therapist_notes"] = therapist_notes
-        
+
         # キャッシュ管理関数を使って、指定されたパイプラインのExecutorを取得
         rag_executor = get_rag_executor(pipeline_name)
         if not rag_executor:
             raise Exception(f"パイプライン '{pipeline_name}' の Executorを取得できませんでした。")
-        
+
         stream_generator = None
         if LLM_CLIENT_TYPE == "ollama" and hasattr(ollama_client, "generate_rag_plan_stream"):
              print("--- Ollama (local) クライアントでRAGモデルを実行します ---")
@@ -521,8 +524,8 @@ def generate_rag_stream(pipeline_name):
         else:
              if LLM_CLIENT_TYPE == "ollama":
                  print("--- [警告] OllamaクライアントにRAG初期生成(generate_rag_plan_stream)が実装されていません。Geminiクライアントでフォールバックします。---")
-                 logger.warning(f"Ollama client missing 'generate_rag_plan_stream'. Falling back to Gemini.")
-             
+                 logger.warning("Ollama client missing 'generate_rag_plan_stream'. Falling back to Gemini.")
+
              print("--- Gemini (cloud) クライアントでRAGモデルを実行します ---")
              logger.info(f"Calling Gemini RAG stream for patient_id: {patient_id}")
              stream_generator = gemini_client.generate_rag_plan_stream(patient_data, rag_executor)
@@ -535,7 +538,7 @@ def generate_rag_stream(pipeline_name):
         return Response(error_event, mimetype="text/event-stream")
     except Exception as e:
         app.logger.error(f"RAGモデル({pipeline_name})のストリーム処理中にエラーが発生しました: {e}")
-        error_message = f"サーバーエラーが発生しました。詳細は管理者にお問い合わせください。"
+        error_message = "サーバーエラーが発生しました。詳細は管理者にお問い合わせください。"
         error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
         return Response(error_event, mimetype="text/event-stream")
 
@@ -590,7 +593,7 @@ def save_plan():
             liked_items=liked_items,
             editable_keys=editable_keys
         )
-        
+
         # 【追加】再生成履歴を保存
         try:
             regeneration_history = json.loads(regeneration_history_json)
@@ -610,7 +613,7 @@ def save_plan():
         # 【修正】Excel出力関数にもいいね情報を渡す（前回の改修を活かす）
         output_filepath = excel_writer.create_plan_sheet(plan_data_for_excel)
         output_filename = os.path.basename(output_filepath)
-        
+
         # 【追加】一時的ないいね情報を削除
         # この患者IDに紐づく suggestion_likes テーブルのレコードをすべて削除
         database.delete_all_likes_for_patient(patient_id)
@@ -661,14 +664,14 @@ def save_patient_info():
             "goal_a_communication_level": "goal_a_communication_",
             "goal_p_return_to_work_status_slct": "goal_p_return_to_work_status_",
             "func_circulatory_arrhythmia_status_slct": "func_circulatory_arrhythmia_status_"
-        }        
+        }
         # フォームデータを直接変更するのではなく、追加のデータを保持する辞書を作成
         additional_data = {}
 
         for group_name, prefix in RADIO_GROUP_MAP.items():
             if group_name in form_data and form_data[group_name]:
                 value = form_data[group_name]
-                
+
                 # 例: social_care_level_support_num_slct の値が '1' の場合
                 if group_name in ["social_care_level_support_num_slct", "social_care_level_care_num_slct"]:
                     # social_care_level_support_num1_slct = 'on' を生成
@@ -693,7 +696,7 @@ def save_patient_info():
                 else:
                     # func_basic_rolling_independent_chk = 'on' などを生成
                     target_key = f"{prefix}{value}_chk"
-                
+
                 additional_data[target_key] = 'on'
 
         # 元のフォームデータに、変換して生成したデータを追加
@@ -821,7 +824,7 @@ def get_plan_history(patient_id):
     # 権限チェック: ログイン中のユーザーがその患者の担当か、あるいは管理者か
     assigned_patients = database.get_assigned_patients(current_user.id)
     is_admin = current_user.role == "admin"
-    
+
     # 管理者でない、かつ担当患者リストにいない場合はエラー
     # if not is_admin and patient_id not in [p["id"] for p in assigned_patients]:
     if not is_admin and patient_id not in [p["patient_id"] for p in assigned_patients]:

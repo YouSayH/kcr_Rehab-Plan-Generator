@@ -1,37 +1,28 @@
-import os
 import json
-import time
-import textwrap
-from datetime import date
+import logging
+import os
 import pprint
+import textwrap
+import time
+from datetime import date
 from typing import Optional
+
+from dotenv import load_dotenv
+
 # import google.generativeai as genai ←2025,9月までしかサポートなし
 # https://ai.google.dev/gemini-api/docs/libraries?hl=ja  新ライブラリ
 # https://ai.google.dev/gemini-api/docs/quickstart?hl=ja 使い方
 from google import genai
-from google.genai import types
 from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
+from google.genai import types
 from pydantic import BaseModel, Field, create_model
-from dotenv import load_dotenv
-
-import logging
 
 # RAG実行のコード(司令塔)をインポート
 from rag_executor import RAGExecutor
 
 # データをschemas.pyとして分離した。
 # これはgemini_clientのまま使うとrag_executorとgemini_clientで循環参照が起こってしまうため
-from schemas import (
-    RehabPlanSchema,
-    RisksAndPrecautions,
-    FunctionalLimitations,
-    Goals,
-    TreatmentPolicy,
-    ActionPlans,
-    CurrentAssessment,
-    ComprehensiveTreatmentPlan,
-    GENERATION_GROUPS
-)
+from schemas import GENERATION_GROUPS
 
 # 初期設定
 load_dotenv()
@@ -94,7 +85,8 @@ CELL_NAME_MAPPING = {
     "func_consciousness_disorder_chk": "意識障害", "func_consciousness_disorder_jcs_gcs_txt": "意識障害(JCS/GCS)",
     "func_respiratory_disorder_chk": "呼吸機能障害", "func_respiratory_o2_therapy_chk": "酸素療法", "func_respiratory_tracheostomy_chk": "気管切開", "func_respiratory_ventilator_chk": "人工呼吸器",
     "func_circulatory_disorder_chk": "循環障害", "func_circulatory_ef_chk": "心駆出率(EF)測定", "func_circulatory_arrhythmia_chk": "不整脈",
-    "func_risk_factors_chk": "危険因子", "func_risk_hypertension_chk": "高血圧症", "func_risk_dyslipidemia_chk": "脂質異常症", "func_risk_diabetes_chk": "糖尿病", "func_risk_smoking_chk": "喫煙", "func_risk_obesity_chk": "肥満", "func_risk_hyperuricemia_chk": "高尿酸血症", "func_risk_ckd_chk": "慢性腎臓病(CKD)", "func_risk_family_history_chk": "家族歴", "func_risk_angina_chk": "狭心症", "func_risk_omi_chk": "陳旧性心筋梗塞",
+    "func_risk_factors_chk": "危険因子", "func_risk_hypertension_chk": "高血圧症", "func_risk_dyslipidemia_chk": "脂質異常症", "func_risk_diabetes_chk": "糖尿病", "func_risk_smoking_chk": "喫煙",
+    "func_risk_obesity_chk": "肥満", "func_risk_hyperuricemia_chk": "高尿酸血症", "func_risk_ckd_chk": "慢性腎臓病(CKD)", "func_risk_family_history_chk": "家族歴", "func_risk_angina_chk": "狭心症", "func_risk_omi_chk": "陳旧性心筋梗塞",
     "func_swallowing_disorder_chk": "摂食嚥下障害", "func_swallowing_disorder_txt": "摂食嚥下障害(詳細)",
     "func_nutritional_disorder_chk": "栄養障害", "func_nutritional_disorder_txt": "栄養障害(詳細)",
     "func_excretory_disorder_chk": "排泄機能障害", "func_excretory_disorder_txt": "排泄機能障害(詳細)",
@@ -174,22 +166,30 @@ def _prepare_patient_facts(patient_data: dict) -> dict:
     # 1. チェックボックスと関連しない項目を先に埋める
     for key, value in patient_data.items():
         formatted_value = _format_value(value)
-        if formatted_value is None: continue
+        if formatted_value is None:
+            continue
 
         # チェックボックスやそれに関連するテキストは、後の専用ロジックで処理するためスキップ
         if "_chk" in key or "_txt" in key and key in [t[1] for t in CHECK_TO_TEXT_MAP.items()]:
             continue
 
         jp_name = CELL_NAME_MAPPING.get(key)
-        if not jp_name: continue
+        if not jp_name:
+            continue
 
         category = None
-        if key.startswith(("header_", "main_")): category = "基本情報"
-        elif key.startswith("func_basic_"): category = "基本動作"
-        elif key.startswith("nutrition_"): category = "栄養状態"
-        elif key.startswith("social_"): category = "社会保障サービス"
-        elif key.startswith("goal_p_"): category = "生活状況・目標(本人・家族)"
-        elif key.startswith("func_"): category = "心身機能・構造"
+        if key.startswith(("header_", "main_")):
+            category = "基本情報"
+        elif key.startswith("func_basic_"):
+            category = "基本動作"
+        elif key.startswith("nutrition_"):
+            category = "栄養状態"
+        elif key.startswith("social_"):
+            category = "社会保障サービス"
+        elif key.startswith("goal_p_"):
+            category = "生活状況・目標(本人・家族)"
+        elif key.startswith("func_"):
+            category = "心身機能・構造"
 
         if category:
             facts[category][jp_name] = formatted_value
@@ -237,14 +237,14 @@ def _prepare_patient_facts(patient_data: dict) -> dict:
 
         # # # データベースに具体的な記述があるか確認
         # # txt_value = patient_data.get(txt_key)
-        
+
         # # # 記述が空の場合は、AIに推論を促す特別な指示を与える
         # # if not txt_value or txt_value.strip() == "特記なし":
         # #     facts["心身機能・構造"][jp_name] = "あり（患者の他のデータに基づき、具体的な症状やADLへの影響を推測して記述してください）"
         # # else:
         # #     # 具体的な記述があれば、それを事実として使用
         # #     facts["心身機能・構造"][jp_name] = txt_value
-    
+
     # 3. ADL評価スコアを抽出
     for key, value in patient_data.items():
         val = _format_value(value)
@@ -267,7 +267,7 @@ def _prepare_patient_facts(patient_data: dict) -> dict:
     # "心身機能・構造" カテゴリ自体が空になった場合は、それも削除
     if "心身機能・構造" in facts and not facts["心身機能・構造"]:
         del facts["心身機能・構造"]
-    
+
     return facts
 
 CHECK_TO_TEXT_MAP = {
@@ -543,7 +543,7 @@ def regenerate_plan_item_stream(patient_data: dict, item_key: str, current_text:
             response_mime_type="application/json",
             response_schema=RegenerationSchema,
         )
-        
+
         max_retries = 3
         backoff_factor = 2
         response = None
@@ -587,7 +587,7 @@ def generate_rag_plan_stream(patient_data: dict, rag_executor: RAGExecutor):
         print("\n--- RAGモデルによる生成を開始 ---")
         # 1. RAGの検索クエリとLLMへの入力用に、患者データを整形
         patient_facts = _prepare_patient_facts(patient_data)
-        
+
         # 2. RAGExecutorを実行し、専門的な計画案と根拠情報を取得
         rag_result = rag_executor.execute(patient_facts)
 
@@ -633,7 +633,7 @@ def generate_rag_plan_stream(patient_data: dict, rag_executor: RAGExecutor):
                         "subsection": metadata.get('subsection', 'N/A'),
                         "subsubsection": metadata.get('subsubsection', 'N/A')
                     })
-                
+
                 context_event_data = json.dumps(contexts_for_frontend)
                 yield f"event: context_update\ndata: {context_event_data}\n\n"
 
@@ -655,7 +655,7 @@ def generate_rag_plan_stream(patient_data: dict, rag_executor: RAGExecutor):
             error_value = f"RAG実行エラー: {e}"
             event_data = json.dumps({"key": key, "value": error_value, "model_type": "specialized"})
             yield f"event: update\ndata: {event_data}\n\n"
-    
+
     finally:
         # 成功・失敗にかかわらず、RAG側の処理が完了したことを必ず通知する
         yield "event: finished\ndata: {}\n\n"

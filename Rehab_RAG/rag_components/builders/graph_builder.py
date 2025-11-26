@@ -1,12 +1,13 @@
-import os
-import importlib
-import time
-from neo4j import GraphDatabase
-from tqdm import tqdm
-from dotenv import load_dotenv
-from typing import List, Optional
-from pydantic import BaseModel, Field
 import enum
+import importlib
+import os
+import time
+from typing import List, Optional
+
+from dotenv import load_dotenv
+from neo4j import GraphDatabase
+from pydantic import BaseModel, Field
+from tqdm import tqdm
 
 # ガイドラインの構造に特化したEnumとPydanticモデルを定義
 
@@ -49,7 +50,7 @@ class GraphBuilder:
         uri = os.getenv("NEO4J_URI")
         user = os.getenv("NEO4J_USERNAME")
         password = os.getenv("NEO4J_PASSWORD")
-        
+
         if not all([uri, user, password]):
             raise ValueError("環境変数 NEO4J_URI, NEO4J_USERNAME, NEOJ_PASSWORD が設定されていません。")
 
@@ -133,7 +134,7 @@ class GraphBuilder:
                 all_chunks.extend(chunks)
         print(f"合計 {len(all_chunks)} 個のチャンクからナレッジグラフを構築します...")
         for chunk in tqdm(all_chunks, desc="Building Knowledge Graph"):
-            time.sleep(1) 
+            time.sleep(1)
             graph_data = self._extract_graph_from_chunk(chunk['text'])
             if graph_data:
                 self._write_to_neo4j(graph_data, chunk['text'])

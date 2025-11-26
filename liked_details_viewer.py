@@ -1,11 +1,13 @@
-from flask import Flask, render_template, jsonify, request
-import database
 import json
 from collections import defaultdict
 
+from flask import Flask, jsonify, render_template
+
+import database
+
 # app.pyから項目名のマッピングをインポート
 from app import ITEM_KEY_TO_JAPANESE
- 
+
 app = Flask(__name__)
 
 @app.route('/')

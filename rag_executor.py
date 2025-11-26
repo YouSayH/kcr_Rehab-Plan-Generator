@@ -1,13 +1,14 @@
-import yaml
-import sys
-import os
-import json
 import importlib
+import json
+import logging
+import os
+import sys
+
+import yaml
 
 # gemini_client.pyで定義されている、アプリケーション本体のデータ構造スキーマをインポート
 # from gemini_client import RehabPlanSchema # 循環参照が発生してしまいます。
 from schemas import RehabPlanSchema
-import logging
 
 # Rehab_RAGライブラリへのパスを追加
 REHAB_RAG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), 'Rehab_RAG'))
@@ -47,7 +48,7 @@ class RAGExecutor:
     def __init__(self, pipeline_name: str):
         """
         コンストラクタ。実行するパイプライン名を直接引数で受け取るように変更。
-        
+
         Args:
             pipeline_name (str): 実行対象の実験フォルダ名 (例: "raptor_experiment")
         """
@@ -86,7 +87,7 @@ class RAGExecutor:
              embedder_cfg = self.pipeline_config.get('build_components', {}).get('embedder')
              if embedder_cfg:
                  print("INFO: 'query_components'にembedderがないため、'build_components'から読み込みます。")
-        
+
         if embedder_cfg:
             class_name = embedder_cfg.get('class_name') or embedder_cfg.get('class')
             self.components['embedder'] = get_instance(embedder_cfg['module'], class_name, embedder_cfg.get('params', {}))
@@ -100,7 +101,7 @@ class RAGExecutor:
                     for filter_cfg in config:
                         params = filter_cfg.get('params', {}).copy()
                         # SelfReflectiveFilterなどがLLMを使えるように依存性を注入
-                        params['llm'] = self.components.get('llm') 
+                        params['llm'] = self.components.get('llm')
                         self.components['filters'].append(
                             get_instance(filter_cfg['module'], filter_cfg.get('class') or filter_cfg.get('class_name'), params)
                         )
@@ -114,14 +115,14 @@ class RAGExecutor:
                     print(f"INFO: '{name}' コンポーネントの専用LLMを初期化します...")
                     llm_cfg = params['llm']
                     llm_class = llm_cfg.get('class_name') or llm_cfg.get('class')
-                    
+
                     # 'llm' の設定(dict)を、LLMのインスタンス(object)に置き換える
                     params['llm'] = get_instance(
-                        llm_cfg['module'], 
-                        llm_class, 
+                        llm_cfg['module'],
+                        llm_class,
                         llm_cfg.get('params', {})
                     )
-                
+
                 # パスの自動解決ロジック
                 # 'path' または 'db_path' というキーを持つパラメータを絶対パスに変換
                 for path_key in ['path', 'db_path', 'bm25_path']:
@@ -156,7 +157,7 @@ class RAGExecutor:
                         params[key] = self.components.get(value.split('.')[-1])
 
                 self.components[name] = get_instance(config['module'], class_name, params)
-        
+
         self.llm = self.components.get('llm')
         self.judge = self.components.get('judge')
         self.query_enhancer = self.components.get('query_enhancer')
@@ -183,8 +184,10 @@ class RAGExecutor:
         print(f"DEBUG [rag_executor.py]: '担当者からの所見' received = {patient_facts.get('担当者からの所見')}")
         if not self.llm or not self.retriever:
             error_msg = "必須コンポーネントが初期化されていません。"
-            if not self.llm: error_msg += " [LLMがNoneです]"
-            if not self.retriever: error_msg += " [RetrieverがNoneです]"
+            if not self.llm:
+                error_msg += " [LLMがNoneです]"
+            if not self.retriever:
+                error_msg += " [RetrieverがNoneです]"
             return {"error": error_msg}
 
         # 検索クエリの生成: patient_facts全体をJSON文字列にする
@@ -192,7 +195,7 @@ class RAGExecutor:
         # indent=2 で読みやすいように整形 (検索精度には影響しない)
         query_for_retrieval = json.dumps(patient_facts, ensure_ascii=False, indent=2, default=str)
         # default=str は datetime オブジェクトなどを文字列に変換するため
-        
+
         print(f"\n[患者情報全体から生成された検索クエリ]:\n{query_for_retrieval}")
 
 
@@ -213,24 +216,24 @@ class RAGExecutor:
         else:
             print("クエリ拡張は実行しません")
             search_queries = [query_for_retrieval]
-        
+
         # 検索
         print("関連文書検索中")
         all_docs = {}
         if self.retriever:
             for q in search_queries:
                 if len(search_queries) > 1:
-                    print(f"  - クエリ '{q}' で検索")                
+                    print(f"  - クエリ '{q}' で検索")
                 results = self.retriever.retrieve(q, n_results=20)
                 if results and results.get('documents') and results['documents'][0]:
                     for i, doc_text in enumerate(results['documents'][0]):
                         if doc_text not in all_docs:
                             all_docs[doc_text] = results['metadatas'][0][i]
-        
+
         docs = list(all_docs.keys())
         metadatas = list(all_docs.values())
         print(f"  - 合計で {len(docs)}件のユニークな文書を取得しました。")
-        
+
         # リランキング(関連度を判断させ並び替える)
         if self.reranker and docs:
             print("検索結果をリランキング開始")
@@ -255,19 +258,19 @@ class RAGExecutor:
                 docs, metadatas = f.filter(query_for_retrieval, docs, metadatas)
             print(f"フィルタリング後、{len(docs)}件の文書が残りました。 ({original_doc_count - len(docs)}件を除外)")
         else:
-            print("フィルタリングはしません。")            
-            
+            print("フィルタリングはしません。")
+
         # プロンプト作成
-        print("LLM用のプロンプトを作成中")            
+        print("LLM用のプロンプトを作成中")
         final_docs = docs[:10]
         # final_docsに対応するメタデータも取得
-        final_metadatas = metadatas[:10] 
+        final_metadatas = metadatas[:10]
 
         if not final_docs:
             print("警告: 関連する参考情報が見つかりませんでした。患者情報のみで生成を試みます。")
         else:
             print(f"最も関連性の高い上位{len(final_docs)}件を使用します。")
-           
+
         # 根拠情報（ドキュメントとメタデータ）をセットにしてリスト化
         final_contexts_with_metadata = []
         for i in range(len(final_docs)):
@@ -281,10 +284,10 @@ class RAGExecutor:
 
         logger.info("--- Generating Final Answer with RAG ---") # loggerを使用
         logger.info("Final Prompt:\n" + final_prompt) # loggerを使用
-        
+
         print("LLMで回答生成開始")
         response = self.llm.generate(final_prompt, response_schema=RehabPlanSchema)
-        
+
         # Pydanticモデルのインスタンス or エラー辞書 が返ってくる
         answer_dict = {}
 
@@ -308,4 +311,3 @@ class RAGExecutor:
             "answer": answer_dict,
             "contexts": final_contexts_with_metadata
         }
-        

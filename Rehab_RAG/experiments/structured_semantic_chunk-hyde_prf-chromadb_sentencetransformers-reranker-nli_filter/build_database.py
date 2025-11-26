@@ -16,11 +16,11 @@ RAGデータベース構築スクリプト (The Builder)
 プロジェクトのルートディレクトリから、以下のコマンドで実行します。
 `python .\\experiments\\<実験名>\\build_database.py`
 """
-import yaml
 import importlib
 import os
-import shutil
 import sys
+
+import yaml
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.abspath(os.path.join(SCRIPT_DIR, '..', '..')))
@@ -48,12 +48,12 @@ def main():
         # print(f"既存のデータベース '{full_db_path}' を削除します。")
         # shutil.rmtree(full_db_path)
         pass
-        
+
     print("--- データベース構築開始 ---")
 
     # コンポーネントのインスタンス化
     build_cfg = config['build_components']
-    
+
     chunker_cfg = build_cfg['chunker']
     chunker = get_instance(
         module_name=chunker_cfg['module'],
@@ -67,19 +67,33 @@ def main():
         class_name=embedder_cfg['class'],
         params=embedder_cfg.get('params', {})
     )
-    # ------------------
-    
-    # ChromaDBRetrieverにはembedderインスタンスが必要
-    retriever_params = {
-        "path": full_db_path, # <--- 修正箇所 full_db_pathを使用
-        "collection_name": config['database']['collection_name'],
-        "embedder": embedder
-    }
-    retriever = get_instance(
-        'rag_components.retrievers.chromadb_retriever', 
-        'ChromaDBRetriever', 
-        retriever_params
-    )
+
+    # --- retrieverのインスタンス化を動的に ---
+    if 'retriever' in build_cfg:
+        retriever_cfg = build_cfg['retriever']
+        retriever_params = {
+            "path": full_db_path,
+            "collection_name": config['database']['collection_name'],
+            "embedder": embedder,
+            **retriever_cfg.get('params', {})
+        }
+        retriever = get_instance(
+            retriever_cfg['module'],
+            retriever_cfg['class'],
+            retriever_params
+        )
+    else: # 従来のconfigファイルとの後方互換性のため
+        retriever_params = {
+            "path": full_db_path,
+            "collection_name": config['database']['collection_name'],
+            "embedder": embedder
+        }
+        retriever = get_instance(
+            'rag_components.retrievers.chromadb_retriever',
+            'ChromaDBRetriever',
+            retriever_params
+        )
+
 
     # ドキュメントの読み込みとチャンキング
     all_chunks = []
@@ -93,7 +107,6 @@ def main():
             chunks = chunker.chunk(file_path)
             all_chunks.extend(chunks)
             print(f"-> {len(chunks)} 個のチャンクを抽出しました。")
-            
     if not all_chunks:
         print(f"警告: '{source_path}' 内に処理対象のMarkdownファイルが見つかりませんでした。")
         return
@@ -105,7 +118,12 @@ def main():
     print("\n--- データベース構築完了 ---")
     print(f"データベースのパス: {os.path.abspath(full_db_path)}")
     print(f"コレクション名: {config['database']['collection_name']}")
-    print(f"格納されたアイテム数: {retriever.count()}")
+    # countメソッドがない場合も考慮
+    if hasattr(retriever, 'vector_retriever') and hasattr(retriever.vector_retriever, 'count'):
+         print(f"格納されたアイテム数: {retriever.vector_retriever.count()}")
+    elif hasattr(retriever, 'count'):
+         print(f"格納されたアイテム数: {retriever.count()}")
+
 
 if __name__ == "__main__":
     main()

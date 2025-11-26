@@ -1,14 +1,16 @@
-import os
 import json
+import logging
+import os
 import time
+
+import ollama
 from dotenv import load_dotenv
 from google import genai
-from pydantic import BaseModel, ValidationError
-from google.genai import types
 from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
-from schemas import PATIENT_INFO_EXTRACTION_GROUPS # 分割したスキーマのリストをインポート
-import logging
-import ollama
+from google.genai import types
+from pydantic import BaseModel, ValidationError
+
+from schemas import PATIENT_INFO_EXTRACTION_GROUPS  # 分割したスキーマのリストをインポート
 
 load_dotenv()
 
@@ -41,7 +43,7 @@ class PatientInfoParser:
 
         # if not os.getenv("GOOGLE_API_KEY") and not os.getenv("GEMINI_API_KEY"):
         #     raise ValueError("APIキーが設定されていません。環境変数 'GOOGLE_API_KEY' または 'GEMINI_API_KEY' を設定してください。")
-        
+
         # self.client = genai.Client()
         # # 構造化出力をサポートするモデルを選択
         # self.model_name = 'gemini-2.5-flash-lite'
@@ -60,7 +62,7 @@ class PatientInfoParser:
 
     def _build_prompt(self, text: str, group_schema: type[BaseModel], extracted_data_so_far: dict) -> str:
         """段階的抽出のためのプロンプトを構築する"""
-        
+
         # これまでに抽出されたデータを簡潔なサマリーにする
         summary = json.dumps(extracted_data_so_far, indent=2, ensure_ascii=False) if extracted_data_so_far else "まだありません。"
 
@@ -108,7 +110,7 @@ class PatientInfoParser:
             抽出された患者情報の辞書。エラー時はエラー情報を格納した辞書を返す。
         """
         final_result = {}
-        
+
         for group_schema in PATIENT_INFO_EXTRACTION_GROUPS:
             print(f"--- Processing group: {group_schema.__name__} ---")
             prompt = self._build_prompt(text, group_schema, final_result)
@@ -117,6 +119,7 @@ class PatientInfoParser:
             logger.info("Parsing Prompt:\n" + prompt)
 
             try:
+
                 response = None
                 group_result = {}
 
@@ -144,7 +147,7 @@ class PatientInfoParser:
                             else:
                                 print(f"   [エラー] API呼び出しが{max_retries}回失敗しました。")
                                 raise e # 最終的に失敗した場合はエラーを再送出
-                            
+
                     if response and response.parsed:
                         group_result = response.parsed.model_dump(mode='json')
                     else:
@@ -159,14 +162,14 @@ class PatientInfoParser:
                         messages=[{'role': 'user', 'content': prompt}],
                         format='json' # ストリーミングなし
                     )
-                    
+
                     raw_json_str = ollama_response['message']['content']
                     logger.info(f"Ollama Raw Response (Parser, Group: {group_schema.__name__}):\n{raw_json_str}")
-                
+
                     try:
                         raw_response_dict = json.loads(raw_json_str)
                         data_to_validate = {}
-                        
+
                         # Ollamaが返すネストされたJSONに対応するロジック
                         if isinstance(raw_response_dict, dict):
                             schema_fields = set(group_schema.model_fields.keys())
@@ -200,11 +203,11 @@ class PatientInfoParser:
                         group_result['gender'] = '男'
                     elif '女性' in group_result['gender']:
                         group_result['gender'] = '女'
-                
+
                 final_result.update(group_result)
                 # if response and response.parsed:
                 #     group_result = response.parsed.model_dump(mode='json')
-                    
+
                 #     # データ正規化処理を追加
                 #     if 'gender' in group_result and group_result['gender']:
                 #         if '男性' in group_result['gender']:
@@ -224,7 +227,7 @@ class PatientInfoParser:
                 print(f"グループ {group_schema.__name__} の解析中にエラーが発生しました: {e}")
                 logger.error(f"Parser Error (Group: {group_schema.__name__}): {e}", exc_info=True)
                 continue
-            
+
             # APIのレート制限を避けるため、各グループの処理の間に短い待機時間を設ける
             time.sleep(0.5)
 

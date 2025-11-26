@@ -1,4 +1,4 @@
-"""
+r"""
 RAGクエリ実行スクリプト (The Query Engine)
 
 [このスクリプトの役割]
@@ -20,11 +20,12 @@ RAGクエリ実行スクリプト (The Query Engine)
 `python .\experiments\<実験名>\query_rag.py`
 """
 
-import yaml
 import importlib
-import time
 import os
 import sys
+import time
+
+import yaml
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.abspath(os.path.join(SCRIPT_DIR, "..", "..")))

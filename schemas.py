@@ -1,6 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import Optional
 from datetime import date
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
 
 # Pydanticを使用して、AIに生成してほしいJSONの構造を定義します。
 # Field(description=...) を使用して、各項目が何を意味するのかをAIに明確に伝えます。
@@ -770,7 +772,7 @@ class PatientInfo_Goals(BaseModel):
     goal_p_return_to_work_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_return_to_work_chk']
     goal_p_return_to_work_status_slct: Optional[str] = PatientMasterSchema.model_fields['goal_p_return_to_work_status_slct']
     goal_p_return_to_work_status_other_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_return_to_work_status_other_txt']
-    goal_p_return_to_work_commute_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_return_to_work_commute_change_chk'] 
+    goal_p_return_to_work_commute_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_return_to_work_commute_change_chk']
     goal_p_schooling_status_slct: Optional[str] = Field(None, description="就学状況の選択肢。'possible', 'needs_consideration', 'change_course', 'not_possible', 'other' のいずれか。")
     goal_p_schooling_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_chk']
     goal_p_schooling_status_possible_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_status_possible_chk']
@@ -779,10 +781,10 @@ class PatientInfo_Goals(BaseModel):
     goal_p_schooling_status_not_possible_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_status_not_possible_chk']
     goal_p_schooling_status_other_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_status_other_chk']
     goal_p_schooling_status_other_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_schooling_status_other_txt']
-    goal_p_schooling_destination_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_destination_chk'] 
-    goal_p_schooling_destination_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_schooling_destination_txt'] 
-    goal_p_schooling_commute_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_commute_change_chk'] 
-    goal_p_schooling_commute_change_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_schooling_commute_change_txt'] 
+    goal_p_schooling_destination_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_destination_chk']
+    goal_p_schooling_destination_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_schooling_destination_txt']
+    goal_p_schooling_commute_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_commute_change_chk']
+    goal_p_schooling_commute_change_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_schooling_commute_change_txt']
     goal_p_household_role_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_household_role_chk']
     goal_p_household_role_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_household_role_txt']
     goal_p_social_activity_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_social_activity_chk']
@@ -826,7 +828,7 @@ class PatientInfo_Nutrition(BaseModel):
     nutrition_method_oral_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_method_oral_chk']
     nutrition_method_tube_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_method_tube_chk']
     nutrition_method_iv_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_method_iv_chk']
-    nutrition_method_peg_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_method_peg_chk'] 
+    nutrition_method_peg_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_method_peg_chk']
     nutrition_swallowing_diet_slct: Optional[str] = PatientMasterSchema.model_fields['nutrition_swallowing_diet_slct']
     nutrition_swallowing_diet_code_txt: Optional[str] = PatientMasterSchema.model_fields['nutrition_swallowing_diet_code_txt']
     nutrition_status_assessment_slct: Optional[str] = Field(None, description="栄養状態の評価。'no_problem', 'malnutrition', 'malnutrition_risk', 'overnutrition', 'other' のいずれか。")

@@ -1,13 +1,15 @@
 """
 RAPTORBuilder: 階層的な情報ツリーを構築する先進的なBuilder
 """
-import os
+import hashlib
 import importlib
+import os
+import time
+
 import numpy as np
 from sklearn.cluster import DBSCAN
 from tqdm import tqdm
-import hashlib
-import time
+
 
 class RAPTORBuilder:
     """
@@ -56,7 +58,7 @@ class RAPTORBuilder:
         """LLMを使ってクラスタの要約を生成する"""
         if not context_texts:
             return ""
-            
+
         context_str = "\n\n---\n\n".join(context_texts)
         prompt = f"""以下の複数のテキストチャンクが与えられています。
 これらのテキストに共通する主要なテーマや情報を抽出し、簡潔に要約してください。要約は、元のテキスト群の重要な情報を網羅しつつ、一つの独立した段落として成立するように記述してください。
@@ -75,7 +77,7 @@ class RAPTORBuilder:
         chunker = self._get_instance('chunker')
         embedder = self._get_instance('embedder')
         llm = self._get_instance('llm', params_override={'safety_block_none': True})
-        
+
         retriever_module = importlib.import_module('rag_components.retrievers.chromadb_retriever')
         RetrieverClass = getattr(retriever_module, 'ChromaDBRetriever')
         retriever = RetrieverClass(
@@ -88,7 +90,7 @@ class RAPTORBuilder:
         # config.yamlからの相対パスを正しく解決する
         config_dir = os.path.dirname(self.db_path)
         source_path = os.path.abspath(os.path.join(config_dir, self.config['source_documents_path']))
-        
+
         print(f"'{source_path}' からドキュメントを読み込み、レベル0のチャンク（葉）を生成中...")
         base_chunks = []
         for filename in os.listdir(source_path):
@@ -98,7 +100,7 @@ class RAPTORBuilder:
                 for chunk in chunks:
                     chunk['metadata']['level'] = 0
                 base_chunks.extend(chunks)
-        
+
         all_levels_chunks = list(base_chunks)
         current_level_texts = [chunk['text'] for chunk in base_chunks]
 
@@ -111,33 +113,33 @@ class RAPTORBuilder:
 
             print("  - ベクトル化中...")
             embeddings = np.array(embedder.embed_documents(current_level_texts))
-            
+
             print("  - クラスタリング中...")
             clustering = DBSCAN(
-                eps=self.params.get('clustering_eps', 0.5), 
-                min_samples=self.params.get('min_samples', 2), 
+                eps=self.params.get('clustering_eps', 0.5),
+                min_samples=self.params.get('min_samples', 2),
                 metric='cosine'
             ).fit(embeddings)
             labels = clustering.labels_
-            
+
             unique_labels, counts = np.unique(labels, return_counts=True)
             print(f"  - {len(unique_labels[unique_labels != -1])}個のクラスタを発見しました。(ノイズ除く)")
 
             print("  - LLMで要約チャンクを生成中...")
             next_level_texts = []
-            
+
             for label in tqdm(unique_labels, desc=f"レベル{level+1}の要約を生成"):
                 if label == -1:
                     continue
-                
+
                 cluster_indices = np.where(labels == label)[0]
                 cluster_texts = [current_level_texts[i] for i in cluster_indices]
-                
+
                 if len(cluster_texts) < self.params.get('min_samples', 2):
                     continue
 
                 summary = self._generate_summary(cluster_texts, llm)
-                
+
                 if summary and summary not in cluster_texts:
                     next_level_texts.append(summary)
                     summary_id = hashlib.sha256(summary.encode()).hexdigest()
@@ -158,6 +160,6 @@ class RAPTORBuilder:
         print(f"\n--- 全階層（レベル0〜{level}）のチャンクをDBに格納します ---")
         print(f"合計チャンク数: {len(all_levels_chunks)}")
         retriever.add_documents(all_levels_chunks)
-        
+
         print("\n構築後の情報を表示します:")
         print(f"  - 格納されたアイテム数: {retriever.count()}")

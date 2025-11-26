@@ -1,25 +1,24 @@
+import argparse
+import logging
 import os
 import sys
+import time
+from datetime import datetime
+
 import pandas as pd
-import argparse
-from tqdm import tqdm
 from datasets import Dataset
+from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from query_rag import RAGPipeline, load_active_pipeline_config
 from ragas import evaluate
 from ragas.metrics import (
-    faithfulness,
     answer_relevancy,
-    context_recall,
     context_precision,
+    context_recall,
+    faithfulness,
 )
-from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
-import importlib.util
-from dotenv import load_dotenv
-import logging
-from datetime import datetime
 from ragas.run_config import RunConfig
-import time
-import yaml
-from query_rag import RAGPipeline, load_active_pipeline_config
+from tqdm import tqdm
 
 # グローバル変数
 # このスクリプト(evaluate_rag.py)は'evaluation'フォルダにあるという前提で、プロジェクトのルートディレクトリを特定します。
@@ -41,7 +40,7 @@ def setup_logger(log_dir: str, experiment_name: str, limit: int = None):
     """
     # --limit引数が指定されていればファイル名に含める
     limit_str = f"_limit-{limit}" if limit is not None else "_all"
-    
+
     # タイムスタンプと実験情報を含んだログファイル名を生成
     log_filename = f"log_{experiment_name}{limit_str}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
     log_filepath = os.path.join(log_dir, log_filename)
@@ -49,7 +48,7 @@ def setup_logger(log_dir: str, experiment_name: str, limit: int = None):
     # 既存のロガー設定をクリア（再実行時にログが重複しないようにするため）
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
-        
+
     # ロガーを新規に設定（ファイルとコンソールの両方に出力）
     logging.basicConfig(
         level=logging.INFO,
@@ -82,7 +81,7 @@ def run_evaluation(experiment_path: str, config: dict, log_dir: str, limit: int 
     """
     logging.info("RAGパイプラインを初期化中...")
     rag_pipeline = RAGPipeline(config)
-    
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
     test_dataset_path = os.path.join(script_dir, 'test_dataset.jsonl')
     logging.info(f"テストデータセットを '{test_dataset_path}' から読み込み中...")
@@ -99,7 +98,7 @@ def run_evaluation(experiment_path: str, config: dict, log_dir: str, limit: int 
     for record in tqdm(test_df.to_dict('records'), desc="Generating RAG Answers"):
         query = record['question']
         rag_output = rag_pipeline.query(query)
-        
+
         results.append({
             "question": query,
             "answer": rag_output["answer"],
@@ -113,12 +112,12 @@ def run_evaluation(experiment_path: str, config: dict, log_dir: str, limit: int 
 
     # 3. Ragasによる評価の実行
     ragas_dataset = Dataset.from_list(results)
-    
+
     api_key = os.getenv("GEMINI_API_KEY")
-    
+
     logging.info("Ragas評価用のLLM (gemini-2.5-flash-lite) を初期化中...")
     ragas_llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", google_api_key=api_key)
-    
+
     logging.info("Ragas評価用のEmbeddingモデル (gemini-embedding-001) を初期化中...")
     ragas_embeddings = GoogleGenerativeAIEmbeddings(
         model="gemini-embedding-001",
@@ -135,7 +134,7 @@ def run_evaluation(experiment_path: str, config: dict, log_dir: str, limit: int 
         max_workers=1,
         # タイムアウトを長めに設定し、langchainライブラリの自動リトライが待機する時間を確保します。
         timeout=100,
-        max_wait=600, 
+        max_wait=600,
     )
 
     logging.info("Ragasによる評価を実行中... (LLMへのAPIコールが発生します。時間がかかります...)")
@@ -152,7 +151,7 @@ def run_evaluation(experiment_path: str, config: dict, log_dir: str, limit: int 
         embeddings=ragas_embeddings,
         run_config=run_config,
     )
-    
+
     # 4. 結果の保存と表示
     logging.info("\n--- 評価結果 ---")
     result_df = result_scores.to_pandas()
@@ -162,7 +161,7 @@ def run_evaluation(experiment_path: str, config: dict, log_dir: str, limit: int 
     experiment_name = os.path.basename(experiment_path)
     limit_str = f"_limit-{limit}" if limit is not None else "_all"
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
+
     # CSVの保存先を引数で受け取った log_dir に変更
     results_csv_path = os.path.join(log_dir, f"scores_{experiment_name}{limit_str}_{timestamp}.csv")
     result_df.to_csv(results_csv_path, index=False, encoding='utf-8-sig')
@@ -176,7 +175,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="`rag_config.yaml`で指定されたRAGパイプラインを評価するスクリプト")
     parser.add_argument("--limit", type=int, default=None, help="評価する質問の最大件数を指定します。 (例: --limit 3)")
     args = parser.parse_args()
-    
+
     try:
         # load_active_pipeline_config を使って設定を読み込む
         config = load_active_pipeline_config(os.path.join(PROJECT_ROOT, 'rag_config.yaml'))
@@ -184,7 +183,7 @@ if __name__ == '__main__':
         active_pipeline_name = os.path.basename(os.path.dirname(config['config_file_path']))
         experiment_path = os.path.join('experiments', active_pipeline_name)
     except (FileNotFoundError, ValueError) as e:
-        print(f"エラー: `rag_config.yaml` の読み込み、またはアクティブなパイプライン設定の解決に失敗しました。")
+        print("エラー: `rag_config.yaml` の読み込み、またはアクティブなパイプライン設定の解決に失敗しました。")
         print(f"詳細: {e}")
         sys.exit(1)
 
@@ -192,21 +191,21 @@ if __name__ == '__main__':
     script_dir = os.path.dirname(os.path.abspath(__file__))
     log_dir = os.path.join(script_dir, 'logs')
     os.makedirs(log_dir, exist_ok=True)
-    
+
     # ロガー設定
     log_filepath = setup_logger(log_dir, active_pipeline_name, args.limit)
 
     # ログに実行開始を記録
     logging.info(f"--- `rag_config.yaml` の設定に基づき、'{experiment_path}' の評価を開始します ---")
     logging.info(f"全ログは '{log_filepath}' に保存されます。")
-    
+
     # .envファイルからAPIキーが読み込めているか最終チェック
     if not os.getenv("GEMINI_API_KEY"):
         logging.error("エラー: 環境変数 `GEMINI_API_KEY` が設定されていません。")
         logging.error(f"プロジェクトのルートディレクトリ ({PROJECT_ROOT}) に .env ファイルを作成し、")
         logging.error("`GEMINI_API_KEY=\"あなたのAPIキー\"` と記述してください。")
         sys.exit(1)
-        
+
     # run_evaluation関数に log_dir を渡す
     # run_evaluation(args.experiment_path, log_dir, args.limit)
     run_evaluation(experiment_path, config, log_dir, args.limit)

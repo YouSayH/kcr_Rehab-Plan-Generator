@@ -73,6 +73,7 @@
 
         /* 編集ボタン */
         .fixed-buttons { 
+            width: 250px;
             position: fixed;
             z-index: 1000;
             display: flex;
@@ -97,6 +98,8 @@
             justify-content: center;
             text-align: center;
             line-height: 1.2; /* 行の高さを調整 */
+            white-space: normal; 
+            overflow: hidden;
         }
         /* 生成中のテキストスタイル */
         #submit-button.generating-text {
@@ -864,35 +867,37 @@
                 // }
 
                 function checkAllFinished() {
-                    // 両方のストリームが完了したか（成功_finished または エラー_error）をチェック
-                    if (isGeneralFinished && isRagFinished) {
-                        updateAllHiddenInputs(); // 隠しフィールドの更新
+                    // 隠しフィールドの更新（完了した部分だけでも保存できるように毎回反映）
+                    updateAllHiddenInputs();
 
-                        // ヘッダーのステータスを更新
-                        // (エラーリスナーが既にヘッダーを 'alert-danger' に変更していない場合のみ 'alert-success' にする)
+                    // どちらか一方が完了していればボタンを有効化する
+                    if (isGeneralFinished || isRagFinished) {
+                        submitButton.disabled = false;
+                        submitButton.classList.remove('generating-text');
+                        initializeDefaultValues();
+                    }
+
+                    // 状態に応じたメッセージとヘッダーの更新
+                    if (isGeneralFinished && isRagFinished) {
+                        // 両方完了した場合
                         if (!generationHeaderStatus.classList.contains('alert-danger')) {
                             generationHeaderStatus.classList.remove('alert-info');
                             generationHeaderStatus.classList.add('alert-success');
                             generationHeaderStatus.innerHTML = '<div class="d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><strong>AIによる生成がすべて完了しました。</strong></div>';
                             generationFinishedText.style.display = 'block';
                         }
-                        
-                        // 両方の処理が完了した時点で、ボタンを必ず有効化する
-                        submitButton.disabled = false;
                         submitButton.textContent = 'この内容で確定して保存';
-                        submitButton.classList.remove('generating-text'); // テキストサイズを戻す
 
-                        initializeDefaultValues();
-                    
                     } else if (isGeneralFinished && !isRagFinished) {
-                        // 通常モデルだけが完了した場合（RAG待ち）
-                        submitButton.textContent = '確定までお待ちください (RAG専門項目 生成中...)';
+                        // 通常モデルのみ完了（RAG生成中）
+                        // ボタンは有効だが、注意書きを入れる
+                        submitButton.textContent = 'この内容で確定して保存 (RAG生成中)';
                     
                     } else if (!isGeneralFinished && isRagFinished) {
-                        // RAGモデルだけが完了した場合（通常モデル待ち）
-                        submitButton.textContent = '確定までお待ちください (通常項目 生成中...)';
+                        // RAGモデルのみ完了（通常生成中）
+                        // ボタンは有効だが、注意書きを入れる
+                        submitButton.textContent = 'この内容で確定して保存 (通常生成中)';
                     }
-                    // どちらも完了していない場合は、ボタンのテキスト（初期状態のまま）を変更しない
                 } //checkAllFinished()
 
                 const ragPipelineName = "hybrid_search_experiment";
