@@ -97,6 +97,7 @@ if not app.config["SECRET_KEY"]:
 
 
 
+
 # 9時間後(労働時間8時間+1時間)にタイムアウトする。
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=540)
 
