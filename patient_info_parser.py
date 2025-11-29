@@ -96,6 +96,12 @@ class PatientInfoParser:
 ```json
 {summary}
 ```
+
+## jsonスキーマ
+```json
+{schema_json}
+```
+
 最重要: スキーマで定義されたキー名（例: "func_pain_txt"）を絶対に変更せず、そのまま使用してJSONを生成してください。
 
 ## カルテテキスト (全文)
