@@ -439,8 +439,9 @@
             };
             let regenerationEventSource = null;
             let activeRegenerateTextDiv = null;
-            let regeneratedItems = new Set(); // 【追加】再生成履歴を記録するSet
-
+            let regeneratedItems = new Set(); // 再生成履歴を記録するSet
+            
+            const activePipelineName = "{{ default_rag_pipeline }}"; // config.yamlに設定したRAG
 
             document.addEventListener('DOMContentLoaded', function () {
                 const modelToGenerate = "{{ model_to_generate|safe }}";
@@ -634,7 +635,8 @@
                             current_text: currentText,
                             instruction: instruction,
                             model_type: modelType,
-                            therapist_notes: therapistNotes
+                            therapist_notes: therapistNotes,
+                            pipeline_name: activePipelineName
                         })
                     }).then(response => {
                         if (!response.ok) {
@@ -900,7 +902,6 @@
                     }
                 } //checkAllFinished()
 
-                const ragPipelineName = "hybrid_search_experiment";
                 const patientId = "{{ patient_data.patient_id }}";
                 const therapistNotes = "{{ therapist_notes|urlencode }}";
                 const queryParams = `?patient_id=${patientId}&therapist_notes=${therapistNotes}`;
@@ -970,7 +971,7 @@
 
                 if (modelToGenerate === 'both' || modelToGenerate === 'specialized') {
                     // --- 2. RAG（特化モデル）のストリーム接続 ---
-                    const ragApiUrl = `/api/generate/rag/${ragPipelineName}` + queryParams;
+                    const ragApiUrl = `/api/generate/rag/${activePipelineName}` + queryParams;
                     const ragEventSource = new EventSource(ragApiUrl);
 
                     ragEventSource.addEventListener('update', function (event) {

@@ -5,6 +5,7 @@ import threading
 from datetime import timedelta
 from functools import wraps
 
+import yaml
 from dotenv import load_dotenv
 from flask import (
     Flask,
@@ -57,8 +58,6 @@ if not logger.hasHandlers(): # ハンドラが未設定の場合のみ設定
 LLM_CLIENT_TYPE = os.getenv("LLM_CLIENT_TYPE", "gemini")
 print(f"--- LLMクライアントとして '{LLM_CLIENT_TYPE}' を使用します ---")
 
-load_dotenv()
-
 # show_summary.py からITEM_KEY_TO_JAPANESEを移植
 ITEM_KEY_TO_JAPANESE = {
     'main_risks_txt': '安静度・リスク',
@@ -86,6 +85,30 @@ ITEM_KEY_TO_JAPANESE = {
     'goal_s_env_action_plan_txt': '環境の具体的な対応方針',
     'goal_s_3rd_party_action_plan_txt': '第三者の不利に関する具体的な対応方針'
 }
+
+def load_active_pipeline_from_config():
+    # 設定ファイルのパス (app.pyと同じ階層にあると仮定)
+    config_path = "rag_config.yaml"
+
+    # デフォルトのフォールバック値（ファイルがない場合など）
+    fallback_pipeline = "hybrid_search_experiment"
+
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+                pipeline = config.get("active_pipeline")
+                if pipeline:
+                    print(f"--- このRAGを使用します。: {pipeline} ---")
+                    return pipeline
+        except Exception as e:
+            print(f"Warning: RAG選択ファイルが読み込めませんでした。 {config_path}: {e}")
+
+    print(f"--- デフォルトのRAGを使用します。: {fallback_pipeline} ---")
+    return fallback_pipeline
+
+# アプリケーション起動時に一度だけ読み込んで定数にセット
+DEFAULT_RAG_PIPELINE = load_active_pipeline_from_config()
 
 app = Flask(__name__)
 
@@ -427,7 +450,8 @@ def generate_plan():
             is_generating=True,  # JavaScriptで生成処理をキックするためのフラグ
             model_to_generate=model_choice,
             editable_keys=editable_keys,
-            item_key_to_japanese=ITEM_KEY_TO_JAPANESE
+            item_key_to_japanese=ITEM_KEY_TO_JAPANESE,
+            default_rag_pipeline=DEFAULT_RAG_PIPELINE
         )
 
     except (ValueError, TypeError):
@@ -758,7 +782,7 @@ def like_suggestion():
 @app.route("/api/regenerate", methods=["POST"])
 @login_required
 def regenerate_item():
-    """【新規】指定された項目をストリーミングで再生成するAPI"""
+    """指定された項目をストリーミングで再生成するAPI"""
     try:
         data = request.get_json()
         patient_id = int(data.get("patient_id")) if data.get("patient_id") else None
@@ -767,6 +791,7 @@ def regenerate_item():
         instruction = data.get("instruction", "")
         therapist_notes = data.get("therapist_notes", "")
         model_type = data.get("model_type") # 'general' or 'specialized'
+        pipeline_name = data.get("pipeline_name", DEFAULT_RAG_PIPELINE)
 
         if not all([patient_id, item_key, instruction]):
             return Response("必須パラメータが不足しています。", status=400)
@@ -783,11 +808,9 @@ def regenerate_item():
 
         patient_data["therapist_notes"] = therapist_notes
 
-        # 【修正】モデルタイプに応じてRAG Executorを準備
+        # モデルタイプに応じてRAG Executorを準備
         rag_executor = None
         if model_type == 'specialized':
-            # TODO: pipeline_nameは将来的に動的に選択できるようにする
-            pipeline_name = "hybrid_search_experiment"
             rag_executor = get_rag_executor(pipeline_name)
             if not rag_executor:
                 raise Exception(f"パイプライン '{pipeline_name}' の Executorを取得できませんでした。")
