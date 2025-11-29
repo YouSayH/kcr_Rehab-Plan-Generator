@@ -22,21 +22,23 @@ log_file_path = os.path.join(log_directory, "gemini_prompts.log")
 
 # ロガーの設定 (ファイル出力のみ、フォーマット指定)
 # すでにgemini_client.pyで設定されている場合は不要だが、念のため追加
-logger = logging.getLogger(__name__) # 新しいロガーインスタンスを取得
-if not logger.hasHandlers(): # ハンドラが未設定の場合のみ設定
+logger = logging.getLogger(__name__)  # 新しいロガーインスタンスを取得
+if not logger.hasHandlers():  # ハンドラが未設定の場合のみ設定
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
+
 
 class PatientInfoParser:
     """
     Gemini APIを使用して、非構造化テキストから構造化された患者情報を抽出するクラス。
     スキーマが大きすぎることによるAPIエラーを回避するため、情報を複数のグループに分けて段階的に抽出する。
     """
+
     # def __init__(self, api_key: str = None):
-    def __init__(self, client_type: str = 'gemini'):
+    def __init__(self, client_type: str = "gemini"):
         # gemini_client.py と同様に、環境変数から自動でキーを読み込む方式に変更
         self.client_type = client_type
         self.ollama_model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen3:8b")
@@ -48,23 +50,26 @@ class PatientInfoParser:
         # # 構造化出力をサポートするモデルを選択
         # self.model_name = 'gemini-2.5-flash-lite'
 
-        if self.client_type == 'gemini':
+        if self.client_type == "gemini":
             if not os.getenv("GOOGLE_API_KEY") and not os.getenv("GEMINI_API_KEY"):
-                raise ValueError("APIキーが設定されていません。環境変数 'GOOGLE_API_KEY' または 'GEMINI_API_KEY' を設定してください。")
+                raise ValueError(
+                    "APIキーが設定されていません。環境変数 'GOOGLE_API_KEY' または 'GEMINI_API_KEY' を設定してください。"
+                )
             self.client = genai.Client()
-            self.model_name = 'gemini-2.5-flash-lite'
+            self.model_name = "gemini-2.5-flash-lite"
             print("PatientInfoParser: Geminiクライアントを使用します。")
         else:
-            self.client = None # Ollamaは `ollama.chat` を直接呼ぶため不要
+            self.client = None  # Ollamaは `ollama.chat` を直接呼ぶため不要
             self.model_name = self.ollama_model_name
             print(f"PatientInfoParser: Ollamaクライアントを使用します (Model: {self.model_name})。")
-
 
     def _build_prompt(self, text: str, group_schema: type[BaseModel], extracted_data_so_far: dict) -> str:
         """段階的抽出のためのプロンプトを構築する"""
 
         # これまでに抽出されたデータを簡潔なサマリーにする
-        summary = json.dumps(extracted_data_so_far, indent=2, ensure_ascii=False) if extracted_data_so_far else "まだありません。"
+        summary = (
+            json.dumps(extracted_data_so_far, indent=2, ensure_ascii=False) if extracted_data_so_far else "まだありません。"
+        )
 
         # 今回の抽出対象スキーマをJSON形式の文字列としてプロンプトに含める
         schema_json = json.dumps(group_schema.model_json_schema(), indent=2, ensure_ascii=False)
@@ -119,11 +124,10 @@ class PatientInfoParser:
             logger.info("Parsing Prompt:\n" + prompt)
 
             try:
-
                 response = None
                 group_result = {}
 
-                if self.client_type == 'gemini':
+                if self.client_type == "gemini":
                     generation_config = types.GenerateContentConfig(
                         response_mime_type="application/json",
                         response_schema=group_schema,
@@ -137,19 +141,23 @@ class PatientInfoParser:
 
                     for attempt in range(max_retries):
                         try:
-                            response = self.client.models.generate_content(model=self.model_name, contents=prompt, config=generation_config)
+                            response = self.client.models.generate_content(
+                                model=self.model_name, contents=prompt, config=generation_config
+                            )
                             break  # 成功した場合はループを抜ける
                         except (ResourceExhausted, ServiceUnavailable) as e:
                             if attempt < max_retries - 1:
-                                wait_time = backoff_factor * (2 ** attempt)
-                                print(f"   [警告] APIレート制限またはサーバーエラー。{wait_time}秒後に再試行します... ({attempt + 1}/{max_retries})")
+                                wait_time = backoff_factor * (2**attempt)
+                                print(
+                                    f"   [警告] APIレート制限またはサーバーエラー。{wait_time}秒後に再試行します... ({attempt + 1}/{max_retries})"
+                                )
                                 time.sleep(wait_time)
                             else:
                                 print(f"   [エラー] API呼び出しが{max_retries}回失敗しました。")
-                                raise e # 最終的に失敗した場合はエラーを再送出
+                                raise e  # 最終的に失敗した場合はエラーを再送出
 
                     if response and response.parsed:
-                        group_result = response.parsed.model_dump(mode='json')
+                        group_result = response.parsed.model_dump(mode="json")
                     else:
                         print(f"   [警告] グループ {group_schema.__name__} (Gemini) の解析で有効な結果が得られませんでした。")
                 # リトライ処理ここまで
@@ -158,12 +166,12 @@ class PatientInfoParser:
                     # --- 2. Ollama (Local) のロジック ---
                     # (self.client は使わず、ollamaライブラリを直接使用)
                     ollama_response = ollama.chat(
-                        model=self.model_name, # (self.model_name は __init__ で 'qwen3:8b' 等に設定されている)
-                        messages=[{'role': 'user', 'content': prompt}],
-                        format='json' # ストリーミングなし
+                        model=self.model_name,  # (self.model_name は __init__ で 'qwen3:8b' 等に設定されている)
+                        messages=[{"role": "user", "content": prompt}],
+                        format="json",  # ストリーミングなし
                     )
 
-                    raw_json_str = ollama_response['message']['content']
+                    raw_json_str = ollama_response["message"]["content"]
                     logger.info(f"Ollama Raw Response (Parser, Group: {group_schema.__name__}):\n{raw_json_str}")
 
                     try:
@@ -179,30 +187,32 @@ class PatientInfoParser:
                                 data_to_validate = raw_response_dict
                             else:
                                 schema_name_key = group_schema.__name__.lower()
-                                if schema_name_key in raw_response_dict and isinstance(raw_response_dict[schema_name_key], dict):
+                                if schema_name_key in raw_response_dict and isinstance(
+                                    raw_response_dict[schema_name_key], dict
+                                ):
                                     data_to_validate = raw_response_dict[schema_name_key]
-                                elif 'properties' in raw_response_dict and isinstance(raw_response_dict['properties'], dict):
-                                     data_to_validate = raw_response_dict['properties']
+                                elif "properties" in raw_response_dict and isinstance(raw_response_dict["properties"], dict):
+                                    data_to_validate = raw_response_dict["properties"]
                                 else:
                                     data_to_validate = raw_response_dict
                         else:
-                             raise ValueError("Ollamaの応答が辞書形式ではありません。")
+                            raise ValueError("Ollamaの応答が辞書形式ではありません。")
 
                         # Pydanticスキーマで検証
                         group_result_obj = group_schema.model_validate(data_to_validate)
                         # Optional[str] = Field(None, ...) にしているので、項目が足りなくてもエラーにならない
-                        group_result = group_result_obj.model_dump(mode='json')
+                        group_result = group_result_obj.model_dump(mode="json")
 
                     except (ValidationError, json.JSONDecodeError, ValueError) as e:
                         print(f"   [警告] グループ {group_schema.__name__} (Ollama) のJSONパース/検証に失敗: {e}")
                         logger.warning(f"Ollama (Parser) JSON Error: {e}\nData: {raw_json_str}")
-                        group_result = {} # エラー時は空の辞書
+                        group_result = {}  # エラー時は空の辞書
 
-                if 'gender' in group_result and group_result['gender']:
-                    if '男性' in group_result['gender']:
-                        group_result['gender'] = '男'
-                    elif '女性' in group_result['gender']:
-                        group_result['gender'] = '女'
+                if "gender" in group_result and group_result["gender"]:
+                    if "男性" in group_result["gender"]:
+                        group_result["gender"] = "男"
+                    elif "女性" in group_result["gender"]:
+                        group_result["gender"] = "女"
 
                 final_result.update(group_result)
                 # if response and response.parsed:
@@ -220,9 +230,6 @@ class PatientInfoParser:
                 # else:
                 #     print(f"   [警告] グループ {group_schema.__name__} の解析で有効な結果が得られませんでした。")
 
-
-
-
             except Exception as e:
                 print(f"グループ {group_schema.__name__} の解析中にエラーが発生しました: {e}")
                 logger.error(f"Parser Error (Group: {group_schema.__name__}): {e}", exc_info=True)
@@ -232,6 +239,9 @@ class PatientInfoParser:
             time.sleep(0.5)
 
         if not final_result:
-            return {"error": "患者情報の解析に失敗しました。", "details": "どのグループからも有効な情報を抽出できませんでした。"}
+            return {
+                "error": "患者情報の解析に失敗しました。",
+                "details": "どのグループからも有効な情報を抽出できませんでした。",
+            }
 
         return final_result

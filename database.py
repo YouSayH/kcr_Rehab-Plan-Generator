@@ -1128,21 +1128,22 @@ def get_all_liked_item_details():
 
 # いいね詳細閲覧システム用の関数群
 
-def get_staff_with_liked_items():
-    """いいねをしたことがある職員のリストを取得する"""
-    db = SessionLocal()
-    try:
-        patients = (
-            db.query(Patient)
-            .join(RehabilitationPlan, Patient.patient_id == RehabilitationPlan.patient_id)
-            .join(LikedItemDetail, RehabilitationPlan.plan_id == LikedItemDetail.rehabilitation_plan_id)
-            .filter(LikedItemDetail.staff_id == staff_id)
-            .distinct()
-            .all()
-        )
-        return [{"patient_id": p.patient_id, "name": p.name} for p in patients]
-    finally:
-        db.close()
+# def get_staff_with_liked_items():
+#     """いいねをしたことがある職員のリストを取得する"""
+#     db = SessionLocal()
+#     try:
+#         # Patient(患者)ではなく、Staff(職員)を検索するように変更します
+#         staff_members = (
+#             db.query(Staff)
+#             # LikedItemDetailテーブルと結合して、いいね履歴がある職員を絞り込む
+#             .join(LikedItemDetail, Staff.id == LikedItemDetail.staff_id)
+#             .distinct() # 重複を除外（同じ人が何度もいいねしていても1件として扱う）
+#             .all()
+#         )
+#         # 職員用の辞書リストとして返す
+#         return [{"id": s.id, "username": s.username, "occupation": s.occupation} for s in staff_members]
+#     finally:
+#         db.close()
 
 def get_patients_for_staff_with_liked_items(staff_id: int):
     """指定された職員がいいねをしたことがある患者のリストを取得する"""
