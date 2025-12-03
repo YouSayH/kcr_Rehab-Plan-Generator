@@ -1,0 +1,781 @@
+<div class="patient-info-ref container-fluid p-0">
+    <input type="hidden" name="ref_patient_id" value="{{ patient_data.patient_id or '' }}" disabled>
+
+    <div class="header-note text-end mb-2 text-muted small">(別紙様式23)</div>
+    <h4 class="text-center mb-4 text-primary border-bottom pb-2">リハビリテーション総合実施計画書</h4>
+
+    <!-- 基本情報セクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">基本情報</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">患者氏名</label>
+                    <input type="text" class="form-control" value="{{ patient_data.name or '' }}" disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">性別</label>
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="radio" {% if patient_data.gender=='男' %}checked{%
+                                endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">男</span>
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="radio" {% if patient_data.gender=='女' %}checked{%
+                                endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">女</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">年齢</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control" value="{{ patient_data.age or '' }}" disabled>
+                        <span class="input-group-text">歳</span>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">計画評価実施日</label>
+                    <div class="d-flex gap-1">
+                        <input type="text" class="form-control text-center"
+                            value="{{ patient_data.header_evaluation_date.year if patient_data.header_evaluation_date else '' }}"
+                            style="flex: 2;" disabled placeholder="年">
+                        <span class="align-self-center">/</span>
+                        <input type="text" class="form-control text-center"
+                            value="{{ patient_data.header_evaluation_date.month if patient_data.header_evaluation_date else '' }}"
+                            style="flex: 1;" disabled placeholder="月">
+                        <span class="align-self-center">/</span>
+                        <input type="text" class="form-control text-center"
+                            value="{{ patient_data.header_evaluation_date.day if patient_data.header_evaluation_date else '' }}"
+                            style="flex: 1;" disabled placeholder="日">
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">発症日・手術日</label>
+                    <div class="d-flex gap-1">
+                        <input type="text" class="form-control text-center"
+                            value="{{ patient_data.header_onset_date.year if patient_data.header_onset_date else '' }}"
+                            style="flex: 2;" disabled placeholder="年">
+                        <span class="align-self-center">/</span>
+                        <input type="text" class="form-control text-center"
+                            value="{{ patient_data.header_onset_date.month if patient_data.header_onset_date else '' }}"
+                            style="flex: 1;" disabled placeholder="月">
+                        <span class="align-self-center">/</span>
+                        <input type="text" class="form-control text-center"
+                            value="{{ patient_data.header_onset_date.day if patient_data.header_onset_date else '' }}"
+                            style="flex: 1;" disabled placeholder="日">
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">リハ開始日</label>
+                    <div class="d-flex gap-1">
+                        <input type="text" class="form-control text-center"
+                            value="{{ patient_data.header_rehab_start_date.year if patient_data.header_rehab_start_date else '' }}"
+                            style="flex: 2;" disabled placeholder="年">
+                        <span class="align-self-center">/</span>
+                        <input type="text" class="form-control text-center"
+                            value="{{ patient_data.header_rehab_start_date.month if patient_data.header_rehab_start_date else '' }}"
+                            style="flex: 1;" disabled placeholder="月">
+                        <span class="align-self-center">/</span>
+                        <input type="text" class="form-control text-center"
+                            value="{{ patient_data.header_rehab_start_date.day if patient_data.header_rehab_start_date else '' }}"
+                            style="flex: 1;" disabled placeholder="日">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 診断・治療内容セクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">診断・治療内容</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label">算定病名</label>
+                    <input type="text" class="form-control" value="{{ patient_data.header_disease_name_txt or '' }}"
+                        disabled>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">治療内容</label>
+                    <div class="d-flex flex-column gap-1 pt-2">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" {% if patient_data.header_therapy_pt_chk
+                                %}checked{% endif %} disabled>
+                            <label class="form-check-label">理学療法</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" {% if patient_data.header_therapy_ot_chk
+                                %}checked{% endif %} disabled>
+                            <label class="form-check-label">作業療法</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" {% if patient_data.header_therapy_st_chk
+                                %}checked{% endif %} disabled>
+                            <label class="form-check-label">言語療法</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">併存疾患・合併症</label>
+                    <textarea class="form-control" rows="2"
+                        disabled>{{ patient_data.main_comorbidities_txt or '' }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">安静度・リスク</label>
+                    <textarea class="form-control" rows="3" disabled>{{ patient_data.main_risks_txt or '' }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">禁忌・特記事項</label>
+                    <textarea class="form-control" rows="3"
+                        disabled>{{ patient_data.main_contraindications_txt or '' }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 心身機能・構造セクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">心身機能・構造 <span class="small fw-normal ms-2">※関連する項目のみ記載</span></div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- 意識障害 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_consciousness_disorder_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">意識障害 (JCS・GCS)</span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.func_consciousness_disorder_jcs_gcs_txt or '' }}" disabled>
+                    </div>
+                </div>
+                <!-- 関節可動域制限 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_rom_limitation_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">関節可動域制限</span>
+                        <input type="text" class="form-control" value="{{ patient_data.func_rom_limitation_txt or '' }}"
+                            disabled>
+                    </div>
+                </div>
+
+                <!-- 呼吸機能障害 -->
+                <div class="col-md-6">
+                    <div class="card h-100 border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" {% if
+                                    patient_data.func_respiratory_disorder_chk %}checked{% endif %} disabled>
+                                <label class="form-check-label fw-bold">呼吸機能障害</label>
+                            </div>
+                            <div class="ps-3">
+                                <div class="input-group input-group-sm mb-1">
+                                    <div class="input-group-text bg-transparent border-0 ps-0">
+                                        <input class="form-check-input mt-0 me-2" type="checkbox" {% if
+                                            patient_data.func_respiratory_o2_therapy_chk %}checked{% endif %} disabled>
+                                        酸素療法
+                                    </div>
+                                    <input type="text" class="form-control form-control-sm"
+                                        value="{{ patient_data.func_respiratory_o2_therapy_l_min_txt or '' }}" disabled
+                                        style="max-width: 60px;">
+                                    <span class="input-group-text bg-transparent border-0">L/min</span>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_respiratory_tracheostomy_chk %}checked{% endif %} disabled>
+                                    <label class="form-check-label">気切</label>
+                                </div>
+                                <div class="form-check form-check-inline">
+                                    <input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_respiratory_ventilator_chk %}checked{% endif %} disabled>
+                                    <label class="form-check-label">人工呼吸器</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 拘縮・変形 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_contracture_deformity_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">拘縮・変形</span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.func_contracture_deformity_txt or '' }}" disabled>
+                    </div>
+                </div>
+
+                <!-- 循環障害 -->
+                <div class="col-md-6">
+                    <div class="card h-100 border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" {% if
+                                    patient_data.func_circulatory_disorder_chk %}checked{% endif %} disabled>
+                                <label class="form-check-label fw-bold">循環障害</label>
+                            </div>
+                            <div class="ps-3">
+                                <div class="input-group input-group-sm mb-1">
+                                    <div class="input-group-text bg-transparent border-0 ps-0">
+                                        <input class="form-check-input mt-0 me-2" type="checkbox" {% if
+                                            patient_data.func_circulatory_ef_chk %}checked{% endif %} disabled>
+                                        EF
+                                    </div>
+                                    <input type="text" class="form-control form-control-sm"
+                                        value="{{ patient_data.func_circulatory_ef_val or '' }}" disabled
+                                        style="max-width: 60px;">
+                                    <span class="input-group-text bg-transparent border-0">%</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <div class="form-check me-2">
+                                        <input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_circulatory_arrhythmia_chk %}checked{% endif %} disabled>
+                                        <label class="form-check-label">不整脈</label>
+                                    </div>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <input type="radio" class="btn-check" {% if
+                                            patient_data.func_circulatory_arrhythmia_status_slct=='yes' %}checked{%
+                                            endif %} disabled>
+                                        <label class="btn btn-outline-secondary">有</label>
+                                        <input type="radio" class="btn-check" {% if
+                                            patient_data.func_circulatory_arrhythmia_status_slct=='no' %}checked{% endif
+                                            %} disabled>
+                                        <label class="btn btn-outline-secondary">無</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 筋力低下 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_muscle_weakness_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">筋力低下</span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.func_muscle_weakness_txt or '' }}" disabled>
+                    </div>
+                </div>
+
+                <!-- 危険因子 -->
+                <div class="col-12">
+                    <div class="card border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" {% if patient_data.func_risk_factors_chk
+                                    %}checked{% endif %} disabled>
+                                <label class="form-check-label fw-bold">危険因子</label>
+                            </div>
+                            <div class="row row-cols-2 row-cols-md-4 g-2 ps-3">
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_hypertension_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">高血圧症</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_dyslipidemia_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">脂質異常症</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_diabetes_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">糖尿病</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_smoking_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">喫煙</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_obesity_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">肥満</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_hyperuricemia_chk %}checked{% endif %}
+                                            disabled><label class="form-check-label">高尿酸血症</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_ckd_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">慢性肝臓病</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_family_history_chk %}checked{% endif %}
+                                            disabled><label class="form-check-label">家族歴</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_angina_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">狭心症</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_omi_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">陳旧性心筋梗塞</label></div>
+                                </div>
+                                <div class="col">
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.func_risk_other_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">その他</label></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 運動機能障害 -->
+                <div class="col-md-6">
+                    <div class="card h-100 border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" {% if
+                                    patient_data.func_motor_dysfunction_chk %}checked{% endif %} disabled>
+                                <label class="form-check-label fw-bold">運動機能障害</label>
+                            </div>
+                            <div class="ps-3 d-flex flex-wrap gap-3">
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_motor_paralysis_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">麻痺</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_motor_involuntary_movement_chk %}checked{% endif %}
+                                        disabled><label class="form-check-label">不随意運動</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_motor_ataxia_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">運動失調</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_motor_parkinsonism_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">ﾊﾟｰｷﾝｿﾆｽﾞﾑ</label></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 筋緊張異常 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_motor_muscle_tone_abnormality_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">筋緊張異常</span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.func_motor_muscle_tone_abnormality_txt or '' }}" disabled>
+                    </div>
+                </div>
+
+                <!-- 摂食嚥下障害 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_swallowing_disorder_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">摂食嚥下障害</span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.func_swallowing_disorder_txt or '' }}" disabled>
+                    </div>
+                </div>
+
+                <!-- 感覚機能障害 -->
+                <div class="col-md-6">
+                    <div class="card h-100 border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" {% if
+                                    patient_data.func_sensory_dysfunction_chk %}checked{% endif %} disabled>
+                                <label class="form-check-label fw-bold">感覚機能障害</label>
+                            </div>
+                            <div class="ps-3 d-flex flex-wrap gap-3">
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_sensory_hearing_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">聴覚</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_sensory_vision_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">視覚</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_sensory_superficial_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">表在覚</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_sensory_deep_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">深部覚</label></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 栄養障害 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_nutritional_disorder_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">栄養障害</span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.func_nutritional_disorder_txt or '' }}" disabled>
+                    </div>
+                </div>
+
+                <!-- 音声発話障害 -->
+                <div class="col-md-6">
+                    <div class="card h-100 border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" {% if
+                                    patient_data.func_speech_disorder_chk %}checked{% endif %} disabled>
+                                <label class="form-check-label fw-bold">音声発話障害</label>
+                            </div>
+                            <div class="ps-3 d-flex flex-wrap gap-3 align-items-center">
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_speech_articulation_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">構音</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_speech_aphasia_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">失語</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_speech_stuttering_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">吃音</label></div>
+                                <div class="input-group input-group-sm" style="width: auto;">
+                                    <div class="input-group-text bg-transparent border-0 ps-0">
+                                        <input class="form-check-input mt-0 me-2" type="checkbox" {% if
+                                            patient_data.func_speech_other_chk %}checked{% endif %} disabled>
+                                        その他
+                                    </div>
+                                    <input type="text" class="form-control form-control-sm"
+                                        value="{{ patient_data.func_speech_other_txt or '' }}" disabled
+                                        style="max-width: 100px;">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 排泄機能障害 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_excretory_disorder_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">排泄機能障害</span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.func_excretory_disorder_txt or '' }}" disabled>
+                    </div>
+                </div>
+
+                <!-- 高次脳機能障害 -->
+                <div class="col-md-6">
+                    <div class="card h-100 border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" {% if
+                                    patient_data.func_higher_brain_dysfunction_chk %}checked{% endif %} disabled>
+                                <label class="form-check-label fw-bold">高次脳機能障害</label>
+                            </div>
+                            <div class="ps-3 d-flex flex-wrap gap-3">
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_higher_brain_memory_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">記憶</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_higher_brain_attention_chk %}checked{% endif %}
+                                        disabled><label class="form-check-label">注意</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_higher_brain_apraxia_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">失行</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_higher_brain_agnosia_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">失認</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_higher_brain_executive_chk %}checked{% endif %}
+                                        disabled><label class="form-check-label">遂行</label></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 褥瘡 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_pressure_ulcer_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">褥瘡</span>
+                        <input type="text" class="form-control" value="{{ patient_data.func_pressure_ulcer_txt or '' }}"
+                            disabled>
+                    </div>
+                </div>
+
+                <!-- 精神行動障害 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_behavioral_psychiatric_disorder_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">精神行動障害</span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.func_behavioral_psychiatric_disorder_txt or '' }}" disabled>
+                    </div>
+                </div>
+
+                <!-- 疼痛 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if patient_data.func_pain_chk
+                                %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">疼痛</span>
+                        <input type="text" class="form-control" value="{{ patient_data.func_pain_txt or '' }}" disabled>
+                    </div>
+                </div>
+
+                <!-- 見当識障害 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_disorientation_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">見当識障害</span>
+                        <input type="text" class="form-control" value="{{ patient_data.func_disorientation_txt or '' }}"
+                            disabled>
+                    </div>
+                </div>
+
+                <!-- その他 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if patient_data.func_other_chk
+                                %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">その他</span>
+                        <input type="text" class="form-control" value="{{ patient_data.func_other_txt or '' }}"
+                            disabled>
+                    </div>
+                </div>
+
+                <!-- 記憶障害 -->
+                <div class="col-12">
+                    <div class="input-group">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if
+                                patient_data.func_memory_disorder_chk %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">記憶障害</span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.func_memory_disorder_txt or '' }}" disabled>
+                    </div>
+                </div>
+
+                <!-- 発達障害 -->
+                <div class="col-12">
+                    <div class="card border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" {% if
+                                    patient_data.func_developmental_disorder_chk %}checked{% endif %} disabled>
+                                <label class="form-check-label fw-bold">発達障害</label>
+                            </div>
+                            <div class="ps-3 d-flex flex-wrap gap-3">
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_developmental_asd_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">自閉症ｽﾍﾟｸﾄﾗﾑ症</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_developmental_ld_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">学習障害</label></div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.func_developmental_adhd_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">注意欠陥多動性障害</label></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 基本動作セクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">基本動作</div>
+        <div class="card-body">
+            <div class="row g-3">
+                {% macro render_basic_movement(label, chk_name, level_name, chk_val, level_val) %}
+                <div class="col-md-6">
+                    <div class="card h-100 border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" {% if chk_val %}checked{% endif %}
+                                    disabled>
+                                <label class="form-check-label fw-bold">{{ label }}</label>
+                            </div>
+                            <div class="btn-group btn-group-sm w-100" role="group">
+                                <input type="radio" class="btn-check" {% if level_val=='independent' %}checked{% endif
+                                    %} disabled>
+                                <label class="btn btn-outline-secondary">自立</label>
+                                <input type="radio" class="btn-check" {% if level_val=='partial_assist' %}checked{%
+                                    endif %} disabled>
+                                <label class="btn btn-outline-secondary">一部介助</label>
+                                <input type="radio" class="btn-check" {% if level_val=='assist' %}checked{% endif %}
+                                    disabled>
+                                <label class="btn btn-outline-secondary">介助</label>
+                                <input type="radio" class="btn-check" {% if level_val=='not_performed' %}checked{% endif
+                                    %} disabled>
+                                <label class="btn btn-outline-secondary">非実施</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endmacro %}
+
+                {{ render_basic_movement('寝返り', 'ref_func_basic_rolling_chk', 'ref_func_basic_rolling_level',
+                patient_data.func_basic_rolling_chk, patient_data.func_basic_rolling_independent_chk and 'independent'
+                or patient_data.func_basic_rolling_partial_assistance_chk and 'partial_assist' or
+                patient_data.func_basic_rolling_assistance_chk and 'assist' or
+                patient_data.func_basic_rolling_not_performed_chk and 'not_performed') }}
+                {{ render_basic_movement('座位保持', 'ref_func_basic_sitting_balance_chk',
+                'ref_func_basic_sitting_balance_level', patient_data.func_basic_sitting_balance_chk,
+                patient_data.func_basic_sitting_balance_independent_chk and 'independent' or
+                patient_data.func_basic_sitting_balance_partial_assistance_chk and 'partial_assist' or
+                patient_data.func_basic_sitting_balance_assistance_chk and 'assist' or
+                patient_data.func_basic_sitting_balance_not_performed_chk and 'not_performed') }}
+                {{ render_basic_movement('起き上がり', 'ref_func_basic_getting_up_chk', 'ref_func_basic_getting_up_level',
+                patient_data.func_basic_getting_up_chk, patient_data.func_basic_getting_up_independent_chk and
+                'independent' or patient_data.func_basic_getting_up_partial_assistance_chk and 'partial_assist' or
+                patient_data.func_basic_getting_up_assistance_chk and 'assist' or
+                patient_data.func_basic_getting_up_not_performed_chk and 'not_performed') }}
+                {{ render_basic_movement('立位保持', 'ref_func_basic_standing_balance_chk',
+                'ref_func_basic_standing_balance_level', patient_data.func_basic_standing_balance_chk,
+                patient_data.func_basic_standing_balance_independent_chk and 'independent' or
+                patient_data.func_basic_standing_balance_partial_assistance_chk and 'partial_assist' or
+                patient_data.func_basic_standing_balance_assistance_chk and 'assist' or
+                patient_data.func_basic_standing_balance_not_performed_chk and 'not_performed') }}
+                {{ render_basic_movement('立ち上がり', 'ref_func_basic_standing_up_chk', 'ref_func_basic_standing_up_level',
+                patient_data.func_basic_standing_up_chk, patient_data.func_basic_standing_up_independent_chk and
+                'independent' or patient_data.func_basic_standing_up_partial_assistance_chk and 'partial_assist' or
+                patient_data.func_basic_standing_up_assistance_chk and 'assist' or
+                patient_data.func_basic_standing_up_not_performed_chk and 'not_performed') }}
+
+                <div class="col-12">
+                    <div class="input-group h-100">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if patient_data.func_basic_other_chk
+                                %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">その他</span>
+                        <input type="text" class="form-control" value="{{ patient_data.func_basic_other_txt or '' }}"
+                            disabled>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADLセクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">日常生活活動（動作）</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0 align-middle">
+                    <thead class="table-light text-center">
+                        <tr>
+                            <th rowspan="2" style="width: 5%;">分類</th>
+                            <th rowspan="2" style="width: 10%;">項目</th>
+                            <th colspan="2">得点 (開始時 → 現在)</th>
+                            <th rowspan="2" style="width: 40%;">使用用具及び介助内容等</th>
+                        </tr>
+                        <tr>
+                            <th style="width: 15%;">FIM</th>
+                            <th style="width: 15%;">BI</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% macro render_adl_row(category, item, fim_key, bi_key, rowspan=1, is_first=false,
+                        include_textarea=false) %}
+                        <tr>
+                            {% if is_first %}
+                            <th rowspan="{{ rowspan }}" class="text-center align-middle bg-light">{{ category }}</th>
+                            {% endif %}
+                            <td>{{ item }}</td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control text-center px-1"
+                                        value="{{ patient_data['adl_' + fim_key + '_fim_start_val'] or '' }}" disabled>
+                                    <span class="input-group-text px-1">→</span>
+                                    <input type="text" class="form-control text-center px-1"
+                                        value="{{ patient_data['adl_' + fim_key + '_fim_current_val'] or '' }}"
+                                        disabled>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="input-group input-group-sm">
+                                    <input type="text" class="form-control text-center px-1"
+                                        value="{{ patient_data['adl_' + bi_key + '_bi_start_val'] or '' }}" disabled>
+                                    <span class="input-group-text px-1">→</span>
+                                    <input type="text" class="form-control text-center px-1"
+                                        value="{{ patient_data['adl_' + bi_key + '_bi_current_val'] or '' }}" disabled>
+                                </div>
+                            </td>
+                            {% if include_textarea %}
+                            <td rowspan="19">
+                                <textarea class="form-control form-control-sm h-100" style="min-height: 400px;"
+                                    disabled>{{ patient_data.adl_equipment_and_assistance_details_txt or '' }}</textarea>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endmacro %}
+
+                        {{ render_adl_row('セルフケア', '食事', 'eating', 'eating', 6, true, true) }}
+                        {{ render_adl_row('', '整容', 'grooming', 'grooming') }}
+                        {{ render_adl_row('', '清拭・入浴', 'bathing', 'bathing') }}
+                        {{ render_adl_row('', '更衣（上半身）', 'dressing_upper', 'dressing') }}
+                        {{ render_adl_row('', '更衣（下半身）', 'dressing_lower', 'dressing') }} <!-- BIはdressingで共通 -->
+                        {{ render_adl_row('', 'トイレ', 'toileting', 'toileting') }}
+
+                        {{ render_adl_row('排泄', '排尿管理', 'bladder_management', 'bladder_management', 2, true) }}
+                        {{ render_adl_row('', '排便管理', 'bowel_management', 'bowel_management') }}
+
+                        {{ render_adl_row('移乗', 'ベッド・椅子', 'transfer_bed_chair_wc', 'transfer', 3, true) }}
+                        {{ render_adl_row('', 'トイレ', 'transfer_toilet', 'transfer') }} <!-- BIはtransferで共通 -->
+                        {{ render_adl_row('', '浴槽', 'transfer_tub_shower', 'transfer') }} <!-- BIはtransferで共通 -->
+
+                        {{ render_adl_row('移動', '歩行/車椅子', 'locomotion_walk_walkingAids_wc',
+                        'locomotion_walk_walkingAids_wc', 2, true) }}
+                        {{ render_adl_row('', '階段', 'locomotion_stairs', 'locomotion_stairs') }}
+
+                        <!-- 認知項目 -->
+                        <tr>
+                            <th colspan="4" class="table-light text-center">認知項目 (FIMのみ)</th>
+                        </tr>
+                        {{ render_adl_row('コミュ', '理解', 'comprehension', 'comprehension_dummy', 2, true) }}
+                        {{ render_adl_row('', '表出', 'expression', 'expression_dummy') }}
+                        {{ render_adl_row('社会認識', '社会的交流', 'social_interaction', 'social_interaction_dummy', 3, true) }}
+                        {{ render_adl_row('', '問題解決', 'problem_solving', 'problem_solving_dummy') }}
+                        {{ render_adl_row('', '記憶', 'memory', 'memory_dummy') }}
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

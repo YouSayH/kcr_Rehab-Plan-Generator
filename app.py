@@ -441,6 +441,16 @@ def generate_plan():
             general_plan[key] = ""
             specialized_plan[key] = "" # 仮テキストを削除
 
+        # 履歴ドロップダウン用に、全計画書のIDと作成日時を準備
+        session = database.SessionLocal()
+        try:
+            all_plans_query = session.query(database.RehabilitationPlan.plan_id, database.RehabilitationPlan.created_at).filter(
+                database.RehabilitationPlan.patient_id == patient_id
+            ).order_by(database.RehabilitationPlan.created_at.desc()).all()
+            plan_history = [{"plan_id": p.plan_id, "created_at": p.created_at} for p in all_plans_query if p.created_at]
+        finally:
+            session.close()
+
         return render_template(
             "confirm.html",
             patient_data=patient_data,
@@ -451,7 +461,8 @@ def generate_plan():
             model_to_generate=model_choice,
             editable_keys=editable_keys,
             item_key_to_japanese=ITEM_KEY_TO_JAPANESE,
-            default_rag_pipeline=DEFAULT_RAG_PIPELINE
+            default_rag_pipeline=DEFAULT_RAG_PIPELINE,
+            plan_history=plan_history
         )
 
     except (ValueError, TypeError):
@@ -461,6 +472,31 @@ def generate_plan():
         app.logger.error(f"Error during generate_plan: {e}")
         flash(f"ページの表示中にエラーが発生しました: {e}", "danger")
         return redirect(url_for("index"))
+
+@app.route("/api/get_plan/<int:plan_id>")
+@login_required
+def api_get_plan(plan_id):
+    """特定の計画書データをJSONで返すAPI"""
+    try:
+        plan_data = database.get_plan_by_id(plan_id)
+        if not plan_data:
+            return jsonify({"error": "Plan not found"}), 404
+        
+        # 権限チェック
+        patient_id = plan_data["patient_id"]
+        assigned_patients = database.get_assigned_patients(current_user.id)
+        is_admin = current_user.role == "admin"
+        if not is_admin and patient_id not in [p["patient_id"] for p in assigned_patients]:
+            return jsonify({"error": "Permission denied"}), 403
+
+        # datetimeオブジェクトを文字列に変換
+        for key, value in plan_data.items():
+            if hasattr(value, 'isoformat'):
+                plan_data[key] = value.isoformat()
+
+        return jsonify(plan_data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/generate/general")

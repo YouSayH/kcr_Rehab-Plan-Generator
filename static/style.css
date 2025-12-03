@@ -204,3 +204,31 @@ textarea.form-control {
     cursor: pointer;
     z-index: 1001;
 }
+
+/* Patient Info Reference View Styles */
+.patient-info-ref input:disabled,
+.patient-info-ref textarea:disabled,
+.patient-info-ref select:disabled {
+    background-color: #f8f9fa;
+    color: #212529; /* Darker text for readability */
+    border: 1px solid #ced4da;
+    opacity: 1; /* Override Bootstrap opacity reduction */
+    font-weight: 500;
+}
+
+.patient-info-ref .card-header {
+    background-color: #e9ecef;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.patient-info-ref .form-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 0.2rem;
+}
+
+.patient-info-ref .input-group-text {
+    background-color: #e9ecef;
+    color: #495057;
+}
