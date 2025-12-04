@@ -17,14 +17,16 @@ load_dotenv()
 INPUT_FILE = "0_validation_dataset.json"
 OUTPUT_DIR = "evaluation_results"
 
-# CELL_NAME_MAPPINGの逆引き辞書を作成（日本語名 -> DBカラム名）
+# キーの表記揺れを吸収するための正規化関数
 def normalize_key(key):
-    """キーの表記揺れを吸収するための正規化関数"""
-    return key.replace("（", "(").replace("）", ")").replace(" ", "").replace("　", "")
+    # カッコの正規化、スペースの削除
+    return key.replace("（", "(").replace("）", ")").replace(" ", "").replace("㊚", "").replace("㊛", "").replace("　", "")
 
+# CELL_NAME_MAPPINGの逆引き辞書を作成（日本語名 -> DBカラム名）
 REVERSE_CELL_MAPPING = {normalize_key(v): k for k, v in CELL_NAME_MAPPING.items()}
 
-# データセットの項目名(日本語)とDBカラム名のマッピングを明示的に定義
+# 追加の手動マッピング
+# CELL_NAME_MAPPINGに含まれないもの、または自動変換で対応しきれないものを定義
 MANUAL_MAPPING = {
     # 基本情報
     "年齢": "age",
@@ -37,7 +39,7 @@ MANUAL_MAPPING = {
     "実施療法(OT)": "header_therapy_ot_chk",
     "実施療法(ST)": "header_therapy_st_chk",
     "併存疾患・合併症": "main_comorbidities_txt",
-
+    
     # 心身機能（チェックボックス項目）
     "意識障害": "func_consciousness_disorder_chk",
     "呼吸機能障害": "func_respiratory_disorder_chk",
@@ -85,7 +87,6 @@ MANUAL_MAPPING = {
     "自閉症スペクトラム症": "func_developmental_asd_chk",
     "学習障害": "func_developmental_ld_chk",
     "ADHD": "func_developmental_adhd_chk",
-
     # 心身機能（詳細テキスト）
     "疼痛": "func_pain_txt",
     "関節可動域制限": "func_rom_limitation_txt",
@@ -99,6 +100,7 @@ MANUAL_MAPPING = {
     "筋緊張異常": "func_motor_muscle_tone_abnormality_txt",
     "見当識障害": "func_disorientation_txt",
     "記憶障害": "func_memory_disorder_txt",
+    "高次脳機能障害": "func_higher_brain_dysfunction_chk", # チェックボックス
     
     # 心身機能（数値・選択）
     "意識障害(JCS/GCS)": "func_consciousness_disorder_jcs_gcs_txt",
@@ -125,6 +127,10 @@ MANUAL_MAPPING = {
     "立位保持(自立)": "func_basic_standing_balance_independent_chk",
     "立位保持(介助)": "func_basic_standing_balance_assistance_chk",
 
+    
+    # ADL記述
+    "ADL(使用用具及び介助内容等)": "adl_equipment_and_assistance_details_txt",
+    
     # 栄養状態
     "身長測定": "nutrition_height_chk",
     "身長(cm)": "nutrition_height_val",
@@ -145,7 +151,6 @@ MANUAL_MAPPING = {
     "必要タンパク質量(g)": "nutrition_required_protein_val",
     "総摂取熱量(kcal)": "nutrition_total_intake_energy_val",
     "総摂取タンパク質量(g)": "nutrition_total_intake_protein_val",
-
     # 社会保障サービス
     "介護保険": "social_care_level_status_chk",
     "介護保険(申請中)": "social_care_level_applying_chk",
@@ -270,9 +275,7 @@ MANUAL_MAPPING = {
     "対応:主介護者": "goal_s_3rd_party_main_caregiver_chk",
     "対応:家族構成変化": "goal_s_3rd_party_family_structure_change_chk",
     "対応:役割変化": "goal_s_3rd_party_household_role_change_chk",
-    "対応:家族活動変化": "goal_s_3rd_party_family_activity_change_chk",
-    
-    "ADL(使用用具及び介助内容等)": "adl_equipment_and_assistance_details_txt"
+    "対応:家族活動変化": "goal_s_3rd_party_family_activity_change_chk"
 }
 
 def transform_dataset_to_api_format(input_context):
@@ -282,40 +285,30 @@ def transform_dataset_to_api_format(input_context):
     """
     flat_data = {}
     
-    # 1. 所感のコピー
     if "therapist_notes" in input_context:
         flat_data["therapist_notes"] = input_context["therapist_notes"]
         
-    # 2. generated_plan_so_far の内容も統合
     if "generated_plan_so_far" in input_context:
         flat_data.update(input_context["generated_plan_so_far"])
 
     patient_facts = input_context.get("patient_facts", {})
     
-    # 3. 各カテゴリを走査してマッピング
     for category, items in patient_facts.items():
         
-        # --- 特殊処理: ADL評価 (ネストされたスコア) ---
+        # --- ADL評価 (ネスト対応) ---
         if category == "ADL評価":
             for sub_cat, sub_items in items.items():
-                score_type = "" # fim or bi
-                if "FIM" in sub_cat:
-                    score_type = "fim"
-                elif "BI" in sub_cat:
-                    score_type = "bi"
+                score_type = "fim" if "FIM" in sub_cat else "bi" if "BI" in sub_cat else ""
                 
                 if score_type:
                     for jp_key, value in sub_items.items():
-                        # "Eating" -> "eating"
                         normalized_key = jp_key.lower().replace(" ", "_")
-                        # FIM/BIの項目名マッピング補正（必要に応じて）
+                        # キー名の揺らぎ補正
                         if normalized_key == "transfer_bed_chair_wc": normalized_key = "transfer_bed_chair_wc"
                         if normalized_key == "locomotion_walk_walkingaids_wc": normalized_key = "locomotion_walk_walkingAids_wc"
-                        if normalized_key == "locomotion_walk_walking_aids_wc": normalized_key = "locomotion_walk_walkingAids_wc" # 表記揺れ対応
-
+                        
                         db_key = f"adl_{normalized_key}_{score_type}_current_val"
                         
-                        # 値から「点」を除去して数値化
                         clean_val = value
                         if isinstance(value, str) and value.endswith("点"):
                             try:
@@ -326,7 +319,7 @@ def transform_dataset_to_api_format(input_context):
                         flat_data[db_key] = clean_val
             continue
 
-        # --- 特殊処理: ADL詳細テキスト ---
+        # --- ADL詳細テキスト ---
         if "ADL(使用用具及び介助内容等)" in category:
              combined_text = ""
              for k, v in items.items():
@@ -334,44 +327,37 @@ def transform_dataset_to_api_format(input_context):
              flat_data["adl_equipment_and_assistance_details_txt"] = combined_text.strip()
              continue
 
-        # --- 通常項目の処理 ---
+        # --- 通常項目 ---
         for jp_key, value in items.items():
             normalized_jp_key = normalize_key(jp_key)
             db_key = None
             
-            # 1. マニュアルマッピング確認
+            # 1. マニュアルマッピング
             if normalized_jp_key in MANUAL_MAPPING:
                 db_key = MANUAL_MAPPING[normalized_jp_key]
-            elif jp_key in MANUAL_MAPPING: # 正規化前も確認
-                db_key = MANUAL_MAPPING[jp_key]
             
-            # 2. 自動逆引き確認
+            # 2. 自動逆引き
             elif normalized_jp_key in REVERSE_CELL_MAPPING:
                 db_key = REVERSE_CELL_MAPPING[normalized_jp_key]
             
-            # 変換できたキーに値をセット
             if db_key:
                 flat_data[db_key] = value
 
-                # 値が「あり」や数値が入っている場合、対応するチェックボックスをTrueにする
-                # 例: func_pain_txt に値があれば、func_pain_chk を True にする
+                # 値が「あり」などの場合、チェックボックスをTrueにする
                 if value and value != "なし":
-                    # テキストフィールド (_txt) の場合
+                    # テキストフィールドに対応するチェックボックスをON
                     if db_key.endswith("_txt") and db_key.startswith("func_"):
                         chk_key = db_key.replace("_txt", "_chk")
                         flat_data[chk_key] = True
-                    # 数値フィールド (_val) の場合
+                    # 数値フィールドに対応するチェックボックスをON (栄養など)
                     elif db_key.endswith("_val") and db_key.startswith("nutrition_"):
                         chk_key = db_key.replace("_val", "_chk")
                         flat_data[chk_key] = True
-                    # "あり" の場合
+                    # 値が"あり"の場合、その項目自体をTrueに
                     elif value == "あり":
                          flat_data[db_key] = True
-            else:
-                # マッピングできなかった項目をログに出力
-                print(f"[警告] マッピング失敗: {jp_key} (Category: {category})")
-                         
-    # 4. 栄養状態の親子関係の補正 (経口摂取など)
+
+    # 親子関係の補正 (個別項目がONなら親もON)
     if flat_data.get("nutrition_method_oral_meal_chk") or flat_data.get("nutrition_method_oral_supplement_chk"):
         flat_data["nutrition_method_oral_chk"] = True
     if flat_data.get("nutrition_method_iv_peripheral_chk") or flat_data.get("nutrition_method_iv_central_chk"):
@@ -404,7 +390,6 @@ def main():
         case_id = data.get("case_id", "unknown")
         input_context = data.get("input_context", {})
         
-        # データ構造変換処理を実行
         input_payload = transform_dataset_to_api_format(input_context)
 
         if client_type == "ollama":
@@ -451,7 +436,7 @@ def main():
             "timestamp": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             "generated_plan": generated_content,
             "ground_truth": data.get("ground_truth", {}),
-            "input_data_converted": input_payload # デバッグ用に変換後のデータも保存
+            "input_data_converted": input_payload
         })
         
         if client_type == "gemini":
