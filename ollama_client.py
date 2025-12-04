@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import pprint
 import textwrap
 import time
@@ -27,6 +28,10 @@ from schemas import (
 load_dotenv()
 
 OLLAMA_MODEL_NAME = os.getenv("OLLAMA_MODEL_NAME", "qwen3:8b")
+
+# 構造的出力（JSONモード）を使用するかどうかのフラグ
+# .envで OLLAMA_USE_STRUCTURED_OUTPUT=false と設定すれば無効化できる
+OLLAMA_USE_STRUCTURED_OUTPUT = os.getenv("OLLAMA_USE_STRUCTURED_OUTPUT", "true").lower() == "true"
 
 # ロガー設定 (gemini_client.pyと共通のファイルに出力)
 log_directory = "logs"
@@ -60,6 +65,39 @@ def _format_value(value):
     if isinstance(value, date):
         return value.strftime("%Y-%m-%d")
     return str(value)
+
+def extract_and_parse_json(text: str) -> dict:
+    """
+    LLMの出力テキストからJSON部分を抽出してパースする関数。
+    CoT（<think>タグ）やMarkdownコードブロックに対応。
+    """
+    # 1. <think>タグの除去 (思考プロセスが含まれる場合)
+    text_cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
+    
+    # 2. Markdownコードブロック ```json ... ``` の抽出
+    json_match = re.search(r'```json\s*(\{.*?\})\s*```', text_cleaned, re.DOTALL)
+    if not json_match:
+        # コードブロックがない場合、単なる ``` ... ``` を探す
+        json_match = re.search(r'```\s*(\{.*?\})\s*```', text_cleaned, re.DOTALL)
+    
+    if json_match:
+        json_str = json_match.group(1)
+    else:
+        # 3. コードブロックがない場合、最初と最後の {} を探す
+        start = text_cleaned.find('{')
+        end = text_cleaned.rfind('}')
+        if start != -1 and end != -1 and end > start:
+            json_str = text_cleaned[start : end + 1]
+        else:
+            # 見つからない場合は元のテキスト全体を試す
+            json_str = text_cleaned
+
+    # 4. JSONパース
+    try:
+        return json.loads(json_str)
+    except json.JSONDecodeError as e:
+        # エラー時のログ出力用に、抽出した文字列を少し含める
+        raise ValueError(f"JSON extraction/parsing failed: {e}. Target str: {json_str[:100]}...")
 
 
 # DBカラム名と日本語名のマッピング
@@ -730,89 +768,102 @@ def generate_ollama_plan_stream(patient_data: dict):
                 event_data = json.dumps({"key": field_name, "value": value, "model_type": "ollama_general"})
                 yield f"event: update\ndata: {event_data}\n\n"
 
+        max_retries = 10
+
         for group_schema in GENERATION_GROUPS:
             print(f"\n--- Ollama Generating Group: {group_schema.__name__} ---")
-            prompt = _build_ollama_group_prompt(group_schema, patient_facts_str, generated_plan_so_far)
-            logger.info(f"--- Ollama Generating Group: {group_schema.__name__} ---")
-            logger.info("Prompt:\n" + prompt)
+            
+            for attempt in range(max_retries):
+                try:
+                    # プロンプト構築 (ループ内で毎回行う必要はないが、念のためここでも可)
+                    prompt = _build_ollama_group_prompt(group_schema, patient_facts_str, generated_plan_so_far)
+                    
+                    # JSONモード切り替え
+                    format_param = "json" if OLLAMA_USE_STRUCTURED_OUTPUT else None
+                    if not OLLAMA_USE_STRUCTURED_OUTPUT:
+                        prompt += "\n\nEnsure the output is a valid JSON object."
 
-            stream = ollama.chat(
-                model=OLLAMA_MODEL_NAME, messages=[{"role": "user", "content": prompt}], format="json", stream=True
-            )
+                    logger.info(f"--- Group: {group_schema.__name__} (Attempt: {attempt+1}/{max_retries}) ---")
 
-            accumulated_json_string = ""
-            for chunk in stream:
-                if chunk["message"]["content"]:
-                    accumulated_json_string += chunk["message"]["content"]
+                    print(prompt)
+                    # API呼び出し
+                    stream = ollama.chat(
+                        model=OLLAMA_MODEL_NAME, 
+                        messages=[{"role": "user", "content": prompt}], 
+                        format=format_param, 
+                        stream=True
+                    )
 
-            print(f"--- Ollama Response (Group: {group_schema.__name__}) ---")
-            print(accumulated_json_string)
-            logger.info(f"Ollama Raw Response (Group: {group_schema.__name__}):\n{accumulated_json_string}")
+                    accumulated_json_string = ""
+                    for chunk in stream:
+                        if chunk["message"]["content"]:
+                            accumulated_json_string += chunk["message"]["content"]
 
-            try:
-                # 1. まずJSONとしてパース
-                raw_response_dict = json.loads(accumulated_json_string)
-                data_to_validate: Dict[str, any] = {}
+                    logger.info(f"Ollama Raw Response:\n{accumulated_json_string}")
 
-                # 2. ネストされた構造かチェックし、必要なら中身を取り出す
-                if isinstance(raw_response_dict, dict):
-                    schema_fields = set(group_schema.model_fields.keys())
-                    response_keys = set(raw_response_dict.keys())
-
-                    # ケース1: レスポンスがスキーマの全キーをトップレベルに含む
-                    if schema_fields.issubset(response_keys):
-                        data_to_validate = raw_response_dict
-                        print("   [情報] トップレベルの辞書を検証対象とします。")
-
-                    # ケース2: レスポンスがスキーマ名をキーとしてネストしている
-                    # (例: {"risksandprecautions": {"main_risks_txt": ...}})
+                    # パース処理 (前回の修正を適用)
+                    raw_response_dict = {}
+                    if OLLAMA_USE_STRUCTURED_OUTPUT:
+                        raw_response_dict = json.loads(accumulated_json_string)
                     else:
-                        schema_name_key = group_schema.__name__.lower()
-                        if schema_name_key in raw_response_dict and isinstance(raw_response_dict[schema_name_key], dict):
-                            data_to_validate = raw_response_dict[schema_name_key]
-                            print(f"   [情報] ネストされたキー '{schema_name_key}' からデータを取り出しました。")
+                        raw_response_dict = extract_and_parse_json(accumulated_json_string)
 
-                        # ケース3: "properties" など一般的なキーでネストしている
+                    data_to_validate: Dict[str, any] = {}
+
+                    # ネスト構造の解決ロジック (そのまま)
+                    if isinstance(raw_response_dict, dict):
+                        schema_fields = set(group_schema.model_fields.keys())
+                        response_keys = set(raw_response_dict.keys())
+                        if schema_fields.issubset(response_keys):
+                            data_to_validate = raw_response_dict
                         else:
-                            nested_keys = ["properties", "attributes", "data"]
-                            extracted = False
-                            for key in nested_keys:
-                                if key in raw_response_dict and isinstance(raw_response_dict[key], dict):
-                                    data_to_validate = raw_response_dict[key]
-                                    print(f"   [情報] ネストされたキー '{key}' からデータを取り出しました。")
-                                    extracted = True
-                                    break
+                            schema_name_key = group_schema.__name__.lower()
+                            if schema_name_key in raw_response_dict and isinstance(raw_response_dict[schema_name_key], dict):
+                                data_to_validate = raw_response_dict[schema_name_key]
+                            else:
+                                nested_keys = ["properties", "attributes", "data"]
+                                extracted = False
+                                for key in nested_keys:
+                                    if key in raw_response_dict and isinstance(raw_response_dict[key], dict):
+                                        data_to_validate = raw_response_dict[key]
+                                        extracted = True
+                                        break
+                                if not extracted:
+                                    data_to_validate = raw_response_dict
+                    else:
+                        raise ValueError("Ollamaの応答が辞書形式ではありません。")
 
-                            # ケース4: ネスト解除失敗、トップレベルをそのまま試す
-                            if not extracted:
-                                print("   [警告] ネスト構造を解決できませんでした。トップレベルの辞書を検証対象とします。")
-                                data_to_validate = raw_response_dict
-                else:
-                    raise ValueError("Ollamaの応答が予期しない形式です（辞書ではありません）。")
+                    # Pydantic検証
+                    group_result_obj = group_schema.model_validate(data_to_validate)
+                    group_result_dict = group_result_obj.model_dump()
+                    generated_plan_so_far.update(group_result_dict)
 
-                # 3. 取り出したデータでPydantic検証
-                group_result_obj = group_schema.model_validate(data_to_validate)
-                group_result_dict = group_result_obj.model_dump()
+                    # ストリーム送信
+                    for key, value in group_result_dict.items():
+                        if value is not None:
+                            event_data = json.dumps({"key": key, "value": str(value), "model_type": "ollama_general"})
+                            yield f"event: update\ndata: {event_data}\n\n"
+                    
+                    print(f"--- Group {group_schema.__name__} processed successfully ---")
+                    
+                    # 成功したらリトライループを抜ける
+                    break 
 
-                generated_plan_so_far.update(group_result_dict)
+                except (ValidationError, json.JSONDecodeError, ValueError) as e:
+                    print(f"エラー発生 (試行 {attempt+1}/{max_retries}): {e}")
+                    logger.error(f"エラー詳細: {e}")
+                    
+                    # 最大回数に達したらエラーを通知して次のグループへ
+                    if attempt == max_retries - 1:
+                        error_message = f"グループ {group_schema.__name__} の生成に失敗しました (リトライ上限到達): {e}"
+                        error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
+                        yield error_event
+                    else:
+                        # リトライ前に少し待機
+                        time.sleep(1)
+                        continue
 
-                # 4. グループ内の各項目を処理してストリームに流す
-                for key, value in group_result_dict.items():
-                    if value is not None:
-                        event_data = json.dumps({"key": key, "value": str(value), "model_type": "ollama_general"})
-                        yield f"event: update\ndata: {event_data}\n\n"
-                print(f"--- Group {group_schema.__name__} processed successfully ---")
-
-            except (ValidationError, json.JSONDecodeError, ValueError) as e:
-                print(f"グループ {group_schema.__name__} のJSONパースまたは検証に失敗しました。")
-                print(f"受信データ: {accumulated_json_string}")
-                print(e)
-                logger.error(f"グループ {group_schema.__name__} のパース/検証エラー: {e}\nデータ: {accumulated_json_string}")
-                error_message = f"グループ {group_schema.__name__} の生成でエラー: {e}"
-                error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
-                yield error_event
-
-            time.sleep(1)  # API負荷軽減のため
+            time.sleep(1)  # グループ間の待機
 
         print("\n--- Ollamaによる全グループの生成完了 ---")
         # yield "event: finished\ndata: {}\n\n"
@@ -968,7 +1019,6 @@ def _build_ollama_regeneration_prompt(
         生成するJSON:
     """)
 
-
 def regenerate_ollama_plan_item_stream(
     patient_data: dict, item_key: str, current_text: str, instruction: str, rag_executor: Optional["RAGExecutor"] = None
 ):
@@ -1031,49 +1081,76 @@ def regenerate_ollama_plan_item_stream(
             schema=RegenerationSchema,
         )
 
-        logging.info(f"--- Regenerating Item: {item_key} (Model: {model_type}) ---")
-        logging.info("Regeneration Prompt:\n" + prompt)
+        # JSONモード切り替え
+        format_param = "json" if OLLAMA_USE_STRUCTURED_OUTPUT else None
+        if not OLLAMA_USE_STRUCTURED_OUTPUT:
+            prompt += "\n\nEnsure the output is a valid JSON object."
 
-        # 6. API呼び出し実行 (Ollama, JSONモード, ストリーミング)
-        stream = ollama.chat(
-            model=OLLAMA_MODEL_NAME, messages=[{"role": "user", "content": prompt}], format="json", stream=True
-        )
-
-        accumulated_json_string = ""
-        for chunk in stream:
-            if chunk["message"]["content"]:
-                accumulated_json_string += chunk["message"]["content"]
-
-        # 7. 結果のパースと検証
-        logging.info(f"Ollama Regeneration Response: {accumulated_json_string}")
-
+        max_retries = 10
         regenerated_text = ""
-        try:
-            json_data_raw = json.loads(accumulated_json_string)
-            data_to_validate: Dict[str, any] = {}
 
-            # Ollamaがスキーマキーでネストするパターンに対応
-            if isinstance(json_data_raw, dict):
-                if item_key in json_data_raw and isinstance(json_data_raw[item_key], str):
-                    # {"main_risks_txt": "..."} の形式
-                    data_to_validate = json_data_raw
-                elif "properties" in json_data_raw and item_key in json_data_raw["properties"]:
-                    # {"properties": {"main_risks_txt": "..."}} の形式
-                    data_to_validate = json_data_raw["properties"]
+        for attempt in range(max_retries):
+            try:
+                logging.info(f"--- Regenerating Item: {item_key} (Model: {model_type}, Format: {format_param}, Attempt: {attempt+1}) ---")
+                logging.info("Regeneration Prompt:\n" + prompt)
+
+                print(prompt)
+
+                # 6. API呼び出し実行 (Ollama, ストリーミング)
+                stream = ollama.chat(
+                    model=OLLAMA_MODEL_NAME, 
+                    messages=[{"role": "user", "content": prompt}], 
+                    format=format_param, 
+                    stream=True
+                )
+
+                accumulated_json_string = ""
+                for chunk in stream:
+                    if chunk["message"]["content"]:
+                        accumulated_json_string += chunk["message"]["content"]
+
+                # 7. 結果のパースと検証
+                logging.info(f"Ollama Regeneration Response: {accumulated_json_string}")
+
+                json_data_raw = {}
+                if OLLAMA_USE_STRUCTURED_OUTPUT:
+                    json_data_raw = json.loads(accumulated_json_string)
                 else:
-                    # ネストなしと仮定
-                    data_to_validate = json_data_raw
-            else:
-                raise ValueError("Ollamaの応答が予期しない形式です（辞書ではありません）。")
+                    # 非強制モード: 自作関数で抽出・パース
+                    json_data_raw = extract_and_parse_json(accumulated_json_string)
 
-            validated_data = RegenerationSchema.model_validate(data_to_validate)
-            regenerated_text = validated_data.model_dump().get(item_key, "")
+                data_to_validate: Dict[str, any] = {}
 
-        except (json.JSONDecodeError, ValidationError, ValueError) as e:
-            print(f"Ollama再生成のJSONパース/検証エラー: {e}")
-            print(f"受信データ: {accumulated_json_string}")
-            logger.error(f"Ollama再生成エラー: {e}\nデータ: {accumulated_json_string}")
-            regenerated_text = f"エラー: 再生成に失敗しました。{e}"
+                # Ollamaがスキーマキーでネストするパターンに対応
+                if isinstance(json_data_raw, dict):
+                    if item_key in json_data_raw and isinstance(json_data_raw[item_key], str):
+                        # {"main_risks_txt": "..."} の形式
+                        data_to_validate = json_data_raw
+                    elif "properties" in json_data_raw and item_key in json_data_raw["properties"]:
+                        # {"properties": {"main_risks_txt": "..."}} の形式
+                        data_to_validate = json_data_raw["properties"]
+                    else:
+                        # ネストなしと仮定
+                        data_to_validate = json_data_raw
+                else:
+                    raise ValueError("Ollamaの応答が予期しない形式です（辞書ではありません）。")
+
+                validated_data = RegenerationSchema.model_validate(data_to_validate)
+                regenerated_text = validated_data.model_dump().get(item_key, "")
+                
+                # 成功したらループを抜ける
+                break
+
+            except (json.JSONDecodeError, ValidationError, ValueError) as e:
+                print(f"Ollama再生成エラー (試行 {attempt+1}/{max_retries}): {e}")
+                logger.error(f"Ollama再生成エラー: {e}\nデータ: {accumulated_json_string}")
+                
+                if attempt == max_retries - 1:
+                    # 最終失敗時はエラーテキストを設定
+                    regenerated_text = f"エラー: 再生成に失敗しました。{e}"
+                else:
+                    time.sleep(1)
+                    continue
 
         # 8. ストリーミング風に返す
         for char in regenerated_text:
@@ -1088,7 +1165,6 @@ def regenerate_ollama_plan_item_stream(
         error_message = f"AIとの通信中にエラーが発生しました: {e}"
         error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
         yield error_event
-
 
 # --- テスト用ダミーデータ ---
 
