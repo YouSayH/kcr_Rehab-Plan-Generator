@@ -501,6 +501,33 @@ def api_get_plan(plan_id):
         return jsonify({"error": str(e)}), 500
 
 
+
+@app.route("/api/render_plan_history/<int:plan_id>")
+@login_required
+def render_plan_history(plan_id):
+    """計画書の履歴表示用HTMLを返すAPI"""
+    try:
+        plan_data = database.get_plan_by_id(plan_id)
+        if not plan_data:
+            return "<div class='alert alert-danger'>計画書データが見つかりません</div>", 404
+
+        # 権限チェック
+        patient_id = plan_data["patient_id"]
+        assigned_patients = database.get_assigned_patients(current_user.id)
+        is_admin = current_user.role == "admin"
+        if not is_admin and patient_id not in [p["patient_id"] for p in assigned_patients]:
+            return "<div class='alert alert-danger'>権限がありません</div>", 403
+
+        # patient_data として template に渡す
+        return render_template(
+            "components/patient_info_ref.html",
+            patient_data=plan_data
+        )
+    except Exception as e:
+        app.logger.error(f"Error rendering plan history: {e}")
+        return f"<div class='alert alert-danger'>エラーが発生しました: {str(e)}</div>", 500
+
+
 @app.route("/api/generate/general")
 @login_required
 def generate_general_stream():
