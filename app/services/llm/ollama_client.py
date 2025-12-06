@@ -1,8 +1,8 @@
 import json
 import logging
 import os
-import re
 import pprint
+import re
 import textwrap
 import time
 from datetime import date
@@ -73,13 +73,13 @@ def extract_and_parse_json(text: str) -> dict:
     """
     # 1. <think>タグの除去 (思考プロセスが含まれる場合)
     text_cleaned = re.sub(r'<think>.*?</think>', '', text, flags=re.DOTALL)
-    
+
     # 2. Markdownコードブロック ```json ... ``` の抽出
     json_match = re.search(r'```json\s*(\{.*?\})\s*```', text_cleaned, re.DOTALL)
     if not json_match:
         # コードブロックがない場合、単なる ``` ... ``` を探す
         json_match = re.search(r'```\s*(\{.*?\})\s*```', text_cleaned, re.DOTALL)
-    
+
     if json_match:
         json_str = json_match.group(1)
     else:
@@ -772,12 +772,12 @@ def generate_ollama_plan_stream(patient_data: dict):
 
         for group_schema in GENERATION_GROUPS:
             print(f"\n--- Ollama Generating Group: {group_schema.__name__} ---")
-            
+
             for attempt in range(max_retries):
                 try:
                     # プロンプト構築 (ループ内で毎回行う必要はないが、念のためここでも可)
                     prompt = _build_ollama_group_prompt(group_schema, patient_facts_str, generated_plan_so_far)
-                    
+
                     # JSONモード切り替え
                     format_param = "json" if OLLAMA_USE_STRUCTURED_OUTPUT else None
                     if not OLLAMA_USE_STRUCTURED_OUTPUT:
@@ -788,9 +788,9 @@ def generate_ollama_plan_stream(patient_data: dict):
                     print(prompt)
                     # API呼び出し
                     stream = ollama.chat(
-                        model=OLLAMA_MODEL_NAME, 
-                        messages=[{"role": "user", "content": prompt}], 
-                        format=format_param, 
+                        model=OLLAMA_MODEL_NAME,
+                        messages=[{"role": "user", "content": prompt}],
+                        format=format_param,
                         stream=True
                     )
 
@@ -843,16 +843,16 @@ def generate_ollama_plan_stream(patient_data: dict):
                         if value is not None:
                             event_data = json.dumps({"key": key, "value": str(value), "model_type": "ollama_general"})
                             yield f"event: update\ndata: {event_data}\n\n"
-                    
+
                     print(f"--- Group {group_schema.__name__} processed successfully ---")
-                    
+
                     # 成功したらリトライループを抜ける
-                    break 
+                    break
 
                 except (ValidationError, json.JSONDecodeError, ValueError) as e:
                     print(f"エラー発生 (試行 {attempt+1}/{max_retries}): {e}")
                     logger.error(f"エラー詳細: {e}")
-                    
+
                     # 最大回数に達したらエラーを通知して次のグループへ
                     if attempt == max_retries - 1:
                         error_message = f"グループ {group_schema.__name__} の生成に失敗しました (リトライ上限到達): {e}"
@@ -1098,9 +1098,9 @@ def regenerate_ollama_plan_item_stream(
 
                 # 6. API呼び出し実行 (Ollama, ストリーミング)
                 stream = ollama.chat(
-                    model=OLLAMA_MODEL_NAME, 
-                    messages=[{"role": "user", "content": prompt}], 
-                    format=format_param, 
+                    model=OLLAMA_MODEL_NAME,
+                    messages=[{"role": "user", "content": prompt}],
+                    format=format_param,
                     stream=True
                 )
 
@@ -1137,14 +1137,14 @@ def regenerate_ollama_plan_item_stream(
 
                 validated_data = RegenerationSchema.model_validate(data_to_validate)
                 regenerated_text = validated_data.model_dump().get(item_key, "")
-                
+
                 # 成功したらループを抜ける
                 break
 
             except (json.JSONDecodeError, ValidationError, ValueError) as e:
                 print(f"Ollama再生成エラー (試行 {attempt+1}/{max_retries}): {e}")
                 logger.error(f"Ollama再生成エラー: {e}\nデータ: {accumulated_json_string}")
-                
+
                 if attempt == max_retries - 1:
                     # 最終失敗時はエラーテキストを設定
                     regenerated_text = f"エラー: 再生成に失敗しました。{e}"
