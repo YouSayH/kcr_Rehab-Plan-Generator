@@ -15,10 +15,10 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, ValidationError, create_model
 
 if TYPE_CHECKING:
-    from rag_executor import RAGExecutor
+    from app.services.llm.rag_executor import RAGExecutor
 
 # 共通のスキーマ定義をインポート
-from schemas import (
+from app.schemas.schemas import (
     GENERATION_GROUPS,
     RehabPlanSchema,
 )

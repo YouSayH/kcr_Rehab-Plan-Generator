@@ -17,12 +17,12 @@ from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
 from google.genai import types
 from pydantic import BaseModel, Field, create_model
 
-# RAG実行のコード(司令塔)をインポート
-from rag_executor import RAGExecutor
-
 # データをschemas.pyとして分離した。
 # これはgemini_clientのまま使うとrag_executorとgemini_clientで循環参照が起こってしまうため
-from schemas import GENERATION_GROUPS
+from app.schemas.schemas import GENERATION_GROUPS
+
+# RAG実行のコード(司令塔)をインポート
+from app.services.llm.rag_executor import RAGExecutor
 
 # 初期設定
 load_dotenv()

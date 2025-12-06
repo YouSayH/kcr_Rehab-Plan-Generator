@@ -32,12 +32,12 @@ from sqlalchemy import text
 from werkzeug.security import check_password_hash, generate_password_hash
 
 # 自作のPythonファイルをインポート
-import database
-import excel_writer
-import gemini_client
-import ollama_client
-from patient_info_parser import PatientInfoParser
-from rag_executor import RAGExecutor
+import app.core.database as database
+import app.services.excel_writer as excel_writer
+import app.services.llm.gemini_client as gemini_client
+import app.services.llm.ollama_client as ollama_client
+from app.services.llm.patient_info_parser import PatientInfoParser
+from app.services.llm.rag_executor import RAGExecutor
 
 load_dotenv()
 
@@ -110,7 +110,9 @@ def load_active_pipeline_from_config():
 # アプリケーション起動時に一度だけ読み込んで定数にセット
 DEFAULT_RAG_PIPELINE = load_active_pipeline_from_config()
 
-app = Flask(__name__)
+app = Flask(__name__,
+            template_folder="web/templates",
+            static_folder="web/static")
 
 # ユーザーのセッション情報（例: ログイン状態）を暗号化するため
 # これがないとflashメッセージなどが使えない。
@@ -481,7 +483,7 @@ def api_get_plan(plan_id):
         plan_data = database.get_plan_by_id(plan_id)
         if not plan_data:
             return jsonify({"error": "Plan not found"}), 404
-        
+
         # 権限チェック
         patient_id = plan_data["patient_id"]
         assigned_patients = database.get_assigned_patients(current_user.id)

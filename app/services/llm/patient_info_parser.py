@@ -10,7 +10,7 @@ from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
 from google.genai import types
 from pydantic import BaseModel, ValidationError
 
-from schemas import PATIENT_INFO_EXTRACTION_GROUPS  # 分割したスキーマのリストをインポート
+from app.schemas.schemas import PATIENT_INFO_EXTRACTION_GROUPS  # 分割したスキーマのリストをインポート
 
 load_dotenv()
 

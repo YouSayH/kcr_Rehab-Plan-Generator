@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from flask import Flask, jsonify, render_template
 
-import database
+import app.core.database as database
 
 # app.pyから項目名のマッピングをインポート
 from app import ITEM_KEY_TO_JAPANESE
