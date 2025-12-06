@@ -1330,44 +1330,44 @@
                     displayDiv.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div><p>読み込み中...</p></div>';
                     displayDiv.style.display = 'block';
 
-                    fetch(`/api/get_plan/${planId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.error) {
-                                displayDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                                return;
+                    fetch(`/api/render_plan_history/${planId}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
                             }
-
-                            let html = '<div class="history-content">';
-                            html += `<h5 class="border-bottom pb-2 mb-3">作成日: ${data.created_at ? data.created_at.replace('T', ' ') : '不明'}</h5>`;
-
-                            // ITEM_KEY_TO_JAPANESE の順序で表示したいが、オブジェクトなので順序は保証されない
-                            // 定義順序を維持するためにキーの配列を使用するか、ITEM_KEY_TO_JAPANESEを反復する
-
-                            for (const key in ITEM_KEY_TO_JAPANESE) {
-                                const label = ITEM_KEY_TO_JAPANESE[key];
-                                const value = data[key];
-
-                                // 値がある場合のみ表示、または空でも項目名は表示するか？
-                                // 比較のためには空でも表示したほうがいいかもしれないが、見やすさ重視で値があるものだけにするか
-                                // ここでは値があるものだけ表示する
-                                if (value) {
-                                    html += `<div class="mb-3">`;
-                                    html += `<label class="fw-bold text-primary small">${label}</label>`;
-                                    html += `<div class="p-2 bg-light border rounded" style="white-space: pre-wrap; font-size: 0.9em;">${value}</div>`;
-                                    html += `</div>`;
-                                }
-                            }
-                            html += '</div>';
+                            return response.text();
+                        })
+                        .then(html => {
                             displayDiv.innerHTML = html;
+                            // 履歴表示後にtextareaの高さを調整
+                            autoResizeTextareas();
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            displayDiv.innerHTML = `<div class="alert alert-danger">通信エラーが発生しました。</div>`;
+                            displayDiv.innerHTML = `<div class="alert alert-danger">通信エラーが発生しました: ${error.message}</div>`;
                         });
                 });
             }
 
+            // 修正4: textareaの高さ自動調整関数
+            function autoResizeTextareas() {
+                const textareas = document.querySelectorAll('.auto-resize-textarea');
+                textareas.forEach(textarea => {
+                    // 高さをリセットしてから再計算
+                    textarea.style.height = 'auto';
+                    textarea.style.height = (textarea.scrollHeight + 2) + 'px'; // +2 for border
+                });
+            }
+
+            // 初期表示時にも実行
+            autoResizeTextareas();
+            // タブ切り替え時にも実行（隠れている要素が表示されたときに高さがずれるのを防ぐ）
+            const infoTabs = document.getElementById('infoTabs');
+            if (infoTabs) {
+                infoTabs.addEventListener('shown.bs.tab', function (event) {
+                    autoResizeTextareas();
+                });
+            }
         });
     </script>
 </body>

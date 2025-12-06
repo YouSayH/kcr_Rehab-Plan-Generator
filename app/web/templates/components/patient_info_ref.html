@@ -648,6 +648,8 @@
                 </div>
                 {% endmacro %}
 
+
+
                 {{ render_basic_movement('寝返り', 'ref_func_basic_rolling_chk', 'ref_func_basic_rolling_level',
                 patient_data.func_basic_rolling_chk, patient_data.func_basic_rolling_independent_chk and 'independent'
                 or patient_data.func_basic_rolling_partial_assistance_chk and 'partial_assist' or
@@ -692,6 +694,7 @@
     </div>
 
     <!-- ADLセクション -->
+    <!-- 修正1: 重複していたカード構造を削除し、一本化 -->
     <div class="card mb-4 shadow-sm">
         <div class="card-header">日常生活活動（動作）</div>
         <div class="card-body p-0">
@@ -710,11 +713,52 @@
                         </tr>
                     </thead>
                     <tbody>
+                        <!-- 合計値の計算ロジック（表の上部に移動） -->
+                        {% set fim_motor_items = ['eating', 'grooming', 'bathing', 'dressing_upper',
+                        'dressing_lower',
+                        'toileting', 'bladder_management', 'bowel_management', 'transfer_bed_chair_wc',
+                        'transfer_toilet', 'transfer_tub_shower', 'locomotion_walk_walkingAids_wc',
+                        'locomotion_stairs']
+                        %}
+                        {% set fim_cognitive_items = ['comprehension', 'expression', 'social_interaction',
+                        'problem_solving', 'memory'] %}
+                        {% set bi_items = ['eating', 'grooming', 'bathing', 'dressing', 'toileting',
+                        'bladder_management', 'bowel_management', 'transfer', 'locomotion_walk_walkingAids_wc',
+                        'locomotion_stairs'] %}
+
+                        {% set ns = namespace(fim_motor_start=0, fim_motor_current=0, fim_cog_start=0,
+                        fim_cog_current=0, bi_start=0, bi_current=0) %}
+
+                        {# FIM 運動 計算 #}
+                        {% for key in fim_motor_items %}
+                        {% set start = patient_data['adl_' + key + '_fim_start_val']|int(0) %}
+                        {% set current = patient_data['adl_' + key + '_fim_current_val']|int(0) %}
+                        {% set ns.fim_motor_start = ns.fim_motor_start + start %}
+                        {% set ns.fim_motor_current = ns.fim_motor_current + current %}
+                        {% endfor %}
+
+                        {# FIM 認知 計算 #}
+                        {% for key in fim_cognitive_items %}
+                        {% set start = patient_data['adl_' + key + '_fim_start_val']|int(0) %}
+                        {% set current = patient_data['adl_' + key + '_fim_current_val']|int(0) %}
+                        {% set ns.fim_cog_start = ns.fim_cog_start + start %}
+                        {% set ns.fim_cog_current = ns.fim_cog_current + current %}
+                        {% endfor %}
+
+                        {# BI 計算 #}
+                        {% for key in bi_items %}
+                        {% set start = patient_data['adl_' + key + '_bi_start_val']|int(0) %}
+                        {% set current = patient_data['adl_' + key + '_bi_current_val']|int(0) %}
+                        {% set ns.bi_start = ns.bi_start + start %}
+                        {% set ns.bi_current = ns.bi_current + current %}
+                        {% endfor %}
+
                         {% macro render_adl_row(category, item, fim_key, bi_key, rowspan=1, is_first=false,
                         include_textarea=false) %}
                         <tr>
                             {% if is_first %}
-                            <th rowspan="{{ rowspan }}" class="text-center align-middle bg-light">{{ category }}</th>
+                            <th rowspan="{{ rowspan }}" class="text-center align-middle bg-light">{{
+                                category }}</th>
                             {% endif %}
                             <td>{{ item }}</td>
                             <td>
@@ -737,8 +781,8 @@
                                 </div>
                             </td>
                             {% if include_textarea %}
-                            <td rowspan="19">
-                                <textarea class="form-control form-control-sm h-100" style="min-height: 400px;"
+                            <td rowspan="22">
+                                <textarea class="form-control form-control-sm h-100" style="min-height: 800px;"
                                     disabled>{{ patient_data.adl_equipment_and_assistance_details_txt or '' }}</textarea>
                             </td>
                             {% endif %}
@@ -749,33 +793,878 @@
                         {{ render_adl_row('', '整容', 'grooming', 'grooming') }}
                         {{ render_adl_row('', '清拭・入浴', 'bathing', 'bathing') }}
                         {{ render_adl_row('', '更衣（上半身）', 'dressing_upper', 'dressing') }}
-                        {{ render_adl_row('', '更衣（下半身）', 'dressing_lower', 'dressing') }} <!-- BIはdressingで共通 -->
+                        {{ render_adl_row('', '更衣（下半身）', 'dressing_lower', 'dressing') }}
                         {{ render_adl_row('', 'トイレ', 'toileting', 'toileting') }}
 
-                        {{ render_adl_row('排泄', '排尿管理', 'bladder_management', 'bladder_management', 2, true) }}
+                        {{ render_adl_row('排泄', '排尿管理', 'bladder_management', 'bladder_management',
+                        2, true) }}
                         {{ render_adl_row('', '排便管理', 'bowel_management', 'bowel_management') }}
 
-                        {{ render_adl_row('移乗', 'ベッド・椅子', 'transfer_bed_chair_wc', 'transfer', 3, true) }}
-                        {{ render_adl_row('', 'トイレ', 'transfer_toilet', 'transfer') }} <!-- BIはtransferで共通 -->
-                        {{ render_adl_row('', '浴槽', 'transfer_tub_shower', 'transfer') }} <!-- BIはtransferで共通 -->
+                        {{ render_adl_row('移乗', 'ベッド・椅子', 'transfer_bed_chair_wc', 'transfer', 3,
+                        true) }}
+                        {{ render_adl_row('', 'トイレ', 'transfer_toilet', 'transfer') }}
+                        {{ render_adl_row('', '浴槽', 'transfer_tub_shower', 'transfer') }}
 
                         {{ render_adl_row('移動', '歩行/車椅子', 'locomotion_walk_walkingAids_wc',
                         'locomotion_walk_walkingAids_wc', 2, true) }}
                         {{ render_adl_row('', '階段', 'locomotion_stairs', 'locomotion_stairs') }}
 
+                        <!-- 運動項目 小計 / BI 小計 (Motor Subtotal) -->
+                        <tr class="table-info fw-bold">
+                            <th colspan="2" class="text-end">小計 (FIM運動 / BI)</th>
+                            <td>
+                                <div class="d-flex justify-content-center">
+                                    <span>{{ ns.fim_motor_start }}</span>
+                                    <span class="mx-1">→</span>
+                                    <span>{{ ns.fim_motor_current }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-center">
+                                    <span>{{ ns.bi_start }}</span>
+                                    <span class="mx-1">→</span>
+                                    <span>{{ ns.bi_current }}</span>
+                                </div>
+                            </td>
+                        </tr>
+
                         <!-- 認知項目 -->
                         <tr>
                             <th colspan="4" class="table-light text-center">認知項目 (FIMのみ)</th>
                         </tr>
-                        {{ render_adl_row('コミュ', '理解', 'comprehension', 'comprehension_dummy', 2, true) }}
+                        {{ render_adl_row('コミュ', '理解', 'comprehension', 'comprehension_dummy', 2,
+                        true) }}
                         {{ render_adl_row('', '表出', 'expression', 'expression_dummy') }}
-                        {{ render_adl_row('社会認識', '社会的交流', 'social_interaction', 'social_interaction_dummy', 3, true) }}
-                        {{ render_adl_row('', '問題解決', 'problem_solving', 'problem_solving_dummy') }}
+                        {{ render_adl_row('社会認識', '社会的交流', 'social_interaction',
+                        'social_interaction_dummy', 3, true) }}
+                        {{ render_adl_row('問題解決', '問題解決', 'problem_solving', 'problem_solving_dummy') }}
                         {{ render_adl_row('', '記憶', 'memory', 'memory_dummy') }}
 
+                        <!-- 認知項目 小計 (Cognitive Subtotal) -->
+                        <tr class="table-info fw-bold">
+                            <th colspan="2" class="text-end">小計 (FIM認知)</th>
+                            <td>
+                                <div class="d-flex justify-content-center">
+                                    <span>{{ ns.fim_cog_start }}</span>
+                                    <span class="mx-1">→</span>
+                                    <span>{{ ns.fim_cog_current }}</span>
+                                </div>
+                            </td>
+                            <td class="bg-light"></td>{# BIに認知はない #}
+                        </tr>
+
+                        <!-- 合計 (Grand Total) -->
+                        <tr class="table-primary fw-bold" style="border-top: 2px solid #666;">
+                            <th colspan="2" class="text-end">合計 (FIM総合)</th>
+                            <td>
+                                <div class="d-flex justify-content-center">
+                                    <span>{{ ns.fim_motor_start + ns.fim_cog_start }}</span>
+                                    <span class="mx-1">→</span>
+                                    <span>{{ ns.fim_motor_current + ns.fim_cog_current }}</span>
+                                </div>
+                            </td>
+                            <td class="bg-light"></td>{# BIは小計で完了 #}
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    <!-- 栄養状況セクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">栄養状況</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if patient_data.nutrition_height_chk
+                                %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">身長</span>
+                        <input type="text" class="form-control" value="{{ patient_data.nutrition_height_val or '' }}"
+                            disabled>
+                        <span class="input-group-text bg-white">cm</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if patient_data.nutrition_weight_chk
+                                %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">体重</span>
+                        <input type="text" class="form-control" value="{{ patient_data.nutrition_weight_val or '' }}"
+                            disabled>
+                        <span class="input-group-text bg-white">kg</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0" type="checkbox" {% if patient_data.nutrition_bmi_chk
+                                %}checked{% endif %} disabled>
+                        </div>
+                        <span class="input-group-text bg-white">BMI</span>
+                        <input type="text" class="form-control" value="{{ patient_data.nutrition_bmi_val or '' }}"
+                            disabled>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="card border-light bg-light">
+                        <div class="card-body p-2">
+                            <label class="fw-bold mb-1">摂取方法</label>
+                            <div class="d-flex flex-wrap gap-3">
+                                <div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.nutrition_method_oral_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">経口</label>
+                                    </div>
+                                    <div class="ps-3 small">
+                                        <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                                patient_data.nutrition_method_oral_meal_chk %}checked{% endif %}
+                                                disabled><label class="form-check-label">食事</label></div>
+                                        <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                                patient_data.nutrition_method_oral_supplement_chk %}checked{% endif %}
+                                                disabled><label class="form-check-label">補助食品</label></div>
+                                    </div>
+                                </div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.nutrition_method_tube_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">経管</label></div>
+                                <div>
+                                    <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                            patient_data.nutrition_method_iv_chk %}checked{% endif %} disabled><label
+                                            class="form-check-label">静脈</label>
+                                    </div>
+                                    <div class="ps-3 small">
+                                        <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                                patient_data.nutrition_method_iv_peripheral_chk %}checked{% endif %}
+                                                disabled><label class="form-check-label">末梢</label></div>
+                                        <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                                patient_data.nutrition_method_iv_central_chk %}checked{% endif %}
+                                                disabled><label class="form-check-label">中心</label></div>
+                                    </div>
+                                </div>
+                                <div class="form-check"><input class="form-check-input" type="checkbox" {% if
+                                        patient_data.nutrition_method_peg_chk %}checked{% endif %} disabled><label
+                                        class="form-check-label">瘻孔(胃・腸)</label></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white">嚥下調整食コード</span>
+                        <span class="input-group-text bg-white">
+                            <input type="radio" class="form-check-input mt-0 me-1" {% if
+                                patient_data.nutrition_swallowing_diet_slct=='2013' %}checked{% endif %} disabled>2013
+                            <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
+                                patient_data.nutrition_swallowing_diet_slct=='2021' %}checked{% endif %} disabled>2021
+                        </span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.nutrition_swallowing_diet_code_txt or '' }}" disabled>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white">栄養状態評価</span>
+                        <span class="input-group-text bg-white">
+                            <input type="radio" class="form-check-input mt-0 me-1" {% if
+                                patient_data.nutrition_status_assessment_slct=='glim' %}checked{% endif %}
+                                disabled>GLIM基準
+                            <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
+                                patient_data.nutrition_status_assessment_slct=='other' %}checked{% endif %} disabled>その他
+                        </span>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.nutrition_status_assessment_other_txt or '' }}" disabled
+                            placeholder="その他詳細">
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="d-flex gap-3">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white">必要量</span>
+                            <span class="input-group-text bg-white">E</span>
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.nutrition_required_energy_val or '' }}" disabled
+                                style="max-width: 80px;">
+                            <span class="input-group-text bg-white">kcal</span>
+                            <span class="input-group-text bg-white">P</span>
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.nutrition_required_protein_val or '' }}" disabled
+                                style="max-width: 80px;">
+                            <span class="input-group-text bg-white">g</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text bg-white">全摂取量</span>
+                            <span class="input-group-text bg-white">E</span>
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.nutrition_total_intake_energy_val or '' }}" disabled
+                                style="max-width: 80px;">
+                            <span class="input-group-text bg-white">kcal</span>
+                            <span class="input-group-text bg-white">P</span>
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.nutrition_total_intake_protein_val or '' }}" disabled
+                                style="max-width: 80px;">
+                            <span class="input-group-text bg-white">g</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 社会情報セクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">社会情報</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="fw-bold mb-1">障害高齢者の日常生活自立度</label>
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="input-group input-group-sm w-auto">
+                            <div class="input-group-text">
+                                <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                    patient_data.social_care_level_status_chk %}checked{% endif %} disabled> 生活自立
+                            </div>
+                        </div>
+                        <div class="input-group input-group-sm w-auto">
+                            <div class="input-group-text">
+                                <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                    patient_data.social_care_level_applying_chk %}checked{% endif %} disabled> 申請中
+                            </div>
+                        </div>
+                        <div class="border rounded px-2 py-1 bg-light">
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="checkbox" {% if
+                                    patient_data.social_care_level_support_chk %}checked{% endif %} disabled>
+                                <label class="form-check-label">要支援</label>
+                            </div>
+                            (
+                            <div class="form-check form-check-inline mb-0"><input class="form-check-input"
+                                    type="checkbox" {% if patient_data.social_care_level_support_num1_slct %}checked{%
+                                    endif %} disabled><label class="form-check-label">1</label>
+                            </div>
+                            <div class="form-check form-check-inline mb-0"><input class="form-check-input"
+                                    type="checkbox" {% if patient_data.social_care_level_support_num2_slct %}checked{%
+                                    endif %} disabled><label class="form-check-label">2</label>
+                            </div>
+                            )
+                        </div>
+                        <div class="border rounded px-2 py-1 bg-light">
+                            <div class="form-check form-check-inline mb-0">
+                                <input class="form-check-input" type="checkbox" {% if
+                                    patient_data.social_care_level_care_slct %}checked{% endif %} disabled>
+                                <label class="form-check-label">要介護</label>
+                            </div>
+                            (
+                            <div class="form-check form-check-inline mb-0"><input class="form-check-input"
+                                    type="checkbox" {% if patient_data.social_care_level_care_num1_slct %}checked{%
+                                    endif %} disabled><label class="form-check-label">1</label></div>
+                            <div class="form-check form-check-inline mb-0"><input class="form-check-input"
+                                    type="checkbox" {% if patient_data.social_care_level_care_num2_slct %}checked{%
+                                    endif %} disabled><label class="form-check-label">2</label></div>
+                            <div class="form-check form-check-inline mb-0"><input class="form-check-input"
+                                    type="checkbox" {% if patient_data.social_care_level_care_num3_slct %}checked{%
+                                    endif %} disabled><label class="form-check-label">3</label></div>
+                            <div class="form-check form-check-inline mb-0"><input class="form-check-input"
+                                    type="checkbox" {% if patient_data.social_care_level_care_num4_slct %}checked{%
+                                    endif %} disabled><label class="form-check-label">4</label></div>
+                            <div class="form-check form-check-inline mb-0"><input class="form-check-input"
+                                    type="checkbox" {% if patient_data.social_care_level_care_num5_slct %}checked{%
+                                    endif %} disabled><label class="form-check-label">5</label></div>
+                            )
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <label class="fw-bold mb-1">障害者手帳</label>
+                    <div class="d-flex flex-column gap-2">
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-text">
+                                <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                    patient_data.social_disability_certificate_physical_chk %}checked{% endif %}
+                                    disabled> 身体障害
+                            </div>
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.social_disability_certificate_physical_txt or '' }}" disabled
+                                placeholder="内容">
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.social_disability_certificate_physical_type_txt or '' }}"
+                                disabled placeholder="種" style="max-width: 80px;">
+                            <span class="input-group-text">種</span>
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.social_disability_certificate_physical_rank_val or '' }}"
+                                disabled placeholder="級" style="max-width: 80px;">
+                            <span class="input-group-text">級</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-text">
+                                <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                    patient_data.social_disability_certificate_mental_chk %}checked{% endif %} disabled>
+                                精神障害
+                            </div>
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.social_disability_certificate_mental_rank_val or '' }}" disabled
+                                placeholder="級" style="max-width: 80px;">
+                            <span class="input-group-text">級</span>
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-text">
+                                <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                    patient_data.social_disability_certificate_intellectual_chk %}checked{% endif %}
+                                    disabled> 療育手帳
+                            </div>
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.social_disability_certificate_intellectual_txt or '' }}" disabled
+                                placeholder="名称">
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.social_disability_certificate_intellectual_grade_txt or '' }}"
+                                disabled placeholder="判定" style="max-width: 100px;">
+                        </div>
+                        <div class="input-group input-group-sm">
+                            <div class="input-group-text">
+                                <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                    patient_data.social_disability_certificate_other_chk %}checked{% endif %} disabled>
+                                その他
+                            </div>
+                            <input type="text" class="form-control"
+                                value="{{ patient_data.social_disability_certificate_other_txt or '' }}" disabled
+                                placeholder="詳細">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 目標・期間セクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">目標・期間</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-12">
+                    <label class="form-label">目標（1ヶ月）</label>
+                    <textarea class="form-control" rows="5"
+                        disabled>{{ patient_data.goals_1_month_txt or '' }}</textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">目標（終了時）</label>
+                    <textarea class="form-control" rows="5"
+                        disabled>{{ patient_data.goals_at_discharge_txt or '' }}</textarea>
+                </div>
+                <div class="col-12">
+                    <div class="input-group input-group-sm mb-2">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goals_planned_hospitalization_period_chk %}checked{% endif %} disabled>
+                            入院予定期間
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goals_planned_hospitalization_period_txt or '' }}" disabled>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goals_dischage_destination_chk %}checked{% endif %} disabled> 退院先
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goals_discharge_destination_txt or '' }}" disabled>
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" {% if
+                            patient_data.goals_long_term_care_needed_chk %}checked{% endif %} disabled>
+                        <label class="form-check-label">介護が必要になると見込まれる</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 参加セクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">参加</div>
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- 住まい -->
+                <div class="col-12">
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goal_p_residence_chk %}checked{% endif %} disabled> 住まい
+                        </div>
+                        <div class="input-group-text bg-white">
+                            <input type="radio" class="form-check-input mt-0 me-1" {% if
+                                patient_data.goal_p_residence_slct=='house' %}checked{% endif %} disabled>家屋
+                            <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
+                                patient_data.goal_p_residence_slct=='facility' %}checked{% endif %} disabled>施設
+                            <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
+                                patient_data.goal_p_residence_slct=='other' %}checked{% endif %} disabled>その他
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goal_p_residence_other_txt or '' }}" disabled placeholder="詳細">
+                    </div>
+                </div>
+
+                <!-- 復職 -->
+                <div class="col-12">
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goal_p_return_to_work_chk %}checked{% endif %} disabled> 復職
+                        </div>
+                        <div class="input-group-text bg-white">
+                            <input type="radio" class="form-check-input mt-0 me-1" {% if
+                                patient_data.goal_p_return_to_work_status_slct=='possible' %}checked{% endif %}
+                                disabled>可
+                            <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
+                                patient_data.goal_p_return_to_work_status_slct=='needs_consideration' %}checked{% endif
+                                %} disabled>困難（要検討）
+                            <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
+                                patient_data.goal_p_return_to_work_status_slct=='change_job' %}checked{% endif %}
+                                disabled>配置転換
+                            <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
+                                patient_data.goal_p_return_to_work_status_slct=='not_possible' %}checked{% endif %}
+                                disabled>不可
+                            <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
+                                patient_data.goal_p_return_to_work_status_slct=='other' %}checked{% endif %}
+                                disabled>その他
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goal_p_return_to_work_status_other_txt or '' }}" disabled
+                            placeholder="その他詳細">
+                    </div>
+                    <div class="form-check ms-3 mt-1">
+                        <input class="form-check-input" type="checkbox" {% if
+                            patient_data.goal_p_return_to_work_commute_change_chk %}checked{% endif %} disabled>
+                        <label class="form-check-label">通勤手段の変更</label>
+                    </div>
+                </div>
+
+                <!-- 復学・就学 -->
+                <div class="col-12">
+                    <div class="card border-light bg-light">
+                        <div class="card-body p-2">
+                            <div class="checkbox-label mb-1">
+                                <input class="form-check-input me-1" type="checkbox" {% if
+                                    patient_data.goal_p_schooling_chk %}checked{% endif %} disabled>
+                                復学・就学
+                            </div>
+                            <div class="ms-3 d-flex flex-wrap gap-2">
+                                <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
+                                        patient_data.goal_p_schooling_status_possible_chk %}checked{% endif %}
+                                        disabled>可</label>
+                                <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
+                                        patient_data.goal_p_schooling_status_needs_consideration_chk %}checked{% endif
+                                        %} disabled>困難（要検討）</label>
+                                <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
+                                        patient_data.goal_p_schooling_status_change_course_chk %}checked{% endif %}
+                                        disabled>進路変更</label>
+                                <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
+                                        patient_data.goal_p_schooling_status_not_possible_chk %}checked{% endif %}
+                                        disabled>不可</label>
+                                <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
+                                        patient_data.goal_p_schooling_status_other_chk %}checked{% endif %}
+                                        disabled>その他</label>
+                                <input type="text" class="form-control form-control-sm d-inline-block"
+                                    style="width: 150px;"
+                                    value="{{ patient_data.goal_p_schooling_status_other_txt or '' }}" disabled
+                                    placeholder="その他詳細">
+                            </div>
+                            <div class="ms-3 mt-1 d-flex gap-3">
+                                <div class="input-group input-group-sm w-auto">
+                                    <div class="input-group-text bg-transparent border-0 ps-0">
+                                        <input class="form-check-input me-1" type="checkbox" {% if
+                                            patient_data.goal_p_schooling_destination_chk %}checked{% endif %} disabled>
+                                        就学先
+                                    </div>
+                                    <input type="text" class="form-control"
+                                        value="{{ patient_data.goal_p_schooling_destination_txt or '' }}" disabled>
+                                </div>
+                                <div class="input-group input-group-sm w-auto">
+                                    <div class="input-group-text bg-transparent border-0">
+                                        <input class="form-check-input me-1" type="checkbox" {% if
+                                            patient_data.goal_p_schooling_commute_change_chk %}checked{% endif %}
+                                            disabled> 通学手段の変更
+                                    </div>
+                                    <input type="text" class="form-control"
+                                        value="{{ patient_data.goal_p_schooling_commute_change_txt or '' }}" disabled>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- その他役割など -->
+                <div class="col-12">
+                    <div class="input-group input-group-sm mb-2">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goal_p_household_role_chk %}checked{% endif %} disabled> 家庭内の役割
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goal_p_household_role_txt or '' }}" disabled>
+                    </div>
+                    <div class="input-group input-group-sm mb-2">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goal_p_social_activity_chk %}checked{% endif %} disabled> 社会活動
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goal_p_social_activity_txt or '' }}" disabled>
+                    </div>
+                    <div class="input-group input-group-sm">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goal_p_hobby_chk %}checked{% endif %} disabled> 趣味
+                        </div>
+                        <input type="text" class="form-control" value="{{ patient_data.goal_p_hobby_txt or '' }}"
+                            disabled>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- 活動・環境・第三者 詳細セクション -->
+    {% macro render_activity_detail(label, base_key, has_text=False, text_placeholder='',
+    extra_options=None) %}
+    <div class="card mb-2 border-light bg-light">
+        <div class="card-body p-2">
+            <div class="d-flex align-items-center mb-1">
+                <input class="form-check-input me-2" type="checkbox" {% if patient_data[base_key + '_chk' ] %}checked{%
+                    endif %} disabled>
+                <span class="fw-bold">{{ label }}</span>
+                <div class="ms-auto btn-group btn-group-sm">
+                    <span
+                        class="badge bg-secondary me-1 {% if not patient_data[base_key + '_independent_chk'] %}opacity-25{% endif %}">自立</span>
+                    <span
+                        class="badge bg-secondary me-1 {% if not patient_data[base_key + '_assistance_chk'] %}opacity-25{% endif %}">介助</span>
+                    <span
+                        class="badge bg-secondary {% if not patient_data[base_key + '_not_performed_chk'] %}opacity-25{% endif %}">非実施</span>
+                </div>
+            </div>
+            {% if extra_options %}
+            <div class="ms-3 mb-1 small text-muted">
+                {{ extra_options|safe }}
+            </div>
+            {% endif %}
+            {% if has_text %}
+            <div class="input-group input-group-sm ms-3" style="width: auto;">
+                <span class="input-group-text bg-transparent border-0 ps-0">詳細:</span>
+                <input type="text" class="form-control form-control-sm"
+                    value="{{ patient_data[base_key + '_txt'] or '' }}" disabled placeholder="{{ text_placeholder }}">
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endmacro %}
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">活動詳細・環境・第三者</div>
+        <div class="card-body">
+            <h6 class="border-bottom pb-1 mb-2">活動の詳細</h6>
+            <div class="row g-2 mb-3">
+                <div class="col-md-6">
+                    <div class="card mb-2 border-light bg-light h-100">
+                        <div class="card-body p-2">
+                            <input class="form-check-input me-2" type="checkbox" {% if
+                                patient_data.goal_a_bed_mobility_chk %}checked{% endif %} disabled>
+                            <span class="fw-bold">ベッド上動作</span>
+                            <div class="ms-3 mt-1 small">
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_bed_mobility_independent_chk %}opacity-25{% endif %}">自立</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_bed_mobility_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_bed_mobility_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                                <span
+                                    class="badge bg-info text-dark me-1 {% if not patient_data.goal_a_bed_mobility_equipment_chk %}opacity-25{% endif %}">用具</span>
+                                <span
+                                    class="badge bg-info text-dark {% if not patient_data.goal_a_bed_mobility_environment_setup_chk %}opacity-25{% endif %}">環境</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-2 border-light bg-light h-100">
+                        <div class="card-body p-2">
+                            <input class="form-check-input me-2" type="checkbox" {% if
+                                patient_data.goal_a_indoor_mobility_chk %}checked{% endif %} disabled>
+                            <span class="fw-bold">屋内移動</span>
+                            <div class="ms-3 mt-1 small">
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_indoor_mobility_independent_chk %}opacity-25{% endif %}">自立</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_indoor_mobility_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_indoor_mobility_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <div class="input-group-text bg-transparent border-0 p-0 me-1">
+                                    <input class="form-check-input mt-0" type="checkbox" {% if
+                                        patient_data.goal_a_indoor_mobility_equipment_chk %}checked{% endif %} disabled>
+                                    用具
+                                </div>
+                                <input type="text" class="form-control"
+                                    value="{{ patient_data.goal_a_indoor_mobility_equipment_txt or '' }}" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-2 border-light bg-light h-100">
+                        <div class="card-body p-2">
+                            <input class="form-check-input me-2" type="checkbox" {% if
+                                patient_data.goal_a_outdoor_mobility_chk %}checked{% endif %} disabled>
+                            <span class="fw-bold">屋外移動</span>
+                            <div class="ms-3 mt-1 small">
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_outdoor_mobility_independent_chk %}opacity-25{% endif %}">自立</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_outdoor_mobility_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_outdoor_mobility_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <div class="input-group-text bg-transparent border-0 p-0 me-1">
+                                    <input class="form-check-input mt-0" type="checkbox" {% if
+                                        patient_data.goal_a_outdoor_mobility_equipment_chk %}checked{% endif %}
+                                        disabled> 用具
+                                </div>
+                                <input type="text" class="form-control"
+                                    value="{{ patient_data.goal_a_outdoor_mobility_equipment_txt or '' }}" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-2 border-light bg-light h-100">
+                        <div class="card-body p-2">
+                            <input class="form-check-input me-2" type="checkbox" {% if patient_data.goal_a_driving_chk
+                                %}checked{% endif %} disabled>
+                            <span class="fw-bold">自動車運転</span>
+                            <div class="ms-3 mt-1 small">
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_driving_independent_chk %}opacity-25{% endif %}">自立</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_driving_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_driving_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <div class="input-group-text bg-transparent border-0 p-0 me-1">
+                                    <input class="form-check-input mt-0" type="checkbox" {% if
+                                        patient_data.goal_a_driving_modification_chk %}checked{% endif %} disabled> 改造
+                                </div>
+                                <input type="text" class="form-control"
+                                    value="{{ patient_data.goal_a_driving_modification_txt or '' }}" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-2 border-light bg-light h-100">
+                        <div class="card-body p-2">
+                            <input class="form-check-input me-2" type="checkbox" {% if
+                                patient_data.goal_a_public_transport_chk %}checked{% endif %} disabled>
+                            <span class="fw-bold">公共交通機関</span>
+                            <div class="ms-3 mt-1 small">
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_public_transport_independent_chk %}opacity-25{% endif %}">自立</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_public_transport_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_public_transport_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <div class="input-group-text bg-transparent border-0 p-0 me-1">
+                                    <input class="form-check-input mt-0" type="checkbox" {% if
+                                        patient_data.goal_a_public_transport_type_chk %}checked{% endif %} disabled> 種類
+                                </div>
+                                <input type="text" class="form-control"
+                                    value="{{ patient_data.goal_a_public_transport_type_txt or '' }}" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card mb-2 border-light bg-light h-100">
+                        <div class="card-body p-2">
+                            <input class="form-check-input me-2" type="checkbox" {% if patient_data.goal_a_toileting_chk
+                                %}checked{% endif %} disabled>
+                            <span class="fw-bold">トイレ動作</span>
+                            <div class="ms-3 mt-1 small">
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_toileting_independent_chk %}opacity-25{% endif %}">自立</span>
+                                <span
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_toileting_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                (
+                                <span
+                                    class="{% if not patient_data.goal_a_toileting_assistance_clothing_chk %}text-muted{% endif %}">着脱</span>/
+                                <span
+                                    class="{% if not patient_data.goal_a_toileting_assistance_wiping_chk %}text-muted{% endif %}">清拭</span>/
+                                <span
+                                    class="{% if not patient_data.goal_a_toileting_assistance_catheter_chk %}text-muted{% endif %}">カテーテル</span>
+                                )
+                            </div>
+                            <div class="input-group input-group-sm mt-1">
+                                <div class="input-group-text bg-transparent border-0 p-0 me-1">
+                                    <input class="form-check-input mt-0" type="checkbox" {% if
+                                        patient_data.goal_a_toileting_type_chk %}checked{% endif %} disabled> 様式
+                                </div>
+                                <span
+                                    class="badge bg-light text-dark border me-1 {% if not patient_data.goal_a_toileting_type_western_chk %}opacity-25{% endif %}">洋式</span>
+                                <span
+                                    class="badge bg-light text-dark border me-1 {% if not patient_data.goal_a_toileting_type_japanese_chk %}opacity-25{% endif %}">和式</span>
+                                <input type="text" class="form-control"
+                                    value="{{ patient_data.goal_a_toileting_type_other_txt or '' }}" disabled
+                                    placeholder="その他">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h6 class="border-bottom pb-1 mb-2 mt-4">環境・制度</h6>
+            <div class="row g-2 mb-3">
+                <div class="col-12">
+                    <div class="input-group input-group-sm mb-1">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goal_s_env_home_modification_chk %}checked{% endif %} disabled> 家屋改修
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goal_s_env_home_modification_txt or '' }}" disabled>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="input-group input-group-sm mb-1">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goal_s_env_assistive_device_chk %}checked{% endif %} disabled> 補助具
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goal_s_env_assistive_device_txt or '' }}" disabled>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="card border-light bg-light rounded-0">
+                        <div class="card-body p-2">
+                            <input class="form-check-input me-2" type="checkbox" {% if
+                                patient_data.goal_s_env_social_security_chk %}checked{% endif %} disabled>
+                            <span class="fw-bold">社会保障制度</span>
+                            <div class="ms-3 pt-1 d-flex flex-wrap gap-2 small">
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_social_security_physical_disability_cert_chk %}opacity-25{% endif %}">身体障害者手帳</span>
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_social_security_disability_pension_chk %}opacity-25{% endif %}">障害年金</span>
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_social_security_intractable_disease_cert_chk %}opacity-25{% endif %}">特定疾患受給者証</span>
+                                <div class="input-group input-group-sm w-auto">
+                                    <span class="input-group-text bg-transparent border-0 p-0 me-1">その他</span>
+                                    <input type="text" class="form-control form-control-sm"
+                                        value="{{ patient_data.goal_s_env_social_security_other_txt or '' }}" disabled>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="card border-light bg-light rounded-0">
+                        <div class="card-body p-2">
+                            <input class="form-check-input me-2" type="checkbox" {% if
+                                patient_data.goal_s_env_care_insurance_chk %}checked{% endif %} disabled>
+                            <span class="fw-bold">介護保険</span>
+                            <div class="input-group input-group-sm mb-1 ms-3" style="width:auto;">
+                                <input type="text" class="form-control"
+                                    value="{{ patient_data.goal_s_env_care_insurance_details_txt or '' }}" disabled
+                                    placeholder="詳細">
+                            </div>
+                            <div class="ms-3 pt-1 d-flex flex-wrap gap-2 small">
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_outpatient_rehab_chk %}opacity-25{% endif %}">通所リハ</span>
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_home_rehab_chk %}opacity-25{% endif %}">訪問リハ</span>
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_day_care_chk %}opacity-25{% endif %}">デイサービス</span>
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_home_nursing_chk %}opacity-25{% endif %}">訪問看護</span>
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_home_care_chk %}opacity-25{% endif %}">訪問介護</span>
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_health_facility_chk %}opacity-25{% endif %}">老健</span>
+                                <span
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_nursing_home_chk %}opacity-25{% endif %}">特養</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h6 class="border-bottom pb-1 mb-2 mt-4">第三者</h6>
+            <div class="row g-2">
+                <div class="col-12">
+                    <div class="input-group input-group-sm mb-1">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goal_s_3rd_party_main_caregiver_chk %}checked{% endif %} disabled> 主介護者
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goal_s_3rd_party_main_caregiver_txt or '' }}" disabled>
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="input-group input-group-sm mb-1">
+                        <div class="input-group-text">
+                            <input class="form-check-input mt-0 me-1" type="checkbox" {% if
+                                patient_data.goal_s_3rd_party_family_structure_change_chk %}checked{% endif %} disabled>
+                            家族構成の変化
+                        </div>
+                        <input type="text" class="form-control"
+                            value="{{ patient_data.goal_s_3rd_party_family_structure_change_txt or '' }}" disabled>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 署名セクション -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">署名・説明</div>
+        <div class="card-body">
+            <div class="row g-2 small">
+                <div class="col-6">
+                    <strong>リハビリテーション科医:</strong> {{ patient_data.signature_rehab_doctor_txt or ''
+                    }}
+                </div>
+                <div class="col-6">
+                    <strong>主治医:</strong> {{ patient_data.signature_primary_doctor_txt or '' }}
+                </div>
+                <div class="col-4">
+                    <strong>PT:</strong> {{ patient_data.signature_pt_txt or '' }}
+                </div>
+                <div class="col-4">
+                    <strong>OT:</strong> {{ patient_data.signature_ot_txt or '' }}
+                </div>
+                <div class="col-4">
+                    <strong>ST:</strong> {{ patient_data.signature_st_txt or '' }}
+                </div>
+                <div class="col-12 border-top pt-2 mt-2">
+                    <p class="mb-1">上記の内容について説明を行い、同意を得ました。</p>
+                    <div class="d-flex gap-3">
+                        <span><strong>説明日:</strong> {{ patient_data.signature_explanation_date or ''
+                            }}</span>
+                        <span><strong>説明者:</strong> {{ patient_data.signature_explainer_txt or ''
+                            }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>

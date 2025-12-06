@@ -188,7 +188,8 @@ textarea.form-control {
 
 @media print {
     .back-to-master-button {
-        display: none; /* 印刷時には非表示 */
+        display: none;
+        /* 印刷時には非表示 */
     }
 }
 
@@ -210,9 +211,11 @@ textarea.form-control {
 .patient-info-ref textarea:disabled,
 .patient-info-ref select:disabled {
     background-color: #f8f9fa;
-    color: #212529; /* Darker text for readability */
+    color: #212529;
+    /* Darker text for readability */
     border: 1px solid #ced4da;
-    opacity: 1; /* Override Bootstrap opacity reduction */
+    opacity: 1;
+    /* Override Bootstrap opacity reduction */
     font-weight: 500;
 }
 
@@ -231,4 +234,26 @@ textarea.form-control {
 .patient-info-ref .input-group-text {
     background-color: #e9ecef;
     color: #495057;
+}
+
+/* 修正3: チェックボックス・ラジオボタンの視認性向上 */
+.form-check-input:disabled:checked,
+.btn-check:disabled+.btn {
+    opacity: 1 !important;
+    background-color: #0d6efd !important;
+    /* Primary Blue */
+    border-color: #0d6efd !important;
+    color: #fff !important;
+}
+
+.btn-check:disabled+.btn-outline-secondary {
+    background-color: transparent !important;
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+.btn-check:disabled:checked+.btn-outline-secondary {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+    border-color: #0d6efd !important;
 }

@@ -975,13 +975,9 @@ def get_plan_by_id(plan_id: int):
 
         # 関連する患者情報も取得してマージ
         patient = plan.patient
-        patient_data = {
-            "patient_id": patient.patient_id,
-            "name": patient.name,
-            "age": patient.age,
-            "gender": patient.gender,
-            "date_of_birth": patient.date_of_birth,
-        }
+        # 【変更】Patientモデルの全カラムを動的に取得して辞書化
+        patient_data = {c.name: getattr(patient, c.name) for c in patient.__table__.columns}
+        patient_data["age"] = patient.age # @property の age も追加
 
         # patient_data を先に置き、plan_data で上書きする形で結合
         # (patient_id などが両方に含まれるため)
