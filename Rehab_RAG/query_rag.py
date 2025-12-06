@@ -50,7 +50,7 @@ if SCRIPT_DIR not in sys.path:
     sys.path.append(SCRIPT_DIR)
 
 # schemas.py から RehabPlanSchema をインポート
-from schemas import RehabPlanSchema
+from app.schemas.schemas import RehabPlanSchema
 
 def load_active_pipeline_config(config_path='rag_config.yaml'):
     """

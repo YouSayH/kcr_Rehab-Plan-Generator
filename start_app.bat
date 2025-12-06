@@ -18,6 +18,6 @@ start /b powershell -Command "Write-Host 'サーバー起動待機中...'; $port
 :: 【サーバー起動】
 :: メイン処理としてPythonサーバーを起動します。
 :: ==========================================
-python app.py
+python run.py
 
 pause

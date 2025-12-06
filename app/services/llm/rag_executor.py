@@ -8,12 +8,15 @@ import yaml
 
 # gemini_client.pyで定義されている、アプリケーション本体のデータ構造スキーマをインポート
 # from gemini_client import RehabPlanSchema # 循環参照が発生してしまいます。
-from schemas import RehabPlanSchema
+from app.schemas.schemas import RehabPlanSchema
 
 # Rehab_RAGライブラリへのパスを追加
-REHAB_RAG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), 'Rehab_RAG'))
-if REHAB_RAG_PATH not in sys.path:
+REHAB_RAG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../Rehab_RAG'))
+if os.path.exists(REHAB_RAG_PATH) and REHAB_RAG_PATH not in sys.path:
     sys.path.append(REHAB_RAG_PATH)
+    print(f"INFO: Rehab_RAG path added: {REHAB_RAG_PATH}")
+elif not os.path.exists(REHAB_RAG_PATH):
+    print(f"WARNING: Rehab_RAG path not found at: {REHAB_RAG_PATH}")
 
 log_directory = "logs"
 if not os.path.exists(log_directory):
