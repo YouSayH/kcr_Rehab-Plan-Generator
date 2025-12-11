@@ -1,7 +1,8 @@
 <div class="patient-info-ref container-fluid p-0">
-    <input type="hidden" name="ref_patient_id" value="{{ patient_data.patient_id or '' }}" disabled>
+    <input type="hidden" name="ref_patient_id" value="{{ patient_data.patient_id or '' }}" data-bind="patient_id"
+        disabled>
 
-    <div class="header-note text-end mb-2 text-muted small">(別紙様式23)</div>
+    <!-- <div class="header-note text-end mb-2 text-muted small">(別紙様式23)</div> -->
     <h4 class="text-center mb-4 text-primary border-bottom pb-2">リハビリテーション総合実施計画書</h4>
 
     <!-- 基本情報セクション -->
@@ -11,19 +12,20 @@
             <div class="row g-3">
                 <div class="col-md-5">
                     <label class="form-label">患者氏名</label>
-                    <input type="text" class="form-control" value="{{ patient_data.name or '' }}" disabled>
+                    <input type="text" class="form-control" value="{{ patient_data.name or '' }}" data-bind="name"
+                        disabled>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">性別</label>
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="radio" {% if patient_data.gender=='男' %}checked{%
-                                endif %} disabled>
+                                endif %} data-bind="gender" value="男" disabled>
                         </div>
                         <span class="input-group-text bg-white">男</span>
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="radio" {% if patient_data.gender=='女' %}checked{%
-                                endif %} disabled>
+                                endif %} data-bind="gender" value="女" disabled>
                         </div>
                         <span class="input-group-text bg-white">女</span>
                     </div>
@@ -31,7 +33,8 @@
                 <div class="col-md-3">
                     <label class="form-label">年齢</label>
                     <div class="input-group">
-                        <input type="number" class="form-control" value="{{ patient_data.age or '' }}" disabled>
+                        <input type="number" class="form-control" value="{{ patient_data.age or '' }}" data-bind="age"
+                            disabled>
                         <span class="input-group-text">歳</span>
                     </div>
                 </div>
@@ -41,15 +44,18 @@
                     <div class="d-flex gap-1">
                         <input type="text" class="form-control text-center"
                             value="{{ patient_data.header_evaluation_date.year if patient_data.header_evaluation_date else '' }}"
-                            style="flex: 2;" disabled placeholder="年">
+                            style="flex: 2;" data-bind="header_evaluation_date" data-date-part="year" disabled
+                            placeholder="年">
                         <span class="align-self-center">/</span>
                         <input type="text" class="form-control text-center"
                             value="{{ patient_data.header_evaluation_date.month if patient_data.header_evaluation_date else '' }}"
-                            style="flex: 1;" disabled placeholder="月">
+                            style="flex: 1;" data-bind="header_evaluation_date" data-date-part="month" disabled
+                            placeholder="月">
                         <span class="align-self-center">/</span>
                         <input type="text" class="form-control text-center"
                             value="{{ patient_data.header_evaluation_date.day if patient_data.header_evaluation_date else '' }}"
-                            style="flex: 1;" disabled placeholder="日">
+                            style="flex: 1;" data-bind="header_evaluation_date" data-date-part="day" disabled
+                            placeholder="日">
                     </div>
                 </div>
                 <div class="col-12">
@@ -57,15 +63,18 @@
                     <div class="d-flex gap-1">
                         <input type="text" class="form-control text-center"
                             value="{{ patient_data.header_onset_date.year if patient_data.header_onset_date else '' }}"
-                            style="flex: 2;" disabled placeholder="年">
+                            style="flex: 2;" data-bind="header_onset_date" data-date-part="year" disabled
+                            placeholder="年">
                         <span class="align-self-center">/</span>
                         <input type="text" class="form-control text-center"
                             value="{{ patient_data.header_onset_date.month if patient_data.header_onset_date else '' }}"
-                            style="flex: 1;" disabled placeholder="月">
+                            style="flex: 1;" data-bind="header_onset_date" data-date-part="month" disabled
+                            placeholder="月">
                         <span class="align-self-center">/</span>
                         <input type="text" class="form-control text-center"
                             value="{{ patient_data.header_onset_date.day if patient_data.header_onset_date else '' }}"
-                            style="flex: 1;" disabled placeholder="日">
+                            style="flex: 1;" data-bind="header_onset_date" data-date-part="day" disabled
+                            placeholder="日">
                     </div>
                 </div>
                 <div class="col-12">
@@ -73,15 +82,18 @@
                     <div class="d-flex gap-1">
                         <input type="text" class="form-control text-center"
                             value="{{ patient_data.header_rehab_start_date.year if patient_data.header_rehab_start_date else '' }}"
-                            style="flex: 2;" disabled placeholder="年">
+                            style="flex: 2;" data-bind="header_rehab_start_date" data-date-part="year" disabled
+                            placeholder="年">
                         <span class="align-self-center">/</span>
                         <input type="text" class="form-control text-center"
                             value="{{ patient_data.header_rehab_start_date.month if patient_data.header_rehab_start_date else '' }}"
-                            style="flex: 1;" disabled placeholder="月">
+                            style="flex: 1;" data-bind="header_rehab_start_date" data-date-part="month" disabled
+                            placeholder="月">
                         <span class="align-self-center">/</span>
                         <input type="text" class="form-control text-center"
                             value="{{ patient_data.header_rehab_start_date.day if patient_data.header_rehab_start_date else '' }}"
-                            style="flex: 1;" disabled placeholder="日">
+                            style="flex: 1;" data-bind="header_rehab_start_date" data-date-part="day" disabled
+                            placeholder="日">
                     </div>
                 </div>
             </div>
@@ -96,40 +108,41 @@
                 <div class="col-md-8">
                     <label class="form-label">算定病名</label>
                     <input type="text" class="form-control" value="{{ patient_data.header_disease_name_txt or '' }}"
-                        disabled>
+                        data-bind="header_disease_name_txt" disabled>
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">治療内容</label>
                     <div class="d-flex flex-column gap-1 pt-2">
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" {% if patient_data.header_therapy_pt_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="header_therapy_pt_chk" disabled>
                             <label class="form-check-label">理学療法</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" {% if patient_data.header_therapy_ot_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="header_therapy_ot_chk" disabled>
                             <label class="form-check-label">作業療法</label>
                         </div>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" {% if patient_data.header_therapy_st_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="header_therapy_st_chk" disabled>
                             <label class="form-check-label">言語療法</label>
                         </div>
                     </div>
                 </div>
                 <div class="col-12">
                     <label class="form-label">併存疾患・合併症</label>
-                    <textarea class="form-control" rows="2"
+                    <textarea class="form-control" rows="2" data-bind="main_comorbidities_txt"
                         disabled>{{ patient_data.main_comorbidities_txt or '' }}</textarea>
                 </div>
                 <div class="col-12">
                     <label class="form-label">安静度・リスク</label>
-                    <textarea class="form-control" rows="3" disabled>{{ patient_data.main_risks_txt or '' }}</textarea>
+                    <textarea class="form-control" rows="3" data-bind="main_risks_txt"
+                        disabled>{{ patient_data.main_risks_txt or '' }}</textarea>
                 </div>
                 <div class="col-12">
                     <label class="form-label">禁忌・特記事項</label>
-                    <textarea class="form-control" rows="3"
+                    <textarea class="form-control" rows="3" data-bind="main_contraindications_txt"
                         disabled>{{ patient_data.main_contraindications_txt or '' }}</textarea>
                 </div>
             </div>
@@ -146,11 +159,13 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_consciousness_disorder_chk %}checked{% endif %} disabled>
+                                patient_data.func_consciousness_disorder_chk %}checked{% endif %}
+                                data-bind="func_consciousness_disorder_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">意識障害 (JCS・GCS)</span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.func_consciousness_disorder_jcs_gcs_txt or '' }}" disabled>
+                            value="{{ patient_data.func_consciousness_disorder_jcs_gcs_txt or '' }}"
+                            data-bind="func_consciousness_disorder_jcs_gcs_txt" disabled>
                     </div>
                 </div>
                 <!-- 関節可動域制限 -->
@@ -158,11 +173,12 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_rom_limitation_chk %}checked{% endif %} disabled>
+                                patient_data.func_rom_limitation_chk %}checked{% endif %}
+                                data-bind="func_rom_limitation_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">関節可動域制限</span>
                         <input type="text" class="form-control" value="{{ patient_data.func_rom_limitation_txt or '' }}"
-                            disabled>
+                            data-bind="func_rom_limitation_txt" disabled>
                     </div>
                 </div>
 
@@ -172,29 +188,34 @@
                         <div class="card-body p-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" {% if
-                                    patient_data.func_respiratory_disorder_chk %}checked{% endif %} disabled>
+                                    patient_data.func_respiratory_disorder_chk %}checked{% endif %}
+                                    data-bind="func_respiratory_disorder_chk" disabled>
                                 <label class="form-check-label fw-bold">呼吸機能障害</label>
                             </div>
                             <div class="ps-3">
                                 <div class="input-group input-group-sm mb-1">
                                     <div class="input-group-text bg-transparent border-0 ps-0">
                                         <input class="form-check-input mt-0 me-2" type="checkbox" {% if
-                                            patient_data.func_respiratory_o2_therapy_chk %}checked{% endif %} disabled>
+                                            patient_data.func_respiratory_o2_therapy_chk %}checked{% endif %}
+                                            data-bind="func_respiratory_o2_therapy_chk" disabled>
                                         酸素療法
                                     </div>
                                     <input type="text" class="form-control form-control-sm"
-                                        value="{{ patient_data.func_respiratory_o2_therapy_l_min_txt or '' }}" disabled
+                                        value="{{ patient_data.func_respiratory_o2_therapy_l_min_txt or '' }}"
+                                        data-bind="func_respiratory_o2_therapy_l_min_txt" disabled
                                         style="max-width: 60px;">
                                     <span class="input-group-text bg-transparent border-0">L/min</span>
                                 </div>
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_respiratory_tracheostomy_chk %}checked{% endif %} disabled>
+                                        patient_data.func_respiratory_tracheostomy_chk %}checked{% endif %}
+                                        data-bind="func_respiratory_tracheostomy_chk" disabled>
                                     <label class="form-check-label">気切</label>
                                 </div>
                                 <div class="form-check form-check-inline">
                                     <input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_respiratory_ventilator_chk %}checked{% endif %} disabled>
+                                        patient_data.func_respiratory_ventilator_chk %}checked{% endif %}
+                                        data-bind="func_respiratory_ventilator_chk" disabled>
                                     <label class="form-check-label">人工呼吸器</label>
                                 </div>
                             </div>
@@ -206,12 +227,13 @@
                 <div class="col-12">
                     <div class="input-group">
                         <div class="input-group-text">
-                            <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_contracture_deformity_chk %}checked{% endif %} disabled>
+                            <input class="form-check-input mt-0" type="checkbox" {% if func_contracture_deformity_chk
+                                %}checked{% endif %} data-bind="func_contracture_deformity_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">拘縮・変形</span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.func_contracture_deformity_txt or '' }}" disabled>
+                            value="{{ patient_data.func_contracture_deformity_txt or '' }}"
+                            data-bind="func_contracture_deformity_txt" disabled>
                     </div>
                 </div>
 
@@ -221,35 +243,39 @@
                         <div class="card-body p-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" {% if
-                                    patient_data.func_circulatory_disorder_chk %}checked{% endif %} disabled>
+                                    patient_data.func_circulatory_disorder_chk %}checked{% endif %}
+                                    data-bind="func_circulatory_disorder_chk" disabled>
                                 <label class="form-check-label fw-bold">循環障害</label>
                             </div>
                             <div class="ps-3">
                                 <div class="input-group input-group-sm mb-1">
                                     <div class="input-group-text bg-transparent border-0 ps-0">
                                         <input class="form-check-input mt-0 me-2" type="checkbox" {% if
-                                            patient_data.func_circulatory_ef_chk %}checked{% endif %} disabled>
+                                            patient_data.func_circulatory_ef_chk %}checked{% endif %}
+                                            data-bind="func_circulatory_ef_chk" disabled>
                                         EF
                                     </div>
                                     <input type="text" class="form-control form-control-sm"
-                                        value="{{ patient_data.func_circulatory_ef_val or '' }}" disabled
-                                        style="max-width: 60px;">
+                                        value="{{ patient_data.func_circulatory_ef_val or '' }}"
+                                        data-bind="func_circulatory_ef_val" disabled style="max-width: 60px;">
                                     <span class="input-group-text bg-transparent border-0">%</span>
                                 </div>
                                 <div class="d-flex align-items-center">
                                     <div class="form-check me-2">
                                         <input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_circulatory_arrhythmia_chk %}checked{% endif %} disabled>
+                                            patient_data.func_circulatory_arrhythmia_chk %}checked{% endif %}
+                                            data-bind="func_circulatory_arrhythmia_chk" disabled>
                                         <label class="form-check-label">不整脈</label>
                                     </div>
                                     <div class="btn-group btn-group-sm" role="group">
                                         <input type="radio" class="btn-check" {% if
                                             patient_data.func_circulatory_arrhythmia_status_slct=='yes' %}checked{%
-                                            endif %} disabled>
+                                            endif %} data-bind="func_circulatory_arrhythmia_status_slct" value="yes"
+                                            disabled>
                                         <label class="btn btn-outline-secondary">有</label>
                                         <input type="radio" class="btn-check" {% if
                                             patient_data.func_circulatory_arrhythmia_status_slct=='no' %}checked{% endif
-                                            %} disabled>
+                                            %} data-bind="func_circulatory_arrhythmia_status_slct" value="no" disabled>
                                         <label class="btn btn-outline-secondary">無</label>
                                     </div>
                                 </div>
@@ -263,11 +289,13 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_muscle_weakness_chk %}checked{% endif %} disabled>
+                                patient_data.func_muscle_weakness_chk %}checked{% endif %}
+                                data-bind="func_muscle_weakness_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">筋力低下</span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.func_muscle_weakness_txt or '' }}" disabled>
+                            value="{{ patient_data.func_muscle_weakness_txt or '' }}"
+                            data-bind="func_muscle_weakness_txt" disabled>
                     </div>
                 </div>
 
@@ -277,63 +305,74 @@
                         <div class="card-body p-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" {% if patient_data.func_risk_factors_chk
-                                    %}checked{% endif %} disabled>
+                                    %}checked{% endif %} data-bind="func_risk_factors_chk" disabled>
                                 <label class="form-check-label fw-bold">危険因子</label>
                             </div>
                             <div class="row row-cols-2 row-cols-md-4 g-2 ps-3">
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_risk_hypertension_chk %}checked{% endif %} disabled><label
+                                            patient_data.func_risk_hypertension_chk %}checked{% endif %}
+                                            data-bind="func_risk_hypertension_chk" disabled><label
                                             class="form-check-label">高血圧症</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_risk_dyslipidemia_chk %}checked{% endif %} disabled><label
+                                            patient_data.func_risk_dyslipidemia_chk %}checked{% endif %}
+                                            data-bind="func_risk_dyslipidemia_chk" disabled><label
                                             class="form-check-label">脂質異常症</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_risk_diabetes_chk %}checked{% endif %} disabled><label
+                                            patient_data.func_risk_diabetes_chk %}checked{% endif %}
+                                            data-bind="func_risk_diabetes_chk" disabled><label
                                             class="form-check-label">糖尿病</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_risk_smoking_chk %}checked{% endif %} disabled><label
+                                            patient_data.func_risk_smoking_chk %}checked{% endif %}
+                                            data-bind="func_risk_smoking_chk" disabled><label
                                             class="form-check-label">喫煙</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_risk_obesity_chk %}checked{% endif %} disabled><label
+                                            patient_data.func_risk_obesity_chk %}checked{% endif %}
+                                            data-bind="func_risk_obesity_chk" disabled><label
                                             class="form-check-label">肥満</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
                                             patient_data.func_risk_hyperuricemia_chk %}checked{% endif %}
-                                            disabled><label class="form-check-label">高尿酸血症</label></div>
+                                            data-bind="func_risk_hyperuricemia_chk" disabled><label
+                                            class="form-check-label">高尿酸血症</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_risk_ckd_chk %}checked{% endif %} disabled><label
+                                            patient_data.func_risk_ckd_chk %}checked{% endif %}
+                                            data-bind="func_risk_ckd_chk" disabled><label
                                             class="form-check-label">慢性肝臓病</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
                                             patient_data.func_risk_family_history_chk %}checked{% endif %}
-                                            disabled><label class="form-check-label">家族歴</label></div>
+                                            data-bind="func_risk_family_history_chk" disabled><label
+                                            class="form-check-label">家族歴</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_risk_angina_chk %}checked{% endif %} disabled><label
+                                            patient_data.func_risk_angina_chk %}checked{% endif %}
+                                            data-bind="func_risk_angina_chk" disabled><label
                                             class="form-check-label">狭心症</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_risk_omi_chk %}checked{% endif %} disabled><label
+                                            patient_data.func_risk_omi_chk %}checked{% endif %}
+                                            data-bind="func_risk_omi_chk" disabled><label
                                             class="form-check-label">陳旧性心筋梗塞</label></div>
                                 </div>
                                 <div class="col">
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.func_risk_other_chk %}checked{% endif %} disabled><label
+                                            patient_data.func_risk_other_chk %}checked{% endif %}
+                                            data-bind="func_risk_other_chk" disabled><label
                                             class="form-check-label">その他</label></div>
                                 </div>
                             </div>
@@ -347,21 +386,26 @@
                         <div class="card-body p-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" {% if
-                                    patient_data.func_motor_dysfunction_chk %}checked{% endif %} disabled>
+                                    patient_data.func_motor_dysfunction_chk %}checked{% endif %}
+                                    data-bind="func_motor_dysfunction_chk" disabled>
                                 <label class="form-check-label fw-bold">運動機能障害</label>
                             </div>
                             <div class="ps-3 d-flex flex-wrap gap-3">
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_motor_paralysis_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_motor_paralysis_chk %}checked{% endif %}
+                                        data-bind="func_motor_paralysis_chk" disabled><label
                                         class="form-check-label">麻痺</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
                                         patient_data.func_motor_involuntary_movement_chk %}checked{% endif %}
-                                        disabled><label class="form-check-label">不随意運動</label></div>
+                                        data-bind="func_motor_involuntary_movement_chk" disabled><label
+                                        class="form-check-label">不随意運動</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_motor_ataxia_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_motor_ataxia_chk %}checked{% endif %}
+                                        data-bind="func_motor_ataxia_chk" disabled><label
                                         class="form-check-label">運動失調</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_motor_parkinsonism_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_motor_parkinsonism_chk %}checked{% endif %}
+                                        data-bind="func_motor_parkinsonism_chk" disabled><label
                                         class="form-check-label">ﾊﾟｰｷﾝｿﾆｽﾞﾑ</label></div>
                             </div>
                         </div>
@@ -373,11 +417,13 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_motor_muscle_tone_abnormality_chk %}checked{% endif %} disabled>
+                                patient_data.func_motor_muscle_tone_abnormality_chk %}checked{% endif %}
+                                data-bind="func_motor_muscle_tone_abnormality_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">筋緊張異常</span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.func_motor_muscle_tone_abnormality_txt or '' }}" disabled>
+                            value="{{ patient_data.func_motor_muscle_tone_abnormality_txt or '' }}"
+                            data-bind="func_motor_muscle_tone_abnormality_txt" disabled>
                     </div>
                 </div>
 
@@ -386,11 +432,13 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_swallowing_disorder_chk %}checked{% endif %} disabled>
+                                patient_data.func_swallowing_disorder_chk %}checked{% endif %}
+                                data-bind="func_swallowing_disorder_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">摂食嚥下障害</span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.func_swallowing_disorder_txt or '' }}" disabled>
+                            value="{{ patient_data.func_swallowing_disorder_txt or '' }}"
+                            data-bind="func_swallowing_disorder_txt" disabled>
                     </div>
                 </div>
 
@@ -400,21 +448,26 @@
                         <div class="card-body p-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" {% if
-                                    patient_data.func_sensory_dysfunction_chk %}checked{% endif %} disabled>
+                                    patient_data.func_sensory_dysfunction_chk %}checked{% endif %}
+                                    data-bind="func_sensory_dysfunction_chk" disabled>
                                 <label class="form-check-label fw-bold">感覚機能障害</label>
                             </div>
                             <div class="ps-3 d-flex flex-wrap gap-3">
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_sensory_hearing_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_sensory_hearing_chk %}checked{% endif %}
+                                        data-bind="func_sensory_hearing_chk" disabled><label
                                         class="form-check-label">聴覚</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_sensory_vision_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_sensory_vision_chk %}checked{% endif %}
+                                        data-bind="func_sensory_vision_chk" disabled><label
                                         class="form-check-label">視覚</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_sensory_superficial_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_sensory_superficial_chk %}checked{% endif %}
+                                        data-bind="func_sensory_superficial_chk" disabled><label
                                         class="form-check-label">表在覚</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_sensory_deep_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_sensory_deep_chk %}checked{% endif %}
+                                        data-bind="func_sensory_deep_chk" disabled><label
                                         class="form-check-label">深部覚</label></div>
                             </div>
                         </div>
@@ -426,11 +479,13 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_nutritional_disorder_chk %}checked{% endif %} disabled>
+                                patient_data.func_nutritional_disorder_chk %}checked{% endif %}
+                                data-bind="func_nutritional_disorder_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">栄養障害</span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.func_nutritional_disorder_txt or '' }}" disabled>
+                            value="{{ patient_data.func_nutritional_disorder_txt or '' }}"
+                            data-bind="func_nutritional_disorder_txt" disabled>
                     </div>
                 </div>
 
@@ -440,28 +495,33 @@
                         <div class="card-body p-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" {% if
-                                    patient_data.func_speech_disorder_chk %}checked{% endif %} disabled>
+                                    patient_data.func_speech_disorder_chk %}checked{% endif %}
+                                    data-bind="func_speech_disorder_chk" disabled>
                                 <label class="form-check-label fw-bold">音声発話障害</label>
                             </div>
                             <div class="ps-3 d-flex flex-wrap gap-3 align-items-center">
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_speech_articulation_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_speech_articulation_chk %}checked{% endif %}
+                                        data-bind="func_speech_articulation_chk" disabled><label
                                         class="form-check-label">構音</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_speech_aphasia_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_speech_aphasia_chk %}checked{% endif %}
+                                        data-bind="func_speech_aphasia_chk" disabled><label
                                         class="form-check-label">失語</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_speech_stuttering_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_speech_stuttering_chk %}checked{% endif %}
+                                        data-bind="func_speech_stuttering_chk" disabled><label
                                         class="form-check-label">吃音</label></div>
                                 <div class="input-group input-group-sm" style="width: auto;">
                                     <div class="input-group-text bg-transparent border-0 ps-0">
                                         <input class="form-check-input mt-0 me-2" type="checkbox" {% if
-                                            patient_data.func_speech_other_chk %}checked{% endif %} disabled>
+                                            patient_data.func_speech_other_chk %}checked{% endif %}
+                                            data-bind="func_speech_other_chk" disabled>
                                         その他
                                     </div>
                                     <input type="text" class="form-control form-control-sm"
-                                        value="{{ patient_data.func_speech_other_txt or '' }}" disabled
-                                        style="max-width: 100px;">
+                                        value="{{ patient_data.func_speech_other_txt or '' }}"
+                                        data-bind="func_speech_other_txt" disabled style="max-width: 100px;">
                                 </div>
                             </div>
                         </div>
@@ -473,11 +533,13 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_excretory_disorder_chk %}checked{% endif %} disabled>
+                                patient_data.func_excretory_disorder_chk %}checked{% endif %}
+                                data-bind="func_excretory_disorder_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">排泄機能障害</span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.func_excretory_disorder_txt or '' }}" disabled>
+                            value="{{ patient_data.func_excretory_disorder_txt or '' }}"
+                            data-bind="func_excretory_disorder_txt" disabled>
                     </div>
                 </div>
 
@@ -487,25 +549,31 @@
                         <div class="card-body p-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" {% if
-                                    patient_data.func_higher_brain_dysfunction_chk %}checked{% endif %} disabled>
+                                    patient_data.func_higher_brain_dysfunction_chk %}checked{% endif %}
+                                    data-bind="func_higher_brain_dysfunction_chk" disabled>
                                 <label class="form-check-label fw-bold">高次脳機能障害</label>
                             </div>
                             <div class="ps-3 d-flex flex-wrap gap-3">
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_higher_brain_memory_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_higher_brain_memory_chk %}checked{% endif %}
+                                        data-bind="func_higher_brain_memory_chk" disabled><label
                                         class="form-check-label">記憶</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
                                         patient_data.func_higher_brain_attention_chk %}checked{% endif %}
-                                        disabled><label class="form-check-label">注意</label></div>
+                                        data-bind="func_higher_brain_attention_chk" disabled><label
+                                        class="form-check-label">注意</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_higher_brain_apraxia_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_higher_brain_apraxia_chk %}checked{% endif %}
+                                        data-bind="func_higher_brain_apraxia_chk" disabled><label
                                         class="form-check-label">失行</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_higher_brain_agnosia_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_higher_brain_agnosia_chk %}checked{% endif %}
+                                        data-bind="func_higher_brain_agnosia_chk" disabled><label
                                         class="form-check-label">失認</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
                                         patient_data.func_higher_brain_executive_chk %}checked{% endif %}
-                                        disabled><label class="form-check-label">遂行</label></div>
+                                        data-bind="func_higher_brain_executive_chk" disabled><label
+                                        class="form-check-label">遂行</label></div>
                             </div>
                         </div>
                     </div>
@@ -516,11 +584,12 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_pressure_ulcer_chk %}checked{% endif %} disabled>
+                                patient_data.func_pressure_ulcer_chk %}checked{% endif %}
+                                data-bind="func_pressure_ulcer_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">褥瘡</span>
                         <input type="text" class="form-control" value="{{ patient_data.func_pressure_ulcer_txt or '' }}"
-                            disabled>
+                            data-bind="func_pressure_ulcer_txt" disabled>
                     </div>
                 </div>
 
@@ -529,11 +598,13 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_behavioral_psychiatric_disorder_chk %}checked{% endif %} disabled>
+                                patient_data.func_behavioral_psychiatric_disorder_chk %}checked{% endif %}
+                                data-bind="func_behavioral_psychiatric_disorder_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">精神行動障害</span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.func_behavioral_psychiatric_disorder_txt or '' }}" disabled>
+                            value="{{ patient_data.func_behavioral_psychiatric_disorder_txt or '' }}"
+                            data-bind="func_behavioral_psychiatric_disorder_txt" disabled>
                     </div>
                 </div>
 
@@ -542,10 +613,11 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if patient_data.func_pain_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="func_pain_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">疼痛</span>
-                        <input type="text" class="form-control" value="{{ patient_data.func_pain_txt or '' }}" disabled>
+                        <input type="text" class="form-control" value="{{ patient_data.func_pain_txt or '' }}"
+                            data-bind="func_pain_txt" disabled>
                     </div>
                 </div>
 
@@ -554,11 +626,12 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_disorientation_chk %}checked{% endif %} disabled>
+                                patient_data.func_disorientation_chk %}checked{% endif %}
+                                data-bind="func_disorientation_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">見当識障害</span>
                         <input type="text" class="form-control" value="{{ patient_data.func_disorientation_txt or '' }}"
-                            disabled>
+                            data-bind="func_disorientation_txt" disabled>
                     </div>
                 </div>
 
@@ -567,11 +640,11 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if patient_data.func_other_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="func_other_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">その他</span>
                         <input type="text" class="form-control" value="{{ patient_data.func_other_txt or '' }}"
-                            disabled>
+                            data-bind="func_other_txt" disabled>
                     </div>
                 </div>
 
@@ -580,11 +653,13 @@
                     <div class="input-group">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if
-                                patient_data.func_memory_disorder_chk %}checked{% endif %} disabled>
+                                patient_data.func_memory_disorder_chk %}checked{% endif %}
+                                data-bind="func_memory_disorder_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">記憶障害</span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.func_memory_disorder_txt or '' }}" disabled>
+                            value="{{ patient_data.func_memory_disorder_txt or '' }}"
+                            data-bind="func_memory_disorder_txt" disabled>
                     </div>
                 </div>
 
@@ -594,18 +669,22 @@
                         <div class="card-body p-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" {% if
-                                    patient_data.func_developmental_disorder_chk %}checked{% endif %} disabled>
+                                    patient_data.func_developmental_disorder_chk %}checked{% endif %}
+                                    data-bind="func_developmental_disorder_chk" disabled>
                                 <label class="form-check-label fw-bold">発達障害</label>
                             </div>
                             <div class="ps-3 d-flex flex-wrap gap-3">
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_developmental_asd_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_developmental_asd_chk %}checked{% endif %}
+                                        data-bind="func_developmental_asd_chk" disabled><label
                                         class="form-check-label">自閉症ｽﾍﾟｸﾄﾗﾑ症</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_developmental_ld_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_developmental_ld_chk %}checked{% endif %}
+                                        data-bind="func_developmental_ld_chk" disabled><label
                                         class="form-check-label">学習障害</label></div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.func_developmental_adhd_chk %}checked{% endif %} disabled><label
+                                        patient_data.func_developmental_adhd_chk %}checked{% endif %}
+                                        data-bind="func_developmental_adhd_chk" disabled><label
                                         class="form-check-label">注意欠陥多動性障害</label></div>
                             </div>
                         </div>
@@ -626,21 +705,22 @@
                         <div class="card-body p-2">
                             <div class="form-check mb-2">
                                 <input class="form-check-input" type="checkbox" {% if chk_val %}checked{% endif %}
-                                    disabled>
+                                    data-bind="{{ chk_name|replace('ref_', '') }}" disabled>
                                 <label class="form-check-label fw-bold">{{ label }}</label>
                             </div>
                             <div class="btn-group btn-group-sm w-100" role="group">
                                 <input type="radio" class="btn-check" {% if level_val=='independent' %}checked{% endif
-                                    %} disabled>
+                                    %} data-bind="{{ level_name|replace('ref_', '') }}" value="independent" disabled>
                                 <label class="btn btn-outline-secondary">自立</label>
                                 <input type="radio" class="btn-check" {% if level_val=='partial_assist' %}checked{%
-                                    endif %} disabled>
+                                    endif %} data-bind="{{ level_name|replace('ref_', '') }}" value="partial_assist"
+                                    disabled>
                                 <label class="btn btn-outline-secondary">一部介助</label>
                                 <input type="radio" class="btn-check" {% if level_val=='assist' %}checked{% endif %}
-                                    disabled>
+                                    data-bind="{{ level_name|replace('ref_', '') }}" value="assist" disabled>
                                 <label class="btn btn-outline-secondary">介助</label>
                                 <input type="radio" class="btn-check" {% if level_val=='not_performed' %}checked{% endif
-                                    %} disabled>
+                                    %} data-bind="{{ level_name|replace('ref_', '') }}" value="not_performed" disabled>
                                 <label class="btn btn-outline-secondary">非実施</label>
                             </div>
                         </div>
@@ -682,11 +762,11 @@
                     <div class="input-group h-100">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if patient_data.func_basic_other_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="func_basic_other_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">その他</span>
                         <input type="text" class="form-control" value="{{ patient_data.func_basic_other_txt or '' }}"
-                            disabled>
+                            data-bind="func_basic_other_txt" disabled>
                     </div>
                 </div>
             </div>
@@ -764,25 +844,29 @@
                             <td>
                                 <div class="input-group input-group-sm">
                                     <input type="text" class="form-control text-center px-1"
-                                        value="{{ patient_data['adl_' + fim_key + '_fim_start_val'] or '' }}" disabled>
+                                        value="{{ patient_data['adl_' + fim_key + '_fim_start_val'] or '' }}"
+                                        data-bind="adl_{{ fim_key }}_fim_start_val" disabled>
                                     <span class="input-group-text px-1">→</span>
                                     <input type="text" class="form-control text-center px-1"
                                         value="{{ patient_data['adl_' + fim_key + '_fim_current_val'] or '' }}"
-                                        disabled>
+                                        data-bind="adl_{{ fim_key }}_fim_current_val" disabled>
                                 </div>
                             </td>
                             <td>
                                 <div class="input-group input-group-sm">
                                     <input type="text" class="form-control text-center px-1"
-                                        value="{{ patient_data['adl_' + bi_key + '_bi_start_val'] or '' }}" disabled>
+                                        value="{{ patient_data['adl_' + bi_key + '_bi_start_val'] or '' }}"
+                                        data-bind="adl_{{ bi_key }}_bi_start_val" disabled>
                                     <span class="input-group-text px-1">→</span>
                                     <input type="text" class="form-control text-center px-1"
-                                        value="{{ patient_data['adl_' + bi_key + '_bi_current_val'] or '' }}" disabled>
+                                        value="{{ patient_data['adl_' + bi_key + '_bi_current_val'] or '' }}"
+                                        data-bind="adl_{{ bi_key }}_bi_current_val" disabled>
                                 </div>
                             </td>
                             {% if include_textarea %}
                             <td rowspan="22">
                                 <textarea class="form-control form-control-sm h-100" style="min-height: 800px;"
+                                    data-bind="adl_equipment_and_assistance_details_txt"
                                     disabled>{{ patient_data.adl_equipment_and_assistance_details_txt or '' }}</textarea>
                             </td>
                             {% endif %}
@@ -814,16 +898,16 @@
                             <th colspan="2" class="text-end">小計 (FIM運動 / BI)</th>
                             <td>
                                 <div class="d-flex justify-content-center">
-                                    <span>{{ ns.fim_motor_start }}</span>
+                                    <span data-bind="calc_fim_motor_start">{{ ns.fim_motor_start }}</span>
                                     <span class="mx-1">→</span>
-                                    <span>{{ ns.fim_motor_current }}</span>
+                                    <span data-bind="calc_fim_motor_current">{{ ns.fim_motor_current }}</span>
                                 </div>
                             </td>
                             <td>
                                 <div class="d-flex justify-content-center">
-                                    <span>{{ ns.bi_start }}</span>
+                                    <span data-bind="calc_bi_start">{{ ns.bi_start }}</span>
                                     <span class="mx-1">→</span>
-                                    <span>{{ ns.bi_current }}</span>
+                                    <span data-bind="calc_bi_current">{{ ns.bi_current }}</span>
                                 </div>
                             </td>
                         </tr>
@@ -845,9 +929,9 @@
                             <th colspan="2" class="text-end">小計 (FIM認知)</th>
                             <td>
                                 <div class="d-flex justify-content-center">
-                                    <span>{{ ns.fim_cog_start }}</span>
+                                    <span data-bind="calc_fim_cog_start">{{ ns.fim_cog_start }}</span>
                                     <span class="mx-1">→</span>
-                                    <span>{{ ns.fim_cog_current }}</span>
+                                    <span data-bind="calc_fim_cog_current">{{ ns.fim_cog_current }}</span>
                                 </div>
                             </td>
                             <td class="bg-light"></td>{# BIに認知はない #}
@@ -858,9 +942,11 @@
                             <th colspan="2" class="text-end">合計 (FIM総合)</th>
                             <td>
                                 <div class="d-flex justify-content-center">
-                                    <span>{{ ns.fim_motor_start + ns.fim_cog_start }}</span>
+                                    <span data-bind="calc_fim_total_start">{{ ns.fim_motor_start + ns.fim_cog_start
+                                        }}</span>
                                     <span class="mx-1">→</span>
-                                    <span>{{ ns.fim_motor_current + ns.fim_cog_current }}</span>
+                                    <span data-bind="calc_fim_total_current">{{ ns.fim_motor_current +
+                                        ns.fim_cog_current }}</span>
                                 </div>
                             </td>
                             <td class="bg-light"></td>{# BIは小計で完了 #}
@@ -880,11 +966,11 @@
                     <div class="input-group input-group-sm">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if patient_data.nutrition_height_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="nutrition_height_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">身長</span>
                         <input type="text" class="form-control" value="{{ patient_data.nutrition_height_val or '' }}"
-                            disabled>
+                            data-bind="nutrition_height_val" disabled>
                         <span class="input-group-text bg-white">cm</span>
                     </div>
                 </div>
@@ -892,11 +978,11 @@
                     <div class="input-group input-group-sm">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if patient_data.nutrition_weight_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="nutrition_weight_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">体重</span>
                         <input type="text" class="form-control" value="{{ patient_data.nutrition_weight_val or '' }}"
-                            disabled>
+                            data-bind="nutrition_weight_val" disabled>
                         <span class="input-group-text bg-white">kg</span>
                     </div>
                 </div>
@@ -904,11 +990,11 @@
                     <div class="input-group input-group-sm">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0" type="checkbox" {% if patient_data.nutrition_bmi_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="nutrition_bmi_chk" disabled>
                         </div>
                         <span class="input-group-text bg-white">BMI</span>
                         <input type="text" class="form-control" value="{{ patient_data.nutrition_bmi_val or '' }}"
-                            disabled>
+                            data-bind="nutrition_bmi_val" disabled>
                     </div>
                 </div>
                 <div class="col-12">
@@ -918,37 +1004,45 @@
                             <div class="d-flex flex-wrap gap-3">
                                 <div>
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.nutrition_method_oral_chk %}checked{% endif %} disabled><label
+                                            patient_data.nutrition_method_oral_chk %}checked{% endif %}
+                                            data-bind="nutrition_method_oral_chk" disabled><label
                                             class="form-check-label">経口</label>
                                     </div>
                                     <div class="ps-3 small">
                                         <div class="form-check"><input class="form-check-input" type="checkbox" {% if
                                                 patient_data.nutrition_method_oral_meal_chk %}checked{% endif %}
-                                                disabled><label class="form-check-label">食事</label></div>
+                                                data-bind="nutrition_method_oral_meal_chk" disabled><label
+                                                class="form-check-label">食事</label></div>
                                         <div class="form-check"><input class="form-check-input" type="checkbox" {% if
                                                 patient_data.nutrition_method_oral_supplement_chk %}checked{% endif %}
-                                                disabled><label class="form-check-label">補助食品</label></div>
+                                                data-bind="nutrition_method_oral_supplement_chk" disabled><label
+                                                class="form-check-label">補助食品</label></div>
                                     </div>
                                 </div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.nutrition_method_tube_chk %}checked{% endif %} disabled><label
+                                        patient_data.nutrition_method_tube_chk %}checked{% endif %}
+                                        data-bind="nutrition_method_tube_chk" disabled><label
                                         class="form-check-label">経管</label></div>
                                 <div>
                                     <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                            patient_data.nutrition_method_iv_chk %}checked{% endif %} disabled><label
+                                            patient_data.nutrition_method_iv_chk %}checked{% endif %}
+                                            data-bind="nutrition_method_iv_chk" disabled><label
                                             class="form-check-label">静脈</label>
                                     </div>
                                     <div class="ps-3 small">
                                         <div class="form-check"><input class="form-check-input" type="checkbox" {% if
                                                 patient_data.nutrition_method_iv_peripheral_chk %}checked{% endif %}
-                                                disabled><label class="form-check-label">末梢</label></div>
+                                                data-bind="nutrition_method_iv_peripheral_chk" disabled><label
+                                                class="form-check-label">末梢</label></div>
                                         <div class="form-check"><input class="form-check-input" type="checkbox" {% if
                                                 patient_data.nutrition_method_iv_central_chk %}checked{% endif %}
-                                                disabled><label class="form-check-label">中心</label></div>
+                                                data-bind="nutrition_method_iv_central_chk" disabled><label
+                                                class="form-check-label">中心</label></div>
                                     </div>
                                 </div>
                                 <div class="form-check"><input class="form-check-input" type="checkbox" {% if
-                                        patient_data.nutrition_method_peg_chk %}checked{% endif %} disabled><label
+                                        patient_data.nutrition_method_peg_chk %}checked{% endif %}
+                                        data-bind="nutrition_method_peg_chk" disabled><label
                                         class="form-check-label">瘻孔(胃・腸)</label></div>
                             </div>
                         </div>
@@ -959,12 +1053,15 @@
                         <span class="input-group-text bg-white">嚥下調整食コード</span>
                         <span class="input-group-text bg-white">
                             <input type="radio" class="form-check-input mt-0 me-1" {% if
-                                patient_data.nutrition_swallowing_diet_slct=='2013' %}checked{% endif %} disabled>2013
+                                patient_data.nutrition_swallowing_diet_slct=='2013' %}checked{% endif %}
+                                data-bind="nutrition_swallowing_diet_slct" value="2013" disabled>2013
                             <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
-                                patient_data.nutrition_swallowing_diet_slct=='2021' %}checked{% endif %} disabled>2021
+                                patient_data.nutrition_swallowing_diet_slct=='2021' %}checked{% endif %}
+                                data-bind="nutrition_swallowing_diet_slct" value="2021" disabled>2021
                         </span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.nutrition_swallowing_diet_code_txt or '' }}" disabled>
+                            value="{{ patient_data.nutrition_swallowing_diet_code_txt or '' }}"
+                            data-bind="nutrition_swallowing_diet_code_txt" disabled>
                     </div>
                 </div>
                 <div class="col-12">
@@ -972,14 +1069,15 @@
                         <span class="input-group-text bg-white">栄養状態評価</span>
                         <span class="input-group-text bg-white">
                             <input type="radio" class="form-check-input mt-0 me-1" {% if
-                                patient_data.nutrition_status_assessment_slct=='glim' %}checked{% endif %}
-                                disabled>GLIM基準
+                                patient_data.nutrition_status_assessment_slct=='glim' %}checked{% endif %} disabled
+                                data-bind="nutrition_status_assessment_slct" value="glim">GLIM基準
                             <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
-                                patient_data.nutrition_status_assessment_slct=='other' %}checked{% endif %} disabled>その他
+                                patient_data.nutrition_status_assessment_slct=='other' %}checked{% endif %}
+                                data-bind="nutrition_status_assessment_slct" value="other" disabled>その他
                         </span>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.nutrition_status_assessment_other_txt or '' }}" disabled
-                            placeholder="その他詳細">
+                            value="{{ patient_data.nutrition_status_assessment_other_txt or '' }}"
+                            data-bind="nutrition_status_assessment_other_txt" disabled placeholder="その他詳細">
                     </div>
                 </div>
                 <div class="col-12">
@@ -988,26 +1086,26 @@
                             <span class="input-group-text bg-white">必要量</span>
                             <span class="input-group-text bg-white">E</span>
                             <input type="text" class="form-control"
-                                value="{{ patient_data.nutrition_required_energy_val or '' }}" disabled
-                                style="max-width: 80px;">
+                                value="{{ patient_data.nutrition_required_energy_val or '' }}"
+                                data-bind="nutrition_required_energy_val" disabled style="max-width: 80px;">
                             <span class="input-group-text bg-white">kcal</span>
                             <span class="input-group-text bg-white">P</span>
                             <input type="text" class="form-control"
-                                value="{{ patient_data.nutrition_required_protein_val or '' }}" disabled
-                                style="max-width: 80px;">
+                                value="{{ patient_data.nutrition_required_protein_val or '' }}"
+                                data-bind="nutrition_required_protein_val" disabled style="max-width: 80px;">
                             <span class="input-group-text bg-white">g</span>
                         </div>
                         <div class="input-group input-group-sm">
                             <span class="input-group-text bg-white">全摂取量</span>
                             <span class="input-group-text bg-white">E</span>
                             <input type="text" class="form-control"
-                                value="{{ patient_data.nutrition_total_intake_energy_val or '' }}" disabled
-                                style="max-width: 80px;">
+                                value="{{ patient_data.nutrition_total_intake_energy_val or '' }}"
+                                data-bind="nutrition_total_intake_energy_val" disabled style="max-width: 80px;">
                             <span class="input-group-text bg-white">kcal</span>
                             <span class="input-group-text bg-white">P</span>
                             <input type="text" class="form-control"
-                                value="{{ patient_data.nutrition_total_intake_protein_val or '' }}" disabled
-                                style="max-width: 80px;">
+                                value="{{ patient_data.nutrition_total_intake_protein_val or '' }}"
+                                data-bind="nutrition_total_intake_protein_val" disabled style="max-width: 80px;">
                             <span class="input-group-text bg-white">g</span>
                         </div>
                     </div>
@@ -1027,54 +1125,65 @@
                         <div class="input-group input-group-sm w-auto">
                             <div class="input-group-text">
                                 <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                    patient_data.social_care_level_status_chk %}checked{% endif %} disabled> 生活自立
+                                    patient_data.social_care_level_status_chk %}checked{% endif %}
+                                    data-bind="social_care_level_status_chk" disabled> 生活自立
                             </div>
                         </div>
                         <div class="input-group input-group-sm w-auto">
                             <div class="input-group-text">
                                 <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                    patient_data.social_care_level_applying_chk %}checked{% endif %} disabled> 申請中
+                                    patient_data.social_care_level_applying_chk %}checked{% endif %}
+                                    data-bind="social_care_level_applying_chk" disabled> 申請中
                             </div>
                         </div>
                         <div class="border rounded px-2 py-1 bg-light">
                             <div class="form-check form-check-inline mb-0">
                                 <input class="form-check-input" type="checkbox" {% if
-                                    patient_data.social_care_level_support_chk %}checked{% endif %} disabled>
+                                    patient_data.social_care_level_support_chk %}checked{% endif %}
+                                    data-bind="social_care_level_support_chk" disabled>
                                 <label class="form-check-label">要支援</label>
                             </div>
                             (
                             <div class="form-check form-check-inline mb-0"><input class="form-check-input"
                                     type="checkbox" {% if patient_data.social_care_level_support_num1_slct %}checked{%
-                                    endif %} disabled><label class="form-check-label">1</label>
+                                    endif %} data-bind="social_care_level_support_num1_slct" disabled><label
+                                    class="form-check-label">1</label>
                             </div>
                             <div class="form-check form-check-inline mb-0"><input class="form-check-input"
                                     type="checkbox" {% if patient_data.social_care_level_support_num2_slct %}checked{%
-                                    endif %} disabled><label class="form-check-label">2</label>
+                                    endif %} data-bind="social_care_level_support_num2_slct" disabled><label
+                                    class="form-check-label">2</label>
                             </div>
                             )
                         </div>
                         <div class="border rounded px-2 py-1 bg-light">
                             <div class="form-check form-check-inline mb-0">
                                 <input class="form-check-input" type="checkbox" {% if
-                                    patient_data.social_care_level_care_slct %}checked{% endif %} disabled>
+                                    patient_data.social_care_level_care_slct %}checked{% endif %}
+                                    data-bind="social_care_level_care_slct" disabled>
                                 <label class="form-check-label">要介護</label>
                             </div>
                             (
                             <div class="form-check form-check-inline mb-0"><input class="form-check-input"
                                     type="checkbox" {% if patient_data.social_care_level_care_num1_slct %}checked{%
-                                    endif %} disabled><label class="form-check-label">1</label></div>
+                                    endif %} data-bind="social_care_level_care_num1_slct" disabled><label
+                                    class="form-check-label">1</label></div>
                             <div class="form-check form-check-inline mb-0"><input class="form-check-input"
                                     type="checkbox" {% if patient_data.social_care_level_care_num2_slct %}checked{%
-                                    endif %} disabled><label class="form-check-label">2</label></div>
+                                    endif %} data-bind="social_care_level_care_num2_slct" disabled><label
+                                    class="form-check-label">2</label></div>
                             <div class="form-check form-check-inline mb-0"><input class="form-check-input"
                                     type="checkbox" {% if patient_data.social_care_level_care_num3_slct %}checked{%
-                                    endif %} disabled><label class="form-check-label">3</label></div>
+                                    endif %} data-bind="social_care_level_care_num3_slct" disabled><label
+                                    class="form-check-label">3</label></div>
                             <div class="form-check form-check-inline mb-0"><input class="form-check-input"
                                     type="checkbox" {% if patient_data.social_care_level_care_num4_slct %}checked{%
-                                    endif %} disabled><label class="form-check-label">4</label></div>
+                                    endif %} data-bind="social_care_level_care_num4_slct" disabled><label
+                                    class="form-check-label">4</label></div>
                             <div class="form-check form-check-inline mb-0"><input class="form-check-input"
                                     type="checkbox" {% if patient_data.social_care_level_care_num5_slct %}checked{%
-                                    endif %} disabled><label class="form-check-label">5</label></div>
+                                    endif %} data-bind="social_care_level_care_num5_slct" disabled><label
+                                    class="form-check-label">5</label></div>
                             )
                         </div>
                     </div>
@@ -1087,53 +1196,59 @@
                             <div class="input-group-text">
                                 <input class="form-check-input mt-0 me-1" type="checkbox" {% if
                                     patient_data.social_disability_certificate_physical_chk %}checked{% endif %}
-                                    disabled> 身体障害
+                                    data-bind="social_disability_certificate_physical_chk" disabled> 身体障害
                             </div>
                             <input type="text" class="form-control"
                                 value="{{ patient_data.social_disability_certificate_physical_txt or '' }}" disabled
-                                placeholder="内容">
+                                data-bind="social_disability_certificate_physical_txt" placeholder="内容">
                             <input type="text" class="form-control"
                                 value="{{ patient_data.social_disability_certificate_physical_type_txt or '' }}"
-                                disabled placeholder="種" style="max-width: 80px;">
+                                data-bind="social_disability_certificate_physical_type_txt" disabled placeholder="種"
+                                style="max-width: 80px;">
                             <span class="input-group-text">種</span>
                             <input type="text" class="form-control"
                                 value="{{ patient_data.social_disability_certificate_physical_rank_val or '' }}"
-                                disabled placeholder="級" style="max-width: 80px;">
+                                data-bind="social_disability_certificate_physical_rank_val" disabled placeholder="級"
+                                style="max-width: 80px;">
                             <span class="input-group-text">級</span>
                         </div>
                         <div class="input-group input-group-sm">
                             <div class="input-group-text">
                                 <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                    patient_data.social_disability_certificate_mental_chk %}checked{% endif %} disabled>
+                                    patient_data.social_disability_certificate_mental_chk %}checked{% endif %}
+                                    data-bind="social_disability_certificate_mental_chk" disabled>
                                 精神障害
                             </div>
                             <input type="text" class="form-control"
                                 value="{{ patient_data.social_disability_certificate_mental_rank_val or '' }}" disabled
-                                placeholder="級" style="max-width: 80px;">
+                                data-bind="social_disability_certificate_mental_rank_val" placeholder="級"
+                                style="max-width: 80px;">
                             <span class="input-group-text">級</span>
                         </div>
                         <div class="input-group input-group-sm">
                             <div class="input-group-text">
                                 <input class="form-check-input mt-0 me-1" type="checkbox" {% if
                                     patient_data.social_disability_certificate_intellectual_chk %}checked{% endif %}
-                                    disabled> 療育手帳
+                                    data-bind="social_disability_certificate_intellectual_chk" disabled> 療育手帳
                             </div>
                             <input type="text" class="form-control"
                                 value="{{ patient_data.social_disability_certificate_intellectual_txt or '' }}" disabled
-                                placeholder="名称">
+                                data-bind="social_disability_certificate_intellectual_txt" placeholder="名称">
                             <input type="text" class="form-control"
                                 value="{{ patient_data.social_disability_certificate_intellectual_grade_txt or '' }}"
-                                disabled placeholder="判定" style="max-width: 100px;">
+                                data-bind="social_disability_certificate_intellectual_grade_txt" disabled
+                                placeholder="判定" style="max-width: 100px;">
                         </div>
                         <div class="input-group input-group-sm">
                             <div class="input-group-text">
                                 <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                    patient_data.social_disability_certificate_other_chk %}checked{% endif %} disabled>
+                                    patient_data.social_disability_certificate_other_chk %}checked{% endif %}
+                                    data-bind="social_disability_certificate_other_chk" disabled>
                                 その他
                             </div>
                             <input type="text" class="form-control"
                                 value="{{ patient_data.social_disability_certificate_other_txt or '' }}" disabled
-                                placeholder="詳細">
+                                data-bind="social_disability_certificate_other_txt" placeholder="詳細">
                         </div>
                     </div>
                 </div>
@@ -1148,35 +1263,40 @@
             <div class="row g-3">
                 <div class="col-12">
                     <label class="form-label">目標（1ヶ月）</label>
-                    <textarea class="form-control" rows="5"
+                    <textarea class="form-control" rows="5" data-bind="goals_1_month_txt"
                         disabled>{{ patient_data.goals_1_month_txt or '' }}</textarea>
                 </div>
                 <div class="col-12">
                     <label class="form-label">目標（終了時）</label>
-                    <textarea class="form-control" rows="5"
+                    <textarea class="form-control" rows="5" data-bind="goals_at_discharge_txt"
                         disabled>{{ patient_data.goals_at_discharge_txt or '' }}</textarea>
                 </div>
                 <div class="col-12">
                     <div class="input-group input-group-sm mb-2">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goals_planned_hospitalization_period_chk %}checked{% endif %} disabled>
+                                patient_data.goals_planned_hospitalization_period_chk %}checked{% endif %}
+                                data-bind="goals_planned_hospitalization_period_chk" disabled>
                             入院予定期間
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goals_planned_hospitalization_period_txt or '' }}" disabled>
+                            value="{{ patient_data.goals_planned_hospitalization_period_txt or '' }}"
+                            data-bind="goals_planned_hospitalization_period_txt" disabled>
                     </div>
                     <div class="input-group input-group-sm">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goals_dischage_destination_chk %}checked{% endif %} disabled> 退院先
+                                patient_data.goals_dischage_destination_chk %}checked{% endif %}
+                                data-bind="goals_dischage_destination_chk" disabled> 退院先
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goals_discharge_destination_txt or '' }}" disabled>
+                            value="{{ patient_data.goals_discharge_destination_txt or '' }}"
+                            data-bind="goals_discharge_destination_txt" disabled>
                     </div>
                     <div class="form-check mt-2">
                         <input class="form-check-input" type="checkbox" {% if
-                            patient_data.goals_long_term_care_needed_chk %}checked{% endif %} disabled>
+                            patient_data.goals_long_term_care_needed_chk %}checked{% endif %}
+                            data-bind="goals_long_term_care_needed_chk" disabled>
                         <label class="form-check-label">介護が必要になると見込まれる</label>
                     </div>
                 </div>
@@ -1194,18 +1314,23 @@
                     <div class="input-group input-group-sm">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goal_p_residence_chk %}checked{% endif %} disabled> 住まい
+                                patient_data.goal_p_residence_chk %}checked{% endif %} data-bind="goal_p_residence_chk"
+                                disabled> 住まい
                         </div>
                         <div class="input-group-text bg-white">
                             <input type="radio" class="form-check-input mt-0 me-1" {% if
-                                patient_data.goal_p_residence_slct=='house' %}checked{% endif %} disabled>家屋
+                                patient_data.goal_p_residence_slct=='house' %}checked{% endif %}
+                                data-bind="goal_p_residence_slct" value="house" disabled>家屋
                             <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
-                                patient_data.goal_p_residence_slct=='facility' %}checked{% endif %} disabled>施設
+                                patient_data.goal_p_residence_slct=='facility' %}checked{% endif %}
+                                data-bind="goal_p_residence_slct" value="facility" disabled>施設
                             <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
-                                patient_data.goal_p_residence_slct=='other' %}checked{% endif %} disabled>その他
+                                patient_data.goal_p_residence_slct=='other' %}checked{% endif %}
+                                data-bind="goal_p_residence_slct" value="other" disabled>その他
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goal_p_residence_other_txt or '' }}" disabled placeholder="詳細">
+                            value="{{ patient_data.goal_p_residence_other_txt or '' }}"
+                            data-bind="goal_p_residence_other_txt" disabled placeholder="詳細">
                     </div>
                 </div>
 
@@ -1214,32 +1339,35 @@
                     <div class="input-group input-group-sm">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goal_p_return_to_work_chk %}checked{% endif %} disabled> 復職
+                                patient_data.goal_p_return_to_work_chk %}checked{% endif %}
+                                data-bind="goal_p_return_to_work_chk" disabled> 復職
                         </div>
                         <div class="input-group-text bg-white">
                             <input type="radio" class="form-check-input mt-0 me-1" {% if
                                 patient_data.goal_p_return_to_work_status_slct=='possible' %}checked{% endif %}
-                                disabled>可
+                                data-bind="goal_p_return_to_work_status_slct" value="possible" disabled>可
                             <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
                                 patient_data.goal_p_return_to_work_status_slct=='needs_consideration' %}checked{% endif
-                                %} disabled>困難（要検討）
+                                %} data-bind="goal_p_return_to_work_status_slct" value="needs_consideration"
+                                disabled>困難（要検討）
                             <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
                                 patient_data.goal_p_return_to_work_status_slct=='change_job' %}checked{% endif %}
-                                disabled>配置転換
+                                data-bind="goal_p_return_to_work_status_slct" value="change_job" disabled>配置転換
                             <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
                                 patient_data.goal_p_return_to_work_status_slct=='not_possible' %}checked{% endif %}
-                                disabled>不可
+                                data-bind="goal_p_return_to_work_status_slct" value="not_possible" disabled>不可
                             <input type="radio" class="form-check-input mt-0 ms-2 me-1" {% if
                                 patient_data.goal_p_return_to_work_status_slct=='other' %}checked{% endif %}
-                                disabled>その他
+                                data-bind="goal_p_return_to_work_status_slct" value="other" disabled>その他
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goal_p_return_to_work_status_other_txt or '' }}" disabled
-                            placeholder="その他詳細">
+                            value="{{ patient_data.goal_p_return_to_work_status_other_txt or '' }}"
+                            data-bind="goal_p_return_to_work_status_other_txt" disabled placeholder="その他詳細">
                     </div>
                     <div class="form-check ms-3 mt-1">
                         <input class="form-check-input" type="checkbox" {% if
-                            patient_data.goal_p_return_to_work_commute_change_chk %}checked{% endif %} disabled>
+                            patient_data.goal_p_return_to_work_commute_change_chk %}checked{% endif %}
+                            data-bind="goal_p_return_to_work_commute_change_chk" disabled>
                         <label class="form-check-label">通勤手段の変更</label>
                     </div>
                 </div>
@@ -1250,48 +1378,53 @@
                         <div class="card-body p-2">
                             <div class="checkbox-label mb-1">
                                 <input class="form-check-input me-1" type="checkbox" {% if
-                                    patient_data.goal_p_schooling_chk %}checked{% endif %} disabled>
+                                    patient_data.goal_p_schooling_chk %}checked{% endif %}
+                                    data-bind="goal_p_schooling_chk" disabled>
                                 復学・就学
                             </div>
                             <div class="ms-3 d-flex flex-wrap gap-2">
                                 <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
                                         patient_data.goal_p_schooling_status_possible_chk %}checked{% endif %}
-                                        disabled>可</label>
+                                        data-bind="goal_p_schooling_status_possible_chk" disabled>可</label>
                                 <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
                                         patient_data.goal_p_schooling_status_needs_consideration_chk %}checked{% endif
-                                        %} disabled>困難（要検討）</label>
+                                        %} data-bind="goal_p_schooling_status_needs_consideration_chk"
+                                        disabled>困難（要検討）</label>
                                 <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
                                         patient_data.goal_p_schooling_status_change_course_chk %}checked{% endif %}
-                                        disabled>進路変更</label>
+                                        data-bind="goal_p_schooling_status_change_course_chk" disabled>進路変更</label>
                                 <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
                                         patient_data.goal_p_schooling_status_not_possible_chk %}checked{% endif %}
-                                        disabled>不可</label>
+                                        data-bind="goal_p_schooling_status_not_possible_chk" disabled>不可</label>
                                 <label class="checkbox-label"><input type="checkbox" class="form-check-input me-1" {% if
                                         patient_data.goal_p_schooling_status_other_chk %}checked{% endif %}
-                                        disabled>その他</label>
+                                        data-bind="goal_p_schooling_status_other_chk" disabled>その他</label>
                                 <input type="text" class="form-control form-control-sm d-inline-block"
                                     style="width: 150px;"
-                                    value="{{ patient_data.goal_p_schooling_status_other_txt or '' }}" disabled
-                                    placeholder="その他詳細">
+                                    value="{{ patient_data.goal_p_schooling_status_other_txt or '' }}"
+                                    data-bind="goal_p_schooling_status_other_txt" disabled placeholder="その他詳細">
                             </div>
                             <div class="ms-3 mt-1 d-flex gap-3">
                                 <div class="input-group input-group-sm w-auto">
                                     <div class="input-group-text bg-transparent border-0 ps-0">
                                         <input class="form-check-input me-1" type="checkbox" {% if
-                                            patient_data.goal_p_schooling_destination_chk %}checked{% endif %} disabled>
+                                            patient_data.goal_p_schooling_destination_chk %}checked{% endif %}
+                                            data-bind="goal_p_schooling_destination_chk" disabled>
                                         就学先
                                     </div>
                                     <input type="text" class="form-control"
-                                        value="{{ patient_data.goal_p_schooling_destination_txt or '' }}" disabled>
+                                        value="{{ patient_data.goal_p_schooling_destination_txt or '' }}"
+                                        data-bind="goal_p_schooling_destination_txt" disabled>
                                 </div>
                                 <div class="input-group input-group-sm w-auto">
                                     <div class="input-group-text bg-transparent border-0">
                                         <input class="form-check-input me-1" type="checkbox" {% if
                                             patient_data.goal_p_schooling_commute_change_chk %}checked{% endif %}
-                                            disabled> 通学手段の変更
+                                            data-bind="goal_p_schooling_commute_change_chk" disabled> 通学手段の変更
                                     </div>
                                     <input type="text" class="form-control"
-                                        value="{{ patient_data.goal_p_schooling_commute_change_txt or '' }}" disabled>
+                                        value="{{ patient_data.goal_p_schooling_commute_change_txt or '' }}"
+                                        data-bind="goal_p_schooling_commute_change_txt" disabled>
                                 </div>
                             </div>
                         </div>
@@ -1303,26 +1436,31 @@
                     <div class="input-group input-group-sm mb-2">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goal_p_household_role_chk %}checked{% endif %} disabled> 家庭内の役割
+                                patient_data.goal_p_household_role_chk %}checked{% endif %}
+                                data-bind="goal_p_household_role_chk" disabled> 家庭内の役割
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goal_p_household_role_txt or '' }}" disabled>
+                            value="{{ patient_data.goal_p_household_role_txt or '' }}"
+                            data-bind="goal_p_household_role_txt" disabled>
                     </div>
                     <div class="input-group input-group-sm mb-2">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goal_p_social_activity_chk %}checked{% endif %} disabled> 社会活動
+                                patient_data.goal_p_social_activity_chk %}checked{% endif %}
+                                data-bind="goal_p_social_activity_chk" disabled> 社会活動
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goal_p_social_activity_txt or '' }}" disabled>
+                            value="{{ patient_data.goal_p_social_activity_txt or '' }}"
+                            data-bind="goal_p_social_activity_txt" disabled>
                     </div>
                     <div class="input-group input-group-sm">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goal_p_hobby_chk %}checked{% endif %} disabled> 趣味
+                                patient_data.goal_p_hobby_chk %}checked{% endif %} data-bind="goal_p_hobby_chk"
+                                disabled> 趣味
                         </div>
                         <input type="text" class="form-control" value="{{ patient_data.goal_p_hobby_txt or '' }}"
-                            disabled>
+                            data-bind="goal_p_hobby_txt" disabled>
                     </div>
                 </div>
             </div>
@@ -1341,11 +1479,14 @@
                 <span class="fw-bold">{{ label }}</span>
                 <div class="ms-auto btn-group btn-group-sm">
                     <span
-                        class="badge bg-secondary me-1 {% if not patient_data[base_key + '_independent_chk'] %}opacity-25{% endif %}">自立</span>
+                        class="badge bg-secondary me-1 {% if not patient_data[base_key + '_independent_chk'] %}opacity-25{% endif %}"
+                        data-bind-class-opacity="{{ base_key }}_independent_chk">自立</span>
                     <span
-                        class="badge bg-secondary me-1 {% if not patient_data[base_key + '_assistance_chk'] %}opacity-25{% endif %}">介助</span>
+                        class="badge bg-secondary me-1 {% if not patient_data[base_key + '_assistance_chk'] %}opacity-25{% endif %}"
+                        data-bind-class-opacity="{{ base_key }}_assistance_chk">介助</span>
                     <span
-                        class="badge bg-secondary {% if not patient_data[base_key + '_not_performed_chk'] %}opacity-25{% endif %}">非実施</span>
+                        class="badge bg-secondary {% if not patient_data[base_key + '_not_performed_chk'] %}opacity-25{% endif %}"
+                        data-bind-class-opacity="{{ base_key }}_not_performed_chk">非実施</span>
                 </div>
             </div>
             {% if extra_options %}
@@ -1373,19 +1514,25 @@
                     <div class="card mb-2 border-light bg-light h-100">
                         <div class="card-body p-2">
                             <input class="form-check-input me-2" type="checkbox" {% if
-                                patient_data.goal_a_bed_mobility_chk %}checked{% endif %} disabled>
+                                patient_data.goal_a_bed_mobility_chk %}checked{% endif %}
+                                data-bind="goal_a_bed_mobility_chk" disabled>
                             <span class="fw-bold">ベッド上動作</span>
                             <div class="ms-3 mt-1 small">
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_bed_mobility_independent_chk %}opacity-25{% endif %}">自立</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_bed_mobility_independent_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_bed_mobility_independent_chk">自立</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_bed_mobility_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_bed_mobility_assistance_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_bed_mobility_assistance_chk">介助</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_bed_mobility_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_bed_mobility_not_performed_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_bed_mobility_not_performed_chk">非実施</span>
                                 <span
-                                    class="badge bg-info text-dark me-1 {% if not patient_data.goal_a_bed_mobility_equipment_chk %}opacity-25{% endif %}">用具</span>
+                                    class="badge bg-info text-dark me-1 {% if not patient_data.goal_a_bed_mobility_equipment_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_bed_mobility_equipment_chk">用具</span>
                                 <span
-                                    class="badge bg-info text-dark {% if not patient_data.goal_a_bed_mobility_environment_setup_chk %}opacity-25{% endif %}">環境</span>
+                                    class="badge bg-info text-dark {% if not patient_data.goal_a_bed_mobility_environment_setup_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_bed_mobility_environment_setup_chk">環境</span>
                             </div>
                         </div>
                     </div>
@@ -1394,24 +1541,30 @@
                     <div class="card mb-2 border-light bg-light h-100">
                         <div class="card-body p-2">
                             <input class="form-check-input me-2" type="checkbox" {% if
-                                patient_data.goal_a_indoor_mobility_chk %}checked{% endif %} disabled>
+                                patient_data.goal_a_indoor_mobility_chk %}checked{% endif %}
+                                data-bind="goal_a_indoor_mobility_chk" disabled>
                             <span class="fw-bold">屋内移動</span>
                             <div class="ms-3 mt-1 small">
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_indoor_mobility_independent_chk %}opacity-25{% endif %}">自立</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_indoor_mobility_independent_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_indoor_mobility_independent_chk">自立</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_indoor_mobility_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_indoor_mobility_assistance_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_indoor_mobility_assistance_chk">介助</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_indoor_mobility_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_indoor_mobility_not_performed_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_indoor_mobility_not_performed_chk">非実施</span>
                             </div>
                             <div class="input-group input-group-sm mt-1">
                                 <div class="input-group-text bg-transparent border-0 p-0 me-1">
                                     <input class="form-check-input mt-0" type="checkbox" {% if
-                                        patient_data.goal_a_indoor_mobility_equipment_chk %}checked{% endif %} disabled>
+                                        patient_data.goal_a_indoor_mobility_equipment_chk %}checked{% endif %}
+                                        data-bind="goal_a_indoor_mobility_equipment_chk" disabled>
                                     用具
                                 </div>
                                 <input type="text" class="form-control"
-                                    value="{{ patient_data.goal_a_indoor_mobility_equipment_txt or '' }}" disabled>
+                                    value="{{ patient_data.goal_a_indoor_mobility_equipment_txt or '' }}"
+                                    data-bind="goal_a_indoor_mobility_equipment_txt" disabled>
                             </div>
                         </div>
                     </div>
@@ -1420,24 +1573,29 @@
                     <div class="card mb-2 border-light bg-light h-100">
                         <div class="card-body p-2">
                             <input class="form-check-input me-2" type="checkbox" {% if
-                                patient_data.goal_a_outdoor_mobility_chk %}checked{% endif %} disabled>
+                                patient_data.goal_a_outdoor_mobility_chk %}checked{% endif %}
+                                data-bind="goal_a_outdoor_mobility_chk" disabled>
                             <span class="fw-bold">屋外移動</span>
                             <div class="ms-3 mt-1 small">
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_outdoor_mobility_independent_chk %}opacity-25{% endif %}">自立</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_outdoor_mobility_independent_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_outdoor_mobility_independent_chk">自立</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_outdoor_mobility_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_outdoor_mobility_assistance_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_outdoor_mobility_assistance_chk">介助</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_outdoor_mobility_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_outdoor_mobility_not_performed_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_a_outdoor_mobility_not_performed_chk">非実施</span>
                             </div>
                             <div class="input-group input-group-sm mt-1">
                                 <div class="input-group-text bg-transparent border-0 p-0 me-1">
                                     <input class="form-check-input mt-0" type="checkbox" {% if
                                         patient_data.goal_a_outdoor_mobility_equipment_chk %}checked{% endif %}
-                                        disabled> 用具
+                                        data-bind="goal_a_outdoor_mobility_equipment_chk" disabled> 用具
                                 </div>
                                 <input type="text" class="form-control"
-                                    value="{{ patient_data.goal_a_outdoor_mobility_equipment_txt or '' }}" disabled>
+                                    value="{{ patient_data.goal_a_outdoor_mobility_equipment_txt or '' }}"
+                                    data-bind="goal_a_outdoor_mobility_equipment_txt" disabled>
                             </div>
                         </div>
                     </div>
@@ -1446,23 +1604,28 @@
                     <div class="card mb-2 border-light bg-light h-100">
                         <div class="card-body p-2">
                             <input class="form-check-input me-2" type="checkbox" {% if patient_data.goal_a_driving_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="goal_a_driving_chk" disabled>
                             <span class="fw-bold">自動車運転</span>
                             <div class="ms-3 mt-1 small">
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_driving_independent_chk %}opacity-25{% endif %}">自立</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_driving_independent_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_driving_independent_chk">自立</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_driving_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_driving_assistance_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_driving_assistance_chk">介助</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_driving_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_driving_not_performed_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_driving_not_performed_chk">非実施</span>
                             </div>
                             <div class="input-group input-group-sm mt-1">
                                 <div class="input-group-text bg-transparent border-0 p-0 me-1">
                                     <input class="form-check-input mt-0" type="checkbox" {% if
-                                        patient_data.goal_a_driving_modification_chk %}checked{% endif %} disabled> 改造
+                                        patient_data.goal_a_driving_modification_chk %}checked{% endif %}
+                                        data-bind="goal_a_driving_modification_chk" disabled> 改造
                                 </div>
                                 <input type="text" class="form-control"
-                                    value="{{ patient_data.goal_a_driving_modification_txt or '' }}" disabled>
+                                    value="{{ patient_data.goal_a_driving_modification_txt or '' }}"
+                                    data-bind="goal_a_driving_modification_txt" disabled>
                             </div>
                         </div>
                     </div>
@@ -1471,23 +1634,29 @@
                     <div class="card mb-2 border-light bg-light h-100">
                         <div class="card-body p-2">
                             <input class="form-check-input me-2" type="checkbox" {% if
-                                patient_data.goal_a_public_transport_chk %}checked{% endif %} disabled>
+                                patient_data.goal_a_public_transport_chk %}checked{% endif %}
+                                data-bind="goal_a_public_transport_chk" disabled>
                             <span class="fw-bold">公共交通機関</span>
                             <div class="ms-3 mt-1 small">
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_public_transport_independent_chk %}opacity-25{% endif %}">自立</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_public_transport_independent_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_public_transport_independent_chk">自立</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_public_transport_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_public_transport_assistance_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_public_transport_assistance_chk">介助</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_public_transport_not_performed_chk %}opacity-25{% endif %}">非実施</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_public_transport_not_performed_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_public_transport_not_performed_chk">非実施</span>
                             </div>
                             <div class="input-group input-group-sm mt-1">
                                 <div class="input-group-text bg-transparent border-0 p-0 me-1">
                                     <input class="form-check-input mt-0" type="checkbox" {% if
-                                        patient_data.goal_a_public_transport_type_chk %}checked{% endif %} disabled> 種類
+                                        patient_data.goal_a_public_transport_type_chk %}checked{% endif %}
+                                        data-bind="goal_a_public_transport_type_chk" disabled> 種類
                                 </div>
                                 <input type="text" class="form-control"
-                                    value="{{ patient_data.goal_a_public_transport_type_txt or '' }}" disabled>
+                                    value="{{ patient_data.goal_a_public_transport_type_txt or '' }}"
+                                    data-bind="goal_a_public_transport_type_txt" disabled>
                             </div>
                         </div>
                     </div>
@@ -1496,34 +1665,42 @@
                     <div class="card mb-2 border-light bg-light h-100">
                         <div class="card-body p-2">
                             <input class="form-check-input me-2" type="checkbox" {% if patient_data.goal_a_toileting_chk
-                                %}checked{% endif %} disabled>
+                                %}checked{% endif %} data-bind="goal_a_toileting_chk" disabled>
                             <span class="fw-bold">トイレ動作</span>
                             <div class="ms-3 mt-1 small">
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_toileting_independent_chk %}opacity-25{% endif %}">自立</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_toileting_independent_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_toileting_independent_chk">自立</span>
                                 <span
-                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_toileting_assistance_chk %}opacity-25{% endif %}">介助</span>
+                                    class="badge bg-secondary me-1 {% if not patient_data.goal_a_toileting_assistance_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_toileting_assistance_chk">介助</span>
                                 (
                                 <span
-                                    class="{% if not patient_data.goal_a_toileting_assistance_clothing_chk %}text-muted{% endif %}">着脱</span>/
+                                    class="{% if not patient_data.goal_a_toileting_assistance_clothing_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_toileting_assistance_clothing_chk">着脱</span>/
                                 <span
-                                    class="{% if not patient_data.goal_a_toileting_assistance_wiping_chk %}text-muted{% endif %}">清拭</span>/
+                                    class="{% if not patient_data.goal_a_toileting_assistance_wiping_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_toileting_assistance_wiping_chk">清拭</span>/
                                 <span
-                                    class="{% if not patient_data.goal_a_toileting_assistance_catheter_chk %}text-muted{% endif %}">カテーテル</span>
+                                    class="{% if not patient_data.goal_a_toileting_assistance_catheter_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_toileting_assistance_catheter_chk">カテーテル</span>
                                 )
                             </div>
                             <div class="input-group input-group-sm mt-1">
                                 <div class="input-group-text bg-transparent border-0 p-0 me-1">
                                     <input class="form-check-input mt-0" type="checkbox" {% if
-                                        patient_data.goal_a_toileting_type_chk %}checked{% endif %} disabled> 様式
+                                        patient_data.goal_a_toileting_type_chk %}checked{% endif %}
+                                        data-bind="goal_a_toileting_type_chk" disabled> 様式
                                 </div>
                                 <span
-                                    class="badge bg-light text-dark border me-1 {% if not patient_data.goal_a_toileting_type_western_chk %}opacity-25{% endif %}">洋式</span>
+                                    class="badge bg-light text-dark border me-1 {% if not patient_data.goal_a_toileting_type_western_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_toileting_type_western_chk">洋式</span>
                                 <span
-                                    class="badge bg-light text-dark border me-1 {% if not patient_data.goal_a_toileting_type_japanese_chk %}opacity-25{% endif %}">和式</span>
+                                    class="badge bg-light text-dark border me-1 {% if not patient_data.goal_a_toileting_type_japanese_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_a_toileting_type_japanese_chk">和式</span>
                                 <input type="text" class="form-control"
                                     value="{{ patient_data.goal_a_toileting_type_other_txt or '' }}" disabled
-                                    placeholder="その他">
+                                    data-bind="goal_a_toileting_type_other_txt" placeholder="その他">
                             </div>
                         </div>
                     </div>
@@ -1536,39 +1713,48 @@
                     <div class="input-group input-group-sm mb-1">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goal_s_env_home_modification_chk %}checked{% endif %} disabled> 家屋改修
+                                patient_data.goal_s_env_home_modification_chk %}checked{% endif %}
+                                data-bind="goal_s_env_home_modification_chk" disabled> 家屋改修
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goal_s_env_home_modification_txt or '' }}" disabled>
+                            value="{{ patient_data.goal_s_env_home_modification_txt or '' }}"
+                            data-bind="goal_s_env_home_modification_txt" disabled>
                     </div>
                 </div>
                 <div class="col-12">
                     <div class="input-group input-group-sm mb-1">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goal_s_env_assistive_device_chk %}checked{% endif %} disabled> 補助具
+                                patient_data.goal_s_env_assistive_device_chk %}checked{% endif %}
+                                data-bind="goal_s_env_assistive_device_chk" disabled> 補助具
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goal_s_env_assistive_device_txt or '' }}" disabled>
+                            value="{{ patient_data.goal_s_env_assistive_device_txt or '' }}"
+                            data-bind="goal_s_env_assistive_device_txt" disabled>
                     </div>
                 </div>
                 <div class="col-12">
                     <div class="card border-light bg-light rounded-0">
                         <div class="card-body p-2">
                             <input class="form-check-input me-2" type="checkbox" {% if
-                                patient_data.goal_s_env_social_security_chk %}checked{% endif %} disabled>
+                                patient_data.goal_s_env_social_security_chk %}checked{% endif %}
+                                data-bind="goal_s_env_social_security_chk" disabled>
                             <span class="fw-bold">社会保障制度</span>
                             <div class="ms-3 pt-1 d-flex flex-wrap gap-2 small">
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_social_security_physical_disability_cert_chk %}opacity-25{% endif %}">身体障害者手帳</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_social_security_physical_disability_cert_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_s_env_social_security_physical_disability_cert_chk">身体障害者手帳</span>
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_social_security_disability_pension_chk %}opacity-25{% endif %}">障害年金</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_social_security_disability_pension_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_s_env_social_security_disability_pension_chk">障害年金</span>
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_social_security_intractable_disease_cert_chk %}opacity-25{% endif %}">特定疾患受給者証</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_social_security_intractable_disease_cert_chk %}opacity-25{% endif %}"
+                                    data-bind-class-opacity="goal_s_env_social_security_intractable_disease_cert_chk">特定疾患受給者証</span>
                                 <div class="input-group input-group-sm w-auto">
                                     <span class="input-group-text bg-transparent border-0 p-0 me-1">その他</span>
                                     <input type="text" class="form-control form-control-sm"
-                                        value="{{ patient_data.goal_s_env_social_security_other_txt or '' }}" disabled>
+                                        value="{{ patient_data.goal_s_env_social_security_other_txt or '' }}"
+                                        data-bind="goal_s_env_social_security_other_txt" disabled>
                                 </div>
                             </div>
                         </div>
@@ -1578,28 +1764,36 @@
                     <div class="card border-light bg-light rounded-0">
                         <div class="card-body p-2">
                             <input class="form-check-input me-2" type="checkbox" {% if
-                                patient_data.goal_s_env_care_insurance_chk %}checked{% endif %} disabled>
+                                patient_data.goal_s_env_care_insurance_chk %}checked{% endif %}
+                                data-bind="goal_s_env_care_insurance_chk" disabled>
                             <span class="fw-bold">介護保険</span>
                             <div class="input-group input-group-sm mb-1 ms-3" style="width:auto;">
                                 <input type="text" class="form-control"
                                     value="{{ patient_data.goal_s_env_care_insurance_details_txt or '' }}" disabled
-                                    placeholder="詳細">
+                                    data-bind="goal_s_env_care_insurance_details_txt" placeholder="詳細">
                             </div>
                             <div class="ms-3 pt-1 d-flex flex-wrap gap-2 small">
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_outpatient_rehab_chk %}opacity-25{% endif %}">通所リハ</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_outpatient_rehab_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_s_env_care_insurance_outpatient_rehab_chk">通所リハ</span>
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_home_rehab_chk %}opacity-25{% endif %}">訪問リハ</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_home_rehab_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_s_env_care_insurance_home_rehab_chk">訪問リハ</span>
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_day_care_chk %}opacity-25{% endif %}">デイサービス</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_day_care_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_s_env_care_insurance_day_care_chk">デイサービス</span>
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_home_nursing_chk %}opacity-25{% endif %}">訪問看護</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_home_nursing_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_s_env_care_insurance_home_nursing_chk">訪問看護</span>
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_home_care_chk %}opacity-25{% endif %}">訪問介護</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_home_care_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_s_env_care_insurance_home_care_chk">訪問介護</span>
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_health_facility_chk %}opacity-25{% endif %}">老健</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_health_facility_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_s_env_care_insurance_health_facility_chk">老健</span>
                                 <span
-                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_nursing_home_chk %}opacity-25{% endif %}">特養</span>
+                                    class="badge bg-light text-dark border {% if not patient_data.goal_s_env_care_insurance_nursing_home_chk %}opacity-25{% endif %}"
+                                    data-bind="goal_s_env_care_insurance_nursing_home_chk">特養</span>
                             </div>
                         </div>
                     </div>
@@ -1612,21 +1806,25 @@
                     <div class="input-group input-group-sm mb-1">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goal_s_3rd_party_main_caregiver_chk %}checked{% endif %} disabled> 主介護者
+                                patient_data.goal_s_3rd_party_main_caregiver_chk %}checked{% endif %}
+                                data-bind="goal_s_3rd_party_main_caregiver_chk" disabled> 主介護者
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goal_s_3rd_party_main_caregiver_txt or '' }}" disabled>
+                            value="{{ patient_data.goal_s_3rd_party_main_caregiver_txt or '' }}"
+                            data-bind="goal_s_3rd_party_main_caregiver_txt" disabled>
                     </div>
                 </div>
                 <div class="col-12">
                     <div class="input-group input-group-sm mb-1">
                         <div class="input-group-text">
                             <input class="form-check-input mt-0 me-1" type="checkbox" {% if
-                                patient_data.goal_s_3rd_party_family_structure_change_chk %}checked{% endif %} disabled>
+                                patient_data.goal_s_3rd_party_family_structure_change_chk %}checked{% endif %}
+                                data-bind="goal_s_3rd_party_family_structure_change_chk" disabled>
                             家族構成の変化
                         </div>
                         <input type="text" class="form-control"
-                            value="{{ patient_data.goal_s_3rd_party_family_structure_change_txt or '' }}" disabled>
+                            value="{{ patient_data.goal_s_3rd_party_family_structure_change_txt or '' }}"
+                            data-bind="goal_s_3rd_party_family_structure_change_txt" disabled>
                     </div>
                 </div>
             </div>
@@ -1639,28 +1837,35 @@
         <div class="card-body">
             <div class="row g-2 small">
                 <div class="col-6">
-                    <strong>リハビリテーション科医:</strong> {{ patient_data.signature_rehab_doctor_txt or ''
-                    }}
+                    <strong>リハビリテーション科医:</strong> <span data-bind="signature_rehab_doctor_txt">{{
+                        patient_data.signature_rehab_doctor_txt or ''
+                        }}</span>
                 </div>
                 <div class="col-6">
-                    <strong>主治医:</strong> {{ patient_data.signature_primary_doctor_txt or '' }}
+                    <strong>主治医:</strong> <span data-bind="signature_primary_doctor_txt">{{
+                        patient_data.signature_primary_doctor_txt or '' }}</span>
                 </div>
                 <div class="col-4">
-                    <strong>PT:</strong> {{ patient_data.signature_pt_txt or '' }}
+                    <strong>PT:</strong> <span data-bind="signature_pt_txt">{{ patient_data.signature_pt_txt or ''
+                        }}</span>
                 </div>
                 <div class="col-4">
-                    <strong>OT:</strong> {{ patient_data.signature_ot_txt or '' }}
+                    <strong>OT:</strong> <span data-bind="signature_ot_txt">{{ patient_data.signature_ot_txt or ''
+                        }}</span>
                 </div>
                 <div class="col-4">
-                    <strong>ST:</strong> {{ patient_data.signature_st_txt or '' }}
+                    <strong>ST:</strong> <span data-bind="signature_st_txt">{{ patient_data.signature_st_txt or ''
+                        }}</span>
                 </div>
                 <div class="col-12 border-top pt-2 mt-2">
                     <p class="mb-1">上記の内容について説明を行い、同意を得ました。</p>
                     <div class="d-flex gap-3">
-                        <span><strong>説明日:</strong> {{ patient_data.signature_explanation_date or ''
-                            }}</span>
-                        <span><strong>説明者:</strong> {{ patient_data.signature_explainer_txt or ''
-                            }}</span>
+                        <span><strong>説明日:</strong> <span data-bind="signature_explanation_date">{{
+                                patient_data.signature_explanation_date or ''
+                                }}</span></span>
+                        <span><strong>説明者:</strong> <span data-bind="signature_explainer_txt">{{
+                                patient_data.signature_explainer_txt or ''
+                                }}</span></span>
                     </div>
                 </div>
             </div>

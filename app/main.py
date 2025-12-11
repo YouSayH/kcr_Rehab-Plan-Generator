@@ -195,6 +195,48 @@ def admin_required(f):
     return decorated_function
 
 
+def has_permission_for_patient(user, patient_id):
+    """
+    指定された患者に対するアクセス権限をチェックする。
+    管理者であるか、担当患者であれば True を返す。
+    """
+    if not user.is_authenticated:
+        return False
+
+    # 管理者は常にアクセス可能
+    if user.role == "admin":
+        return True
+
+    # 担当患者リストを取得してチェック
+    assigned_patients = database.get_assigned_patients(user.id)
+    # 効率化のため、IDのセットを作成して存在確認
+    assigned_patient_ids = {p["patient_id"] for p in assigned_patients}
+
+    return patient_id in assigned_patient_ids
+
+
+def get_plan_checked(plan_id, user):
+    """
+    指定されたIDの計画書を取得し、存在確認とアクセス権限チェックを行う共通関数。
+
+    Returns:
+        plan_data: 計画書データ
+
+    Raises:
+        ValueError: 計画書が存在しない場合
+        PermissionError: アクセス権限がない場合
+    """
+    plan_data = database.get_plan_by_id(plan_id)
+    if not plan_data:
+        raise ValueError("Plan not found")
+
+    patient_id = plan_data["patient_id"]
+    if not has_permission_for_patient(user, patient_id):
+        raise PermissionError("Permission denied")
+
+    return plan_data
+
+
 # ・ログインユーザー情報を表現するためのクラス
 # UserMixinは、Flask-Loginが必要とする基本的なメソッド（is_authenticatedなど）を
 # 自動的に追加してくれる便利なクラスです。
@@ -412,9 +454,7 @@ def generate_plan():
         print(f"こっちはジェネレートプラン無印　DEBUG [app.py]: therapist_notes from URL = '{therapist_notes[:100]}...'")
 
         # 権限チェック
-        assigned_patients = database.get_assigned_patients(current_user.id)
-        # if patient_id not in [p["id"] for p in assigned_patients]:
-        if patient_id not in [p["patient_id"] for p in assigned_patients]:
+        if not has_permission_for_patient(current_user, patient_id):
             flash("権限がありません。", "danger")
             return redirect(url_for("index"))
 
@@ -475,57 +515,60 @@ def generate_plan():
         flash(f"ページの表示中にエラーが発生しました: {e}", "danger")
         return redirect(url_for("index"))
 
-@app.route("/api/get_plan/<int:plan_id>")
-@login_required
-def api_get_plan(plan_id):
-    """特定の計画書データをJSONで返すAPI"""
-    try:
-        plan_data = database.get_plan_by_id(plan_id)
-        if not plan_data:
-            return jsonify({"error": "Plan not found"}), 404
 
-        # 権限チェック
-        patient_id = plan_data["patient_id"]
-        assigned_patients = database.get_assigned_patients(current_user.id)
-        is_admin = current_user.role == "admin"
-        if not is_admin and patient_id not in [p["patient_id"] for p in assigned_patients]:
-            return jsonify({"error": "Permission denied"}), 403
+# 現在未使用
+# @app.route("/api/get_plan/<int:plan_id>")
+# @login_required
+# def api_get_plan(plan_id):
+#     """特定の計画書データをJSONで返すAPI"""
+#     try:
+#         try:
+#             plan_data = get_plan_checked(plan_id, current_user)
+#         except ValueError:
+#             return jsonify({"error": "Plan not found"}), 404
+#         except PermissionError:
+#             return jsonify({"error": "Permission denied"}), 403
 
-        # datetimeオブジェクトを文字列に変換
-        for key, value in plan_data.items():
-            if hasattr(value, 'isoformat'):
-                plan_data[key] = value.isoformat()
+#         # datetimeオブジェクトを文字列に変換
+#         for key, value in plan_data.items():
+#             if hasattr(value, 'isoformat'):
+#                 plan_data[key] = value.isoformat()
 
-        return jsonify(plan_data)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+#         return jsonify(plan_data)
+#     except Exception as e:
+#         return jsonify({"error": str(e)}), 500
 
 
 
 @app.route("/api/render_plan_history/<int:plan_id>")
 @login_required
 def render_plan_history(plan_id):
-    """計画書の履歴表示用HTMLを返すAPI"""
+    """計画書の履歴表示用HTMLを返すAPI (サーバーサイドレンダリング)"""
     try:
-        plan_data = database.get_plan_by_id(plan_id)
-        if not plan_data:
-            return "<div class='alert alert-danger'>計画書データが見つかりません</div>", 404
+        try:
+            plan_data = get_plan_checked(plan_id, current_user)
+        except ValueError:
+             return jsonify({"error": "Plan not found"}), 404
+        except PermissionError:
+             return jsonify({"error": "Permission denied"}), 403
 
-        # 権限チェック
-        patient_id = plan_data["patient_id"]
-        assigned_patients = database.get_assigned_patients(current_user.id)
-        is_admin = current_user.role == "admin"
-        if not is_admin and patient_id not in [p["patient_id"] for p in assigned_patients]:
-            return "<div class='alert alert-danger'>権限がありません</div>", 403
+        # フォーマット指定を確認 (?format=json)
+        response_format = request.args.get('format', 'html')
 
-        # patient_data として template に渡す
-        return render_template(
-            "components/patient_info_ref.html",
-            patient_data=plan_data
-        )
+        if response_format == 'json':
+            # JSON形式で返却する場合（特定の項目だけ使いたい、グラフを作りたい等）
+            # datetimeオブジェクトを文字列に変換
+            for key, value in plan_data.items():
+                if hasattr(value, 'isoformat'):
+                    plan_data[key] = value.isoformat()
+            return jsonify(plan_data)
+        else:
+            # デフォルト: 既存のテンプレートを再利用してHTMLを生成
+            return render_template('components/patient_info_ref.html', patient_data=plan_data)
+        
     except Exception as e:
         app.logger.error(f"Error rendering plan history: {e}")
-        return f"<div class='alert alert-danger'>エラーが発生しました: {str(e)}</div>", 500
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/generate/general")
@@ -538,9 +581,7 @@ def generate_general_stream():
         therapist_notes = request.args.get("therapist_notes", "")
 
         # 権限チェック：ログイン中のユーザーが担当する患者か確認
-        assigned_patients = database.get_assigned_patients(current_user.id)
-        # if patient_id not in [p["id"] for p in assigned_patients]:
-        if patient_id not in [p["patient_id"] for p in assigned_patients]:
+        if not has_permission_for_patient(current_user, patient_id):
             return Response("権限がありません。", status=403)
 
         # データベースから患者データを取得
@@ -587,9 +628,7 @@ def generate_rag_stream(pipeline_name):
         therapist_notes = request.args.get("therapist_notes", "")
 
         # 権限チェック
-        assigned_patients = database.get_assigned_patients(current_user.id)
-        # if patient_id not in [p["id"] for p in assigned_patients]:
-        if patient_id not in [p["patient_id"] for p in assigned_patients]:
+        if not has_permission_for_patient(current_user, patient_id):
             return Response("権限がありません。", status=403)
 
         # データベースから患者データを取得
@@ -639,9 +678,7 @@ def save_plan():
     patient_id = int(request.form.get("patient_id"))
 
     # こちらでも、保存直前に再度権限チェックを行うことで、より安全性を高める。
-    assigned_patients = database.get_assigned_patients(current_user.id)
-    # if patient_id not in [p["id"] for p in assigned_patients]:
-    if patient_id not in [p["patient_id"] for p in assigned_patients]:
+    if not has_permission_for_patient(current_user, patient_id):
         flash("権限がありません。", "danger")
         return redirect(url_for("index"))
 
@@ -862,8 +899,7 @@ def regenerate_item():
             return Response("必須パラメータが不足しています。", status=400)
 
         # 権限チェック
-        assigned_patients = database.get_assigned_patients(current_user.id)
-        if patient_id not in [p["patient_id"] for p in assigned_patients]:
+        if not has_permission_for_patient(current_user, patient_id):
             return Response("権限がありません。", status=403)
 
         # 患者データを取得
@@ -910,12 +946,7 @@ def regenerate_item():
 def get_plan_history(patient_id):
     """【新規】指定された患者の計画書履歴をJSONで返すAPI"""
     # 権限チェック: ログイン中のユーザーがその患者の担当か、あるいは管理者か
-    assigned_patients = database.get_assigned_patients(current_user.id)
-    is_admin = current_user.role == "admin"
-
-    # 管理者でない、かつ担当患者リストにいない場合はエラー
-    # if not is_admin and patient_id not in [p["id"] for p in assigned_patients]:
-    if not is_admin and patient_id not in [p["patient_id"] for p in assigned_patients]:
+    if not has_permission_for_patient(current_user, patient_id):
         return jsonify({"error": "権限がありません。"}), 403
 
     try:
@@ -940,10 +971,7 @@ def view_plan(plan_id):
 
         # 権限チェック
         patient_id = plan_data["patient_id"]
-        assigned_patients = database.get_assigned_patients(current_user.id)
-        is_admin = current_user.role == "admin"
-        # if not is_admin and patient_id not in [p["id"] for p in assigned_patients]:
-        if not is_admin and patient_id not in [p["patient_id"] for p in assigned_patients]:
+        if not has_permission_for_patient(current_user, patient_id):
             flash("この計画書を閲覧する権限がありません。", "danger")
             return redirect(url_for("index"))
 
