@@ -188,7 +188,8 @@ textarea.form-control {
 
 @media print {
     .back-to-master-button {
-        display: none; /* 印刷時には非表示 */
+        display: none;
+        /* 印刷時には非表示 */
     }
 }
 
@@ -210,9 +211,11 @@ textarea.form-control {
 .patient-info-ref textarea:disabled,
 .patient-info-ref select:disabled {
     background-color: #f8f9fa;
-    color: #212529; /* Darker text for readability */
+    color: #212529;
+    /* Darker text for readability */
     border: 1px solid #ced4da;
-    opacity: 1; /* Override Bootstrap opacity reduction */
+    opacity: 1;
+    /* Override Bootstrap opacity reduction */
     font-weight: 500;
 }
 
@@ -231,4 +234,363 @@ textarea.form-control {
 .patient-info-ref .input-group-text {
     background-color: #e9ecef;
     color: #495057;
+}
+
+/* 修正3: チェックボックス・ラジオボタンの視認性向上 */
+.form-check-input:disabled:checked,
+.btn-check:disabled+.btn {
+    opacity: 1 !important;
+    background-color: #0d6efd !important;
+    /* Primary Blue */
+    border-color: #0d6efd !important;
+    color: #fff !important;
+}
+
+.btn-check:disabled+.btn-outline-secondary {
+    background-color: transparent !important;
+    color: #6c757d !important;
+    border-color: #6c757d !important;
+}
+
+
+.btn-check:disabled:checked+.btn-outline-secondary {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+    border-color: #0d6efd !important;
+}
+
+/* =========================================
+   Edit Patient Info HTML Styles
+   ========================================= */
+.container-wide {
+    max-width: 1250px;
+}
+
+.form-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 20px auto;
+    background-color: #fff;
+    padding: 25px;
+    border: 1px solid #333;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Table Styles for Forms */
+.form-table-wrapper table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid #000;
+    margin-bottom: 15px;
+}
+
+.form-table-wrapper table:last-of-type {
+    margin-bottom: 0;
+}
+
+.form-table-wrapper th,
+.form-table-wrapper td {
+    border: 1px solid #000;
+    padding: 5px 8px;
+    vertical-align: top;
+    line-height: 1.8;
+}
+
+.form-table-wrapper th {
+    background-color: #f2f2f2; /* Keep original gray for form fidelity */
+    text-align: center;
+    font-weight: bold;
+}
+
+/* Input Fields (Underlined Style) */
+.input-field {
+    width: 98%;
+    border: none;
+    border-bottom: 1px solid #666;
+    background-color: transparent;
+    font-family: inherit;
+    font-size: inherit;
+    padding: 2px;
+}
+
+textarea.input-field {
+    resize: vertical;
+    min-height: 40px;
+}
+
+.input-field:focus {
+    outline: none;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+/* Utility Classes for Inputs */
+.small-input { width: 60px !important; }
+.date-input { width: 35px !important; }
+.year-input { width: 55px !important; }
+.inline-input { display: inline-block; width: auto; }
+
+.checkbox-label,
+.radio-label {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 10px;
+    font-weight: normal;
+}
+
+.checkbox-label input,
+.radio-label input {
+    margin-right: 4px;
+}
+
+.sub-item { padding-left: 20px; }
+.sub-item-2 { padding-left: 40px; }
+
+.vertical-rl {
+    writing-mode: vertical-rl;
+    text-align: center;
+    padding: 10px 5px;
+    vertical-align: middle;
+}
+
+.score-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.score-input {
+    width: 45%;
+    text-align: center;
+}
+
+.header-note {
+    text-align: left;
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.patient-selector {
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.patient-selector label {
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.readonly-placeholder {
+    background-color: #f2f2f2;
+    color: #6c757d;
+    font-style: italic;
+    text-align: center;
+    padding-top: 20px;
+}
+
+.is-invalid-field {
+    background-color: #fff0f0 !important;
+    border: 1px solid var(--danger-color) !important;
+}
+
+.is-invalid-field:focus {
+    border-bottom: 2px solid var(--danger-color) !important;
+}
+
+/* =========================================
+   Confirm Page Layout & Styles
+   ========================================= */
+.app-layout-body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden; /* Suppress global scroll */
+}
+
+.main-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.app-header {
+    flex: 0 0 auto;
+    padding: 10px 15px;
+    background-color: white;
+    z-index: 10;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.content-area {
+    flex: 1 1 auto;
+    overflow: hidden;
+    padding: 10px 15px 0 15px;
+}
+
+.full-height { height: 100%; }
+.full-height-col {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.scrollable-tab-content {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    border-top: none;
+    padding: 20px;
+}
+
+.fixed-bottom-footer {
+    flex: 0 0 auto;
+    background-color: var(--light-gray);
+    border-top: 1px solid var(--border-color);
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    z-index: 1030;
+}
+
+.fixed-bottom-footer .btn {
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.2;
+}
+
+#submit-button {
+    min-width: 250px;
+    font-weight: bold;
+    height: 50px;
+}
+
+.patient-info-box {
+    background-color: var(--secondary-color);
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border-left: 5px solid var(--primary-color);
+    line-height: 1.8;
+}
+
+.generation-status-icon {
+    width: 24px;
+    margin-right: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+}
+
+.ai-label::after {
+    content: 'AIによる提案 (編集可)';
+    font-size: 12px;
+    font-weight: normal;
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 3px 8px;
+    border-radius: 10px;
+    margin-left: 10px;
+}
+
+.section-title {
+    font-size: 1.2em;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 5px;
+    margin-top: 30px;
+    margin-bottom: 20px;
+}
+
+/* Edited States */
+.form-control.is-default {
+    border-color: orange;
+    border-width: 2px;
+    background-color: #fff;
+}
+
+.form-control.is-edited {
+    background-color: #f0f4c3;
+    border-color: #cddc39;
+    border-width: 1px;
+}
+
+/* Suggestion UI */
+.suggestion-container { margin-top: 10px; }
+
+.suggestion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: .3rem .75rem;
+    background-color: #e9ecef;
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-radius: .25rem .25rem 0 0;
+}
+
+.suggestion-header .model-name {
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.suggestion-body-wrapper { position: relative; }
+
+.suggestion-content { display: none; }
+.suggestion-content.active { display: block; }
+
+.suggestion-text {
+    padding: 1rem;
+    white-space: pre-wrap;
+    min-height: 100px;
+    background-color: var(--light-gray);
+    border: 1px solid var(--border-color);
+}
+
+.like-btn {
+    color: #6c757d;
+    transition: color 0.2s;
+}
+
+.like-btn.liked,
+.like-btn:hover {
+    color: #0d6efd;
+}
+
+.suggestion-footer {
+    padding: .5rem 1rem;
+    background-color: var(--light-gray);
+    border: 1px solid var(--border-color);
+    border-top: none;
+}
+
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+
+details > summary {
+    cursor: pointer;
+    outline: none;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background-color 0.2s;
+    font-size: 1.2em;
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--border-color);
+    margin-top: 30px;
+    margin-bottom: 15px;
+    list-style: revert;
+}
+
+details > summary:hover {
+    background-color: var(--secondary-color);
 }

@@ -12,233 +12,9 @@
 
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
     <script>mermaid.initialize({ startOnLoad: false });</script>
-    <style>
-        .mermaid svg {
-            max-width: 100%;
-            height: auto;
-        }
-    </style>
-    <style>
-        html,
-        body {
-            height: 100%;
-            margin: 0;
-            overflow: hidden;
-            /* 全体のスクロールを抑制 */
-        }
-
-        .main-wrapper {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-        }
-
-        header {
-            flex: 0 0 auto;
-            /* ヘッダーは自身の高さのみ確保 */
-            padding: 10px 15px;
-            background-color: white;
-            z-index: 10;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .content-area {
-            flex: 1 1 auto;
-            /* 残りの高さを全て占有 */
-            overflow: hidden;
-            /* 内部でスクロールさせるため */
-            padding: 10px 15px 0 15px;
-        }
-
-        .row.full-height {
-            height: 100%;
-        }
-
-        .col-md-6.full-height-col {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .nav-tabs {
-            flex: 0 0 auto;
-        }
-
-        .scrollable-tab-content {
-            flex: 1 1 auto;
-            /* タブコンテンツが残りの高さを占有 */
-            overflow-y: auto;
-            /* ここでスクロール */
-            background-color: #fff;
-            border: 1px solid #dee2e6;
-            border-top: none;
-            padding: 20px;
-        }
-
-        /* フッターボタンエリア (Flexアイテムとして配置) */
-        .fixed-bottom-footer {
-            flex: 0 0 auto;
-            /* フッターは自身の高さのみ確保 */
-            background-color: #f8f9fa;
-            border-top: 1px solid #dee2e6;
-            padding: 15px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            z-index: 1030;
-        }
-
-        .fixed-bottom-footer .btn {
-            min-width: 120px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            line-height: 1.2;
-        }
-
-        #submit-button {
-            min-width: 250px;
-            font-weight: bold;
-            height: 50px;
-        }
-
-        .patient-info {
-            background-color: var(--secondary-color);
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            border-left: 5px solid var(--primary-color);
-            line-height: 1.8;
-        }
-
-        .generation-status-icon {
-            width: 24px;
-            margin-right: 8px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            vertical-align: middle;
-        }
-
-        .ai-label::after {
-            content: 'AIによる提案 (編集可)';
-            font-size: 12px;
-            font-weight: normal;
-            background-color: #e9ecef;
-            color: #495057;
-            padding: 3px 8px;
-            border-radius: 10px;
-            margin-left: 10px;
-        }
-
-        .section-title {
-            font-size: 1.2em;
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 5px;
-            margin-top: 30px;
-            margin-bottom: 20px;
-        }
-
-        /* 入力欄 */
-        .form-control.is-default {
-            border-color: orange;
-            border-width: 2px;
-            background-color: #fff;
-        }
-
-        .form-control.is-edited {
-            background-color: #f0f4c3;
-            border-color: #cddc39;
-            border-width: 1px;
-        }
-
-        /* 提案比較UI */
-        .suggestion-container {
-            margin-top: 10px;
-        }
-
-        .suggestion-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: .3rem .75rem;
-            background-color: #e9ecef;
-            border: 1px solid #dee2e6;
-            border-bottom: none;
-            border-radius: .25rem .25rem 0 0;
-        }
-
-        .suggestion-header .model-name {
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-
-        .suggestion-body-wrapper {
-            position: relative;
-        }
-
-        .suggestion-content {
-            display: none;
-        }
-
-        .suggestion-content.active {
-            display: block;
-        }
-
-        .suggestion-text {
-            padding: 1rem;
-            white-space: pre-wrap;
-            /* 改行を維持 */
-            min-height: 100px;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-        }
-
-        /* いいねボタン */
-        .like-btn {
-            color: #6c757d;
-            transition: color 0.2s;
-        }
-
-        .like-btn.liked,
-        .like-btn:hover {
-            color: #0d6efd;
-            /* Bootstrap Primary Color */
-        }
-
-        .suggestion-footer {
-            padding: .5rem 1rem;
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-top: none;
-        }
-
-        summary {
-            cursor: pointer;
-            outline: none;
-            padding: 10px;
-            border-radius: 5px;
-            transition: background-color 0.2s;
-            font-size: 1.2em;
-            color: var(--primary-color);
-            border-bottom: 2px solid var(--border-color);
-            margin-top: 30px;
-            margin-bottom: 15px;
-            list-style: revert;
-            /* 三角マークを表示 */
-        }
-
-        summary:hover {
-            background-color: #f0f8ff;
-            /* ホバー時に薄い青色にする */
-        }
-    </style>
 </head>
 
-<body>
+<body class="app-layout-body">
     <div class="container-fluid main-wrapper p-0">
         <header>
             <h1>【確認・修正】リハビリテーション総合実施計画書</h1>
@@ -512,13 +288,13 @@
         <!-- フッターボタンエリア -->
         <div class="fixed-bottom-footer">
             <button id="global-undo-button" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-counterclockwise"></i> 元に戻す
+                <i class="bi bi-arrow-left"></i> 元に戻す
             </button>
             <button id="global-redo-button" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-clockwise"></i> やり直す
+                <i class="bi bi-arrow-right"></i> やり直す
             </button>
             <button id="reset-all-button" class="btn btn-outline-danger">
-                <i class="bi bi-trash"></i> 全入力欄リセット
+                <i class="bi bi-arrow-clockwise"></i> 全入力欄リセット
             </button>
             <button type="submit" id="submit-button" form="confirm-form" class="btn btn-primary generating-text"
                 disabled>
@@ -1330,44 +1106,49 @@
                     displayDiv.innerHTML = '<div class="text-center mt-5"><div class="spinner-border text-primary" role="status"></div><p>読み込み中...</p></div>';
                     displayDiv.style.display = 'block';
 
-                    fetch(`/api/get_plan/${planId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.error) {
-                                displayDiv.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
-                                return;
+                    fetch(`/api/render_plan_history/${planId}`)
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
                             }
-
-                            let html = '<div class="history-content">';
-                            html += `<h5 class="border-bottom pb-2 mb-3">作成日: ${data.created_at ? data.created_at.replace('T', ' ') : '不明'}</h5>`;
-
-                            // ITEM_KEY_TO_JAPANESE の順序で表示したいが、オブジェクトなので順序は保証されない
-                            // 定義順序を維持するためにキーの配列を使用するか、ITEM_KEY_TO_JAPANESEを反復する
-
-                            for (const key in ITEM_KEY_TO_JAPANESE) {
-                                const label = ITEM_KEY_TO_JAPANESE[key];
-                                const value = data[key];
-
-                                // 値がある場合のみ表示、または空でも項目名は表示するか？
-                                // 比較のためには空でも表示したほうがいいかもしれないが、見やすさ重視で値があるものだけにするか
-                                // ここでは値があるものだけ表示する
-                                if (value) {
-                                    html += `<div class="mb-3">`;
-                                    html += `<label class="fw-bold text-primary small">${label}</label>`;
-                                    html += `<div class="p-2 bg-light border rounded" style="white-space: pre-wrap; font-size: 0.9em;">${value}</div>`;
-                                    html += `</div>`;
-                                }
-                            }
-                            html += '</div>';
+                            return response.text();
+                        })
+                        .then(html => {
                             displayDiv.innerHTML = html;
+
+                            // 履歴表示内の無効化された入力要素のスタイル調整
+                            displayDiv.querySelectorAll('input, select, textarea').forEach(el => {
+                                el.disabled = true;
+                            });
+                            // 履歴表示後にtextareaの高さを調整
+                            autoResizeTextareas();
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            displayDiv.innerHTML = `<div class="alert alert-danger">通信エラーが発生しました。</div>`;
+                            displayDiv.innerHTML = `<div class="alert alert-danger">通信エラーが発生しました: ${error.message}</div>`;
                         });
                 });
             }
 
+            // 修正4: textareaの高さ自動調整関数
+            function autoResizeTextareas() {
+                const textareas = document.querySelectorAll('.auto-resize-textarea');
+                textareas.forEach(textarea => {
+                    // 高さをリセットしてから再計算
+                    textarea.style.height = 'auto';
+                    textarea.style.height = (textarea.scrollHeight + 2) + 'px'; // +2 for border
+                });
+            }
+
+            // 初期表示時にも実行
+            autoResizeTextareas();
+            // タブ切り替え時にも実行（隠れている要素が表示されたときに高さがずれるのを防ぐ）
+            const infoTabs = document.getElementById('infoTabs');
+            if (infoTabs) {
+                infoTabs.addEventListener('shown.bs.tab', function (event) {
+                    autoResizeTextareas();
+                });
+            }
         });
     </script>
 </body>
