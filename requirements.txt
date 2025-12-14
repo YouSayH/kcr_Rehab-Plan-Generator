@@ -1,5 +1,6 @@
 Flask
 Flask-Login
+Flask-WTF
 gunicorn # Docker起動用
 Werkzeug
 SQLAlchemy

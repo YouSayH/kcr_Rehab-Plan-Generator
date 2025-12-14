@@ -94,7 +94,7 @@
                                 <li>
 
                                     <span>{{ patient.name }} (ID: {{ patient.patient_id }})</span>
-                                    <a href="{{ url_for('unassign', staff_id=staff.id, patient_id=patient.patient_id) }}"                                                            
+                                    <a href="{{ url_for('unassign', staff_id=staff.id, patient_id=patient.patient_id) }}"
                                         class="action-link">解除</a>
                                 </li>
                                 {% endfor %}
@@ -120,6 +120,7 @@
         <section class="management-section">
             <h2>新規割り当て</h2>
             <form action="{{ url_for('assign') }}" method="POST" class="assign-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <select name="staff_id" class="form-control" required>
                     <option value="">職員を選択</option>
                     {% for staff in all_staff %}<option value="{{ staff.id }}">{{ staff.username }}</option>{% endfor %}

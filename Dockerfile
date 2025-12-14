@@ -61,5 +61,6 @@ RUN chmod -R a+r /var/lib/mecab
 EXPOSE 8080
 
 # Gunicornでアプリケーションを起動
-# --timeout 0 はGemini APIの応答待ちなどでタイムアウトするのを防ぎます
-CMD ["gunicorn", "--bind", ":8080", "--workers", "1", "--threads", "8", "--timeout", "0", "app:app"]
+# 1. timeoutを300秒(5分)に設定 (AWS側もこれに合わせます)
+# 2. 起動パスを app.main:app に修正
+CMD ["gunicorn", "--bind", ":8080", "--workers", "1", "--threads", "8", "--timeout", "300", "app.main:app"]
