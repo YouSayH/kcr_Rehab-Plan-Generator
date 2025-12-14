@@ -11,7 +11,7 @@ import yaml
 from app.schemas.schemas import RehabPlanSchema
 
 # Rehab_RAGライブラリへのパスを追加
-REHAB_RAG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../../Rehab_RAG'))
+REHAB_RAG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../Rehab_RAG"))
 if os.path.exists(REHAB_RAG_PATH) and REHAB_RAG_PATH not in sys.path:
     sys.path.append(REHAB_RAG_PATH)
     print(f"INFO: Rehab_RAG path added: {REHAB_RAG_PATH}")
@@ -25,13 +25,14 @@ log_file_path = os.path.join(log_directory, "gemini_prompts.log")
 
 # ロガーの設定 (ファイル出力のみ、フォーマット指定)
 # すでにgemini_client.pyで設定されている場合は不要だが、念のため追加
-logger = logging.getLogger(__name__) # 新しいロガーインスタンスを取得
-if not logger.hasHandlers(): # ハンドラが未設定の場合のみ設定
+logger = logging.getLogger(__name__)  # 新しいロガーインスタンスを取得
+if not logger.hasHandlers():  # ハンドラが未設定の場合のみ設定
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
+
 
 def get_instance(module_name, class_name, params={}):
     """モジュール名とクラス名からインスタンスを動的に生成するヘルパー関数"""
@@ -42,6 +43,7 @@ def get_instance(module_name, class_name, params={}):
     except Exception as e:
         print(f"コンポーネント '{class_name}' のインスタンス化に失敗: {e}")
         return None
+
 
 class RAGExecutor:
     """
@@ -59,10 +61,10 @@ class RAGExecutor:
         if not pipeline_name:
             raise ValueError("RAGExecutorの初期化には 'pipeline_name' が必要です。")
 
-        pipeline_config_path = os.path.join('Rehab_RAG', 'experiments', pipeline_name, 'config.yaml')
+        pipeline_config_path = os.path.join("Rehab_RAG", "experiments", pipeline_name, "config.yaml")
         if not os.path.exists(pipeline_config_path):
             raise FileNotFoundError(f"設定ファイルが見つかりません: {pipeline_config_path}")
-        with open(pipeline_config_path, 'r', encoding='utf-8') as f:
+        with open(pipeline_config_path, "r", encoding="utf-8") as f:
             self.pipeline_config = yaml.safe_load(f)
 
         # 実行中のパイプラインのディレクトリを基準パスとして保持
@@ -70,104 +72,99 @@ class RAGExecutor:
 
         # 3. RAGパイプラインのコンポーネントを初期化
         self.components = {}
-        if 'common_components' in self.pipeline_config:
-            common_config = self.pipeline_config.get('common_components', {})
-            specific_config = self.pipeline_config.get('pipeline_specific_components', {})
+        if "common_components" in self.pipeline_config:
+            common_config = self.pipeline_config.get("common_components", {})
+            specific_config = self.pipeline_config.get("pipeline_specific_components", {})
         else:
             print("INFO: 'common_components'が見つからないため、フラットなconfigとして読み込みます。")
-            query_cfg = self.pipeline_config.get('query_components', {})
-            common_config = {'llm': query_cfg.get('llm')} if 'llm' in query_cfg else {}
-            specific_config = {k: v for k, v in query_cfg.items() if k != 'llm'}
+            query_cfg = self.pipeline_config.get("query_components", {})
+            common_config = {"llm": query_cfg.get("llm")} if "llm" in query_cfg else {}
+            specific_config = {k: v for k, v in query_cfg.items() if k != "llm"}
 
-        if 'llm' in common_config:
-            cfg = common_config['llm']
-            class_name = cfg.get('class_name') or cfg.get('class')
-            self.components['llm'] = get_instance(cfg['module'], class_name, cfg.get('params', {}))
+        if "llm" in common_config:
+            cfg = common_config["llm"]
+            class_name = cfg.get("class_name") or cfg.get("class")
+            self.components["llm"] = get_instance(cfg["module"], class_name, cfg.get("params", {}))
 
         # embedderを先に初期化するロジック
-        embedder_cfg = specific_config.pop('embedder', None) # specific_configからembedderを一旦取り出す
-        if not embedder_cfg and 'build_components' in self.pipeline_config:
-             embedder_cfg = self.pipeline_config.get('build_components', {}).get('embedder')
-             if embedder_cfg:
-                 print("INFO: 'query_components'にembedderがないため、'build_components'から読み込みます。")
+        embedder_cfg = specific_config.pop("embedder", None)  # specific_configからembedderを一旦取り出す
+        if not embedder_cfg and "build_components" in self.pipeline_config:
+            embedder_cfg = self.pipeline_config.get("build_components", {}).get("embedder")
+            if embedder_cfg:
+                print("INFO: 'query_components'にembedderがないため、'build_components'から読み込みます。")
 
         if embedder_cfg:
-            class_name = embedder_cfg.get('class_name') or embedder_cfg.get('class')
-            self.components['embedder'] = get_instance(embedder_cfg['module'], class_name, embedder_cfg.get('params', {}))
+            class_name = embedder_cfg.get("class_name") or embedder_cfg.get("class")
+            self.components["embedder"] = get_instance(embedder_cfg["module"], class_name, embedder_cfg.get("params", {}))
 
         for name, config in specific_config.items():
             if config:
-
                 # filterがリスト形式の場合、特別にループ処理を行う(フィルターを複数実行できるようにしているため)
-                if name == 'filter' and isinstance(config, list):
-                    self.components['filters'] = [] # 'filters' (複数形) というキーでリストを準備
+                if name == "filter" and isinstance(config, list):
+                    self.components["filters"] = []  # 'filters' (複数形) というキーでリストを準備
                     for filter_cfg in config:
-                        params = filter_cfg.get('params', {}).copy()
+                        params = filter_cfg.get("params", {}).copy()
                         # SelfReflectiveFilterなどがLLMを使えるように依存性を注入
-                        params['llm'] = self.components.get('llm')
-                        self.components['filters'].append(
-                            get_instance(filter_cfg['module'], filter_cfg.get('class') or filter_cfg.get('class_name'), params)
+                        params["llm"] = self.components.get("llm")
+                        self.components["filters"].append(
+                            get_instance(filter_cfg["module"], filter_cfg.get("class") or filter_cfg.get("class_name"), params)
                         )
-                    continue # filterの処理が終わったら次のループへ
+                    continue  # filterの処理が終わったら次のループへ
 
-                params = config.get('params', {}).copy() # .copy()で元のconfigを汚染しないようにする
-                class_name = config.get('class_name') or config.get('class')
+                params = config.get("params", {}).copy()  # .copy()で元のconfigを汚染しないようにする
+                class_name = config.get("class_name") or config.get("class")
 
                 # paramsの中にllmの設定が含まれているかチェック
-                if 'llm' in params and isinstance(params['llm'], dict):
+                if "llm" in params and isinstance(params["llm"], dict):
                     print(f"INFO: '{name}' コンポーネントの専用LLMを初期化します...")
-                    llm_cfg = params['llm']
-                    llm_class = llm_cfg.get('class_name') or llm_cfg.get('class')
+                    llm_cfg = params["llm"]
+                    llm_class = llm_cfg.get("class_name") or llm_cfg.get("class")
 
                     # 'llm' の設定(dict)を、LLMのインスタンス(object)に置き換える
-                    params['llm'] = get_instance(
-                        llm_cfg['module'],
-                        llm_class,
-                        llm_cfg.get('params', {})
-                    )
+                    params["llm"] = get_instance(llm_cfg["module"], llm_class, llm_cfg.get("params", {}))
 
                 # パスの自動解決ロジック
                 # 'path' または 'db_path' というキーを持つパラメータを絶対パスに変換
-                for path_key in ['path', 'db_path', 'bm25_path']:
+                for path_key in ["path", "db_path", "bm25_path"]:
                     if path_key in params and isinstance(params[path_key], str) and not os.path.isabs(params[path_key]):
                         # 相対パスをexperimentディレクトリからの絶対パスに変換
                         absolute_path = os.path.join(self.experiment_dir, params[path_key])
                         params[path_key] = os.path.normpath(absolute_path)
                         print(f"INFO: パラメータ '{path_key}' を絶対パスに変換しました: {params[path_key]}")
 
-                if name in ['judge', 'query_enhancer', 'filter'] and 'llm' not in params:
-                    params['llm'] = self.components.get('llm')
-                if name == 'retriever':
-                    if 'embedder' not in params:
-                        params['embedder'] = self.components.get('embedder')
-                    if class_name in ['GraphRetriever', 'CombinedRetriever'] and 'llm' not in params:
-                        params['llm'] = self.components.get('llm')
+                if name in ["judge", "query_enhancer", "filter"] and "llm" not in params:
+                    params["llm"] = self.components.get("llm")
+                if name == "retriever":
+                    if "embedder" not in params:
+                        params["embedder"] = self.components.get("embedder")
+                    if class_name in ["GraphRetriever", "CombinedRetriever"] and "llm" not in params:
+                        params["llm"] = self.components.get("llm")
 
-                    if 'path' not in params and 'database' in self.pipeline_config:
-                         db_path = self.pipeline_config.get('database', {}).get('path')
-                         if db_path:
-                             params['path'] = os.path.normpath(os.path.join(self.experiment_dir, db_path))
-                             print(f"INFO: retrieverの'path'をdatabaseセクションから補完: {params['path']}")
-                    if 'collection_name' not in params and 'database' in self.pipeline_config:
-                         params['collection_name'] = self.pipeline_config.get('database', {}).get('collection_name')
+                    if "path" not in params and "database" in self.pipeline_config:
+                        db_path = self.pipeline_config.get("database", {}).get("path")
+                        if db_path:
+                            params["path"] = os.path.normpath(os.path.join(self.experiment_dir, db_path))
+                            print(f"INFO: retrieverの'path'をdatabaseセクションから補完: {params['path']}")
+                    if "collection_name" not in params and "database" in self.pipeline_config:
+                        params["collection_name"] = self.pipeline_config.get("database", {}).get("collection_name")
 
-                if name == 'reranker' and class_name == 'GeminiEmbeddingReranker':
-                    if 'embedder' not in params:
-                        params['embedder'] = self.components.get('embedder')
+                if name == "reranker" and class_name == "GeminiEmbeddingReranker":
+                    if "embedder" not in params:
+                        params["embedder"] = self.components.get("embedder")
 
                 for key, value in params.items():
-                    if isinstance(value, str) and value.startswith('@common_components.'):
-                        params[key] = self.components.get(value.split('.')[-1])
+                    if isinstance(value, str) and value.startswith("@common_components."):
+                        params[key] = self.components.get(value.split(".")[-1])
 
-                self.components[name] = get_instance(config['module'], class_name, params)
+                self.components[name] = get_instance(config["module"], class_name, params)
 
-        self.llm = self.components.get('llm')
-        self.judge = self.components.get('judge')
-        self.query_enhancer = self.components.get('query_enhancer')
-        self.retriever = self.components.get('retriever')
-        self.reranker = self.components.get('reranker')
+        self.llm = self.components.get("llm")
+        self.judge = self.components.get("judge")
+        self.query_enhancer = self.components.get("query_enhancer")
+        self.retriever = self.components.get("retriever")
+        self.reranker = self.components.get("reranker")
         # self.filter = self.components.get('filter')
-        self.filters = self.components.get('filters', []) # 'filters' (複数形) を取得。なければ空リスト
+        self.filters = self.components.get("filters", [])  # 'filters' (複数形) を取得。なければ空リスト
 
     def _construct_prompt(self, patient_facts_dict: dict, docs: list) -> str:
         context = "\\n\\n".join(docs)
@@ -201,7 +198,6 @@ class RAGExecutor:
 
         print(f"\n[患者情報全体から生成された検索クエリ]:\n{query_for_retrieval}")
 
-
         # selfRAGの判断
         if self.judge and not self.judge.judge(query_for_retrieval):
             print("ジャッジ開始")
@@ -228,10 +224,10 @@ class RAGExecutor:
                 if len(search_queries) > 1:
                     print(f"  - クエリ '{q}' で検索")
                 results = self.retriever.retrieve(q, n_results=20)
-                if results and results.get('documents') and results['documents'][0]:
-                    for i, doc_text in enumerate(results['documents'][0]):
+                if results and results.get("documents") and results["documents"][0]:
+                    for i, doc_text in enumerate(results["documents"][0]):
                         if doc_text not in all_docs:
-                            all_docs[doc_text] = results['metadatas'][0][i]
+                            all_docs[doc_text] = results["metadatas"][0][i]
 
         docs = list(all_docs.keys())
         metadatas = list(all_docs.values())
@@ -253,7 +249,7 @@ class RAGExecutor:
         # else:
         #      print("フィルタリングはしません。")
 
-        if self.filters and docs: # self.filter を self.filters に変更
+        if self.filters and docs:  # self.filter を self.filters に変更
             print("検索結果をフィルタリング開始")
             original_doc_count = len(docs)
             # ループで各フィルターを順番に適用する
@@ -277,16 +273,22 @@ class RAGExecutor:
         # 根拠情報（ドキュメントとメタデータ）をセットにしてリスト化
         final_contexts_with_metadata = []
         for i in range(len(final_docs)):
-            final_contexts_with_metadata.append({
-                "content": final_docs[i],
-                "metadata": final_metadatas[i] if i < len(final_metadatas) else {}
-            })
+            final_contexts_with_metadata.append(
+                {"content": final_docs[i], "metadata": final_metadatas[i] if i < len(final_metadatas) else {}}
+            )
 
         final_prompt = self._construct_prompt(patient_facts, final_docs)
 
+        # 個人情報保護のため、プロンプト全文は出力せず、IDのみ記録する
+        # patient_factsの中に patient_id が含まれていることを想定
+        p_id = patient_facts.get("patient_id") or patient_facts.get("id") or "Unknown"
+        logger.info(f"--- Generating Final Answer with RAG [Patient ID: {p_id}] ---")
+        # logger.info("Final Prompt:\n" + final_prompt) # ← 個人情報を含むためコメントアウト（無効化）
 
-        logger.info("--- Generating Final Answer with RAG ---") # loggerを使用
-        logger.info("Final Prompt:\n" + final_prompt) # loggerを使用
+        print("LLMで回答生成開始")
+
+        logger.info("--- Generating Final Answer with RAG ---")  # loggerを使用
+        logger.info("Final Prompt:\n" + final_prompt)  # loggerを使用
 
         print("LLMで回答生成開始")
         response = self.llm.generate(final_prompt, response_schema=RehabPlanSchema)
@@ -296,7 +298,7 @@ class RAGExecutor:
 
         if isinstance(response, dict) and "error" in response:
             answer_dict = response
-        elif response: # <--- response が None でないことを確認
+        elif response:  # <--- response が None でないことを確認
             # Pydanticモデルの場合は .model_dump() で辞書に変換
             try:
                 answer_dict = response.model_dump()
@@ -310,7 +312,4 @@ class RAGExecutor:
             answer_dict = {"error": "AIの応答が空でした (None)。スキーマのパースに失敗した可能性があります。"}
 
         # 回答(answer)と、メタデータ付きの根拠(contexts)の両方を辞書として返す
-        return {
-            "answer": answer_dict,
-            "contexts": final_contexts_with_metadata
-        }
+        return {"answer": answer_dict, "contexts": final_contexts_with_metadata}

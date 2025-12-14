@@ -27,6 +27,7 @@ from flask_login import (
     login_user,
     logout_user,
 )
+from flask_wtf.csrf import CSRFProtect
 from pymysql.err import IntegrityError
 from sqlalchemy import text
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -48,10 +49,10 @@ log_file_path = os.path.join(log_directory, "gemini_prompts.log")
 
 # ロガーの設定 (app.py専用のロガーインスタンスを取得)
 logger = logging.getLogger(__name__)
-if not logger.hasHandlers(): # ハンドラが未設定の場合のみ設定
+if not logger.hasHandlers():  # ハンドラが未設定の場合のみ設定
     logger.setLevel(logging.INFO)
-    formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-    file_handler = logging.FileHandler(log_file_path, mode='a', encoding='utf-8')
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
@@ -60,31 +61,32 @@ print(f"--- LLMクライアントとして '{LLM_CLIENT_TYPE}' を使用しま�
 
 # show_summary.py からITEM_KEY_TO_JAPANESEを移植
 ITEM_KEY_TO_JAPANESE = {
-    'main_risks_txt': '安静度・リスク',
-    'main_contraindications_txt': '禁忌・特記事項',
-    'adl_equipment_and_assistance_details_txt': '使用用具及び介助内容等',
-    'goals_1_month_txt': '目標（1ヶ月）',
-    'goals_at_discharge_txt': '目標（終了時）',
-    'policy_treatment_txt': '治療方針',
-    'policy_content_txt': '治療内容',
-    'func_pain_txt': '疼痛',
-    'func_rom_limitation_txt': '関節可動域制限',
-    'func_muscle_weakness_txt': '筋力低下',
-    'func_swallowing_disorder_txt': '摂食嚥下障害',
-    'func_behavioral_psychiatric_disorder_txt': '精神行動障害',
-    'func_nutritional_disorder_txt': '栄養障害',
-    'func_excretory_disorder_txt': '排泄機能障害',
-    'func_pressure_ulcer_txt': '褥瘡',
-    'func_contracture_deformity_txt': '拘縮・変形',
-    'func_motor_muscle_tone_abnormality_txt': '筋緊張異常',
-    'func_disorientation_txt': '見当識障害',
-    'func_memory_disorder_txt': '記憶障害',
-    'goal_p_action_plan_txt': '参加の具体的な対応方針',
-    'goal_a_action_plan_txt': '活動の具体的な対応方針',
-    'goal_s_psychological_action_plan_txt': '心理の具体的な対応方針',
-    'goal_s_env_action_plan_txt': '環境の具体的な対応方針',
-    'goal_s_3rd_party_action_plan_txt': '第三者の不利に関する具体的な対応方針'
+    "main_risks_txt": "安静度・リスク",
+    "main_contraindications_txt": "禁忌・特記事項",
+    "adl_equipment_and_assistance_details_txt": "使用用具及び介助内容等",
+    "goals_1_month_txt": "目標（1ヶ月）",
+    "goals_at_discharge_txt": "目標（終了時）",
+    "policy_treatment_txt": "治療方針",
+    "policy_content_txt": "治療内容",
+    "func_pain_txt": "疼痛",
+    "func_rom_limitation_txt": "関節可動域制限",
+    "func_muscle_weakness_txt": "筋力低下",
+    "func_swallowing_disorder_txt": "摂食嚥下障害",
+    "func_behavioral_psychiatric_disorder_txt": "精神行動障害",
+    "func_nutritional_disorder_txt": "栄養障害",
+    "func_excretory_disorder_txt": "排泄機能障害",
+    "func_pressure_ulcer_txt": "褥瘡",
+    "func_contracture_deformity_txt": "拘縮・変形",
+    "func_motor_muscle_tone_abnormality_txt": "筋緊張異常",
+    "func_disorientation_txt": "見当識障害",
+    "func_memory_disorder_txt": "記憶障害",
+    "goal_p_action_plan_txt": "参加の具体的な対応方針",
+    "goal_a_action_plan_txt": "活動の具体的な対応方針",
+    "goal_s_psychological_action_plan_txt": "心理の具体的な対応方針",
+    "goal_s_env_action_plan_txt": "環境の具体的な対応方針",
+    "goal_s_3rd_party_action_plan_txt": "第三者の不利に関する具体的な対応方針",
 }
+
 
 def load_active_pipeline_from_config():
     # 設定ファイルのパス (app.pyと同じ階層にあると仮定)
@@ -107,12 +109,11 @@ def load_active_pipeline_from_config():
     print(f"--- デフォルトのRAGを使用します。: {fallback_pipeline} ---")
     return fallback_pipeline
 
+
 # アプリケーション起動時に一度だけ読み込んで定数にセット
 DEFAULT_RAG_PIPELINE = load_active_pipeline_from_config()
 
-app = Flask(__name__,
-            template_folder="web/templates",
-            static_folder="web/static")
+app = Flask(__name__, template_folder="web/templates", static_folder="web/static")
 
 # ユーザーのセッション情報（例: ログイン状態）を暗号化するため
 # これがないとflashメッセージなどが使えない。
@@ -120,8 +121,7 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 if not app.config["SECRET_KEY"]:
     raise ValueError("環境変数 'SECRET_KEY' が .env ファイルに設定されていません。")
 
-
-
+csrf = CSRFProtect(app)
 
 # 9時間後(労働時間8時間+1時間)にタイムアウトする。
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=540)
@@ -138,30 +138,43 @@ rag_executors = {}
 # 複数ユーザーからの同時アクセスで問題が起きないようにするためのロック機構
 rag_executor_lock = threading.Lock()
 
+
 def get_rag_executor(pipeline_name: str) -> RAGExecutor:
     """
     RAGExecutorのインスタンスをキャッシュから取得または新規作成する関数。
     """
-    # キャッシュに存在すれば、それを返す（高速）
-    if pipeline_name in rag_executors:
-        print(f"'{pipeline_name}' のExecutorをキャッシュから再利用します。")
-        return rag_executors[pipeline_name]
-
-    # キャッシュになければ、ロックをかけて新規作成
+    # ロックを開始（このブロック内は1つのスレッドしか入れない）
     with rag_executor_lock:
-        # ダブルチェックロッキング
+        # 1. キャッシュに存在すれば、それを返す（高速）
         if pipeline_name in rag_executors:
+            print(f"'{pipeline_name}' のExecutorをキャッシュから再利用します。")
             return rag_executors[pipeline_name]
 
+        # 2. キャッシュにない場合、既存のキャッシュを全てクリアする (メモリ解放)
+        # これにより、メモリ上には常に「今から作る1つ」しか存在しなくなる
+        if rag_executors:
+            print("メモリ節約のため、古いRAG Executorのキャッシュを破棄します。")
+            rag_executors.clear()
+
+            # 必要であればGCを実行
+            # import gc
+            # gc.collect()
+
+        # 3. 新規作成処理
+        # 【重要】インデントを戻して、ifブロックの外に出すこと！
         print(f"'{pipeline_name}' のExecutorを新規に初期化します...")
         try:
             executor = RAGExecutor(pipeline_name=pipeline_name)
-            rag_executors[pipeline_name] = executor # キャッシュに保存
+            rag_executors[pipeline_name] = executor  # キャッシュに保存
             print(f"'{pipeline_name}' の初期化が完了し、キャッシュに保存しました。")
             return executor
         except Exception as e:
             print(f"FATAL: RAG Executor ('{pipeline_name}') の初期化に失敗しました: {e}")
+            # エラー時は変なキャッシュが残らないように念のため消しておく
+            if pipeline_name in rag_executors:
+                del rag_executors[pipeline_name]
             raise e
+
 
 # 患者情報解析パーサーを初期化
 print("Initializing Patient Info Parser...")
@@ -169,15 +182,16 @@ try:
     if LLM_CLIENT_TYPE == "ollama":
         print("INFO: PatientInfoParserは現在Ollamaクライアントを自動的に使用します（要実装確認）。")
         # 本来は patient_info_parser.py も切り替えに対応させる
-        patient_info_parser = PatientInfoParser(client_type='ollama')
+        patient_info_parser = PatientInfoParser(client_type="ollama")
         print("Patient Info Parser initialized successfully.")
     else:
-        patient_info_parser = PatientInfoParser(client_type='gemini')
+        patient_info_parser = PatientInfoParser(client_type="gemini")
         print("Patient Info Parser initialized successfully.")
 
 except Exception as e:
     print(f"FATAL: Failed to initialize Patient Info Parser: {e}")
     patient_info_parser = None
+
 
 # 管理者判別デコレータ
 # @admin_required を付けたページにアクセスがあると、
@@ -262,7 +276,7 @@ def load_user(staff_id):
     # staff_info は辞書なので .get() を使う
     if session.get("session_token") != staff_info.get("session_token"):
         # 一致しない場合 (他のPCが新しくログインしたため)
-        return None # ログインを無効化する
+        return None  # ログインを無効化する
 
     # トークンが一致した場合のみ、ユーザー情報を復元
     return Staff(
@@ -325,7 +339,7 @@ def login():
             )
 
             # セッショントークン生成
-            new_token = os.urandom(24).hex() # 24バイトのランダムな文字列
+            new_token = os.urandom(24).hex()  # 24バイトのランダムな文字列
 
             # トークン保存
             try:
@@ -338,7 +352,7 @@ def login():
                 db.close()
 
             # トークンをセッションに保存
-            session["session_token"] = new_token # Flaskのセッションに保存
+            session["session_token"] = new_token  # Flaskのセッションに保存
 
             # Flask-Loginのlogin_user関数で、ユーザーをログイン状態にする
             login_user(staff)
@@ -378,9 +392,13 @@ def edit_patient_info():
         if current_patient_id:
             # --- データ取得ロジックをORMに統一 ---
             # 1. 最新7件の計画書データをORMオブジェクトとして取得
-            latest_plans = session.query(database.RehabilitationPlan).filter(
-                database.RehabilitationPlan.patient_id == current_patient_id
-            ).order_by(database.RehabilitationPlan.created_at.desc()).limit(7).all()
+            latest_plans = (
+                session.query(database.RehabilitationPlan)
+                .filter(database.RehabilitationPlan.patient_id == current_patient_id)
+                .order_by(database.RehabilitationPlan.created_at.desc())
+                .limit(7)
+                .all()
+            )
 
             # 2. 取得したデータを使ってフォーム表示とグラフ表示のデータを準備
             if latest_plans:
@@ -390,21 +408,24 @@ def edit_patient_info():
 
                 # PatientオブジェクトとRehabilitationPlanオブジェクトから辞書を作成して結合
                 patient_dict = {c.name: getattr(patient_obj, c.name) for c in patient_obj.__table__.columns}
-                patient_dict["age"] = patient_obj.age # ageプロパティを追加
+                patient_dict["age"] = patient_obj.age  # ageプロパティを追加
                 plan_dict = {c.name: getattr(latest_plan_obj, c.name) for c in latest_plan_obj.__table__.columns}
                 patient_data = {**patient_dict, **plan_dict}
 
                 # グラフ用に、古い→新しい順に並べ替えてJSON化
                 fim_history_for_chart = [
                     {c.name: getattr(p, c.name) for c in p.__table__.columns}
-                    for p in reversed(latest_plans) # 古い順に並べ替え
+                    for p in reversed(latest_plans)  # 古い順に並べ替え
                 ]
                 fim_history_json = json.dumps(fim_history_for_chart, default=str)
 
                 # 履歴ドロップダウン用に、全計画書のIDと作成日時を準備
-                all_plans_query = session.query(database.RehabilitationPlan.plan_id, database.RehabilitationPlan.created_at).filter(
-                    database.RehabilitationPlan.patient_id == current_patient_id
-                ).order_by(database.RehabilitationPlan.created_at.desc()).all()
+                all_plans_query = (
+                    session.query(database.RehabilitationPlan.plan_id, database.RehabilitationPlan.created_at)
+                    .filter(database.RehabilitationPlan.patient_id == current_patient_id)
+                    .order_by(database.RehabilitationPlan.created_at.desc())
+                    .all()
+                )
                 plan_history = [{"plan_id": p.plan_id, "created_at": p.created_at} for p in all_plans_query if p.created_at]
 
             else:
@@ -427,7 +448,7 @@ def edit_patient_info():
         patient_data=patient_data,
         plan_history=plan_history,
         current_patient_id=current_patient_id,
-        fim_history_json=fim_history_json  # グラフ用データをテンプレートに渡す
+        fim_history_json=fim_history_json,  # グラフ用データをテンプレートに渡す
     )
 
 
@@ -466,29 +487,49 @@ def generate_plan():
 
         # AI生成前のplanオブジェクトを作成 (AI生成項目は空にしておく)
         general_plan = patient_data.copy()
-        specialized_plan = {} # RAG実装までの仮対応
+        specialized_plan = {}  # RAG実装までの仮対応
 
         editable_keys = [
-            'main_risks_txt', 'main_contraindications_txt', 'func_pain_txt',
-            'func_rom_limitation_txt', 'func_muscle_weakness_txt', 'func_swallowing_disorder_txt',
-            'func_behavioral_psychiatric_disorder_txt', 'cs_motor_details', 'func_nutritional_disorder_txt',
-            'func_excretory_disorder_txt', 'func_pressure_ulcer_txt', 'func_contracture_deformity_txt',
-            'func_motor_muscle_tone_abnormality_txt', 'func_disorientation_txt', 'func_memory_disorder_txt',
-            'adl_equipment_and_assistance_details_txt', 'goals_1_month_txt', 'goals_at_discharge_txt',
-            'policy_treatment_txt', 'policy_content_txt', 'goal_p_action_plan_txt', 'goal_a_action_plan_txt',
-            'goal_s_psychological_action_plan_txt', 'goal_s_env_action_plan_txt', 'goal_s_3rd_party_action_plan_txt'
+            "main_risks_txt",
+            "main_contraindications_txt",
+            "func_pain_txt",
+            "func_rom_limitation_txt",
+            "func_muscle_weakness_txt",
+            "func_swallowing_disorder_txt",
+            "func_behavioral_psychiatric_disorder_txt",
+            "cs_motor_details",
+            "func_nutritional_disorder_txt",
+            "func_excretory_disorder_txt",
+            "func_pressure_ulcer_txt",
+            "func_contracture_deformity_txt",
+            "func_motor_muscle_tone_abnormality_txt",
+            "func_disorientation_txt",
+            "func_memory_disorder_txt",
+            "adl_equipment_and_assistance_details_txt",
+            "goals_1_month_txt",
+            "goals_at_discharge_txt",
+            "policy_treatment_txt",
+            "policy_content_txt",
+            "goal_p_action_plan_txt",
+            "goal_a_action_plan_txt",
+            "goal_s_psychological_action_plan_txt",
+            "goal_s_env_action_plan_txt",
+            "goal_s_3rd_party_action_plan_txt",
         ]
         for key in editable_keys:
             # general_plan と specialized_plan の両方に空文字を設定
             general_plan[key] = ""
-            specialized_plan[key] = "" # 仮テキストを削除
+            specialized_plan[key] = ""  # 仮テキストを削除
 
         # 履歴ドロップダウン用に、全計画書のIDと作成日時を準備
         session = database.SessionLocal()
         try:
-            all_plans_query = session.query(database.RehabilitationPlan.plan_id, database.RehabilitationPlan.created_at).filter(
-                database.RehabilitationPlan.patient_id == patient_id
-            ).order_by(database.RehabilitationPlan.created_at.desc()).all()
+            all_plans_query = (
+                session.query(database.RehabilitationPlan.plan_id, database.RehabilitationPlan.created_at)
+                .filter(database.RehabilitationPlan.patient_id == patient_id)
+                .order_by(database.RehabilitationPlan.created_at.desc())
+                .all()
+            )
             plan_history = [{"plan_id": p.plan_id, "created_at": p.created_at} for p in all_plans_query if p.created_at]
         finally:
             session.close()
@@ -498,13 +539,13 @@ def generate_plan():
             patient_data=patient_data,
             general_plan=general_plan,
             specialized_plan=specialized_plan,
-            therapist_notes=therapist_notes, # 独立して渡す
+            therapist_notes=therapist_notes,  # 独立して渡す
             is_generating=True,  # JavaScriptで生成処理をキックするためのフラグ
             model_to_generate=model_choice,
             editable_keys=editable_keys,
             item_key_to_japanese=ITEM_KEY_TO_JAPANESE,
             default_rag_pipeline=DEFAULT_RAG_PIPELINE,
-            plan_history=plan_history
+            plan_history=plan_history,
         )
 
     except (ValueError, TypeError):
@@ -565,7 +606,6 @@ def render_plan_history(plan_id):
         else:
             # デフォルト: 既存のテンプレートを再利用してHTMLを生成
             return render_template('components/patient_info_ref.html', patient_data=plan_data)
-        
     except Exception as e:
         app.logger.error(f"Error rendering plan history: {e}")
         return jsonify({"error": str(e)}), 500
@@ -598,11 +638,10 @@ def generate_general_stream():
             print("--- Ollama (local) クライアントで汎用モデルを実行します ---")
             logger.info(f"Calling Ollama general stream for patient_id: {patient_id}")
             stream_generator = ollama_client.generate_ollama_plan_stream(patient_data)
-        else: # デフォルトは 'gemini'
+        else:  # デフォルトは 'gemini'
             print("--- Gemini (cloud) クライアントで汎用モデルを実行します ---")
             logger.info(f"Calling Gemini general stream for patient_id: {patient_id}")
             stream_generator = gemini_client.generate_general_plan_stream(patient_data)
-
 
         # 結果をストリーミングでフロントエンドに返す
         return Response(stream_generator, mimetype="text/event-stream")
@@ -646,17 +685,19 @@ def generate_rag_stream(pipeline_name):
 
         stream_generator = None
         if LLM_CLIENT_TYPE == "ollama" and hasattr(ollama_client, "generate_rag_plan_stream"):
-             print("--- Ollama (local) クライアントでRAGモデルを実行します ---")
-             logger.info(f"Calling Ollama RAG stream for patient_id: {patient_id}")
-             stream_generator = ollama_client.generate_rag_plan_stream(patient_data, rag_executor)
+            print("--- Ollama (local) クライアントでRAGモデルを実行します ---")
+            logger.info(f"Calling Ollama RAG stream for patient_id: {patient_id}")
+            stream_generator = ollama_client.generate_rag_plan_stream(patient_data, rag_executor)
         else:
-             if LLM_CLIENT_TYPE == "ollama":
-                 print("--- [警告] OllamaクライアントにRAG初期生成(generate_rag_plan_stream)が実装されていません。Geminiクライアントでフォールバックします。---")
-                 logger.warning("Ollama client missing 'generate_rag_plan_stream'. Falling back to Gemini.")
+            if LLM_CLIENT_TYPE == "ollama":
+                print(
+                    "--- [警告] OllamaクライアントにRAG初期生成(generate_rag_plan_stream)が実装されていません。Geminiクライアントでフォールバックします。---"
+                )
+                logger.warning("Ollama client missing 'generate_rag_plan_stream'. Falling back to Gemini.")
 
-             print("--- Gemini (cloud) クライアントでRAGモデルを実行します ---")
-             logger.info(f"Calling Gemini RAG stream for patient_id: {patient_id}")
-             stream_generator = gemini_client.generate_rag_plan_stream(patient_data, rag_executor)
+            print("--- Gemini (cloud) クライアントでRAGモデルを実行します ---")
+            logger.info(f"Calling Gemini RAG stream for patient_id: {patient_id}")
+            stream_generator = gemini_client.generate_rag_plan_stream(patient_data, rag_executor)
 
         return Response(stream_generator, mimetype="text/event-stream")
 
@@ -701,23 +742,40 @@ def save_plan():
         # 患者情報スナップショット用に、再度患者データを取得
         patient_info_snapshot = database.get_patient_data_for_plan(patient_id)
         editable_keys = [
-            'main_risks_txt', 'main_contraindications_txt', 'func_pain_txt',
-            'func_rom_limitation_txt', 'func_muscle_weakness_txt', 'func_swallowing_disorder_txt',
-            'func_behavioral_psychiatric_disorder_txt', 'cs_motor_details', 'func_nutritional_disorder_txt',
-            'func_excretory_disorder_txt', 'func_pressure_ulcer_txt', 'func_contracture_deformity_txt',
-            'func_motor_muscle_tone_abnormality_txt', 'func_disorientation_txt', 'func_memory_disorder_txt',
-            'adl_equipment_and_assistance_details_txt', 'goals_1_month_txt', 'goals_at_discharge_txt',
-            'policy_treatment_txt', 'policy_content_txt', 'goal_p_action_plan_txt', 'goal_a_action_plan_txt',
-            'goal_s_psychological_action_plan_txt', 'goal_s_env_action_plan_txt', 'goal_s_3rd_party_action_plan_txt'
+            "main_risks_txt",
+            "main_contraindications_txt",
+            "func_pain_txt",
+            "func_rom_limitation_txt",
+            "func_muscle_weakness_txt",
+            "func_swallowing_disorder_txt",
+            "func_behavioral_psychiatric_disorder_txt",
+            "cs_motor_details",
+            "func_nutritional_disorder_txt",
+            "func_excretory_disorder_txt",
+            "func_pressure_ulcer_txt",
+            "func_contracture_deformity_txt",
+            "func_motor_muscle_tone_abnormality_txt",
+            "func_disorientation_txt",
+            "func_memory_disorder_txt",
+            "adl_equipment_and_assistance_details_txt",
+            "goals_1_month_txt",
+            "goals_at_discharge_txt",
+            "policy_treatment_txt",
+            "policy_content_txt",
+            "goal_p_action_plan_txt",
+            "goal_a_action_plan_txt",
+            "goal_s_psychological_action_plan_txt",
+            "goal_s_env_action_plan_txt",
+            "goal_s_3rd_party_action_plan_txt",
         ]
         database.save_all_suggestion_details(
-                rehabilitation_plan_id=new_plan_id,
-                staff_id=current_user.id,
-                suggestions=suggestions,
-                therapist_notes=therapist_notes,
+            rehabilitation_plan_id=new_plan_id,
+            staff_id=current_user.id,
+            suggestions=suggestions,
+            therapist_notes=therapist_notes,
             patient_info=patient_info_snapshot,
             liked_items=liked_items,
-            editable_keys=editable_keys
+            editable_keys=editable_keys,
         )
 
         # 【追加】再生成履歴を保存
@@ -726,7 +784,6 @@ def save_plan():
             database.save_regeneration_history(new_plan_id, regeneration_history)
         except (json.JSONDecodeError, TypeError) as e:
             app.logger.warning(f"再生成履歴の処理中にエラーが発生しました: {e}")
-
 
         # Excel出力用に、DBに保存されたばかりの計画データをIDで再取得
         plan_data_for_excel = database.get_plan_by_id(new_plan_id)
@@ -789,7 +846,7 @@ def save_patient_info():
             "goal_a_ict_level": "goal_a_ict_",
             "goal_a_communication_level": "goal_a_communication_",
             "goal_p_return_to_work_status_slct": "goal_p_return_to_work_status_",
-            "func_circulatory_arrhythmia_status_slct": "func_circulatory_arrhythmia_status_"
+            "func_circulatory_arrhythmia_status_slct": "func_circulatory_arrhythmia_status_",
         }
         # フォームデータを直接変更するのではなく、追加のデータを保持する辞書を作成
         additional_data = {}
@@ -812,7 +869,7 @@ def save_patient_info():
                     target_key = f"{prefix}partial_assistance_chk"
                 # 例: goal_a_toileting_level の値が 'assist' の場合
                 elif value == "assist":
-                     # goal_a_toileting_assistance_chk = 'on' を生成
+                    # goal_a_toileting_assistance_chk = 'on' を生成
                     target_key = f"{prefix}assistance_chk"
                 # 'yes'/'no' のような新しい形式に対応
                 elif value in ["yes", "no"]:
@@ -823,7 +880,7 @@ def save_patient_info():
                     # func_basic_rolling_independent_chk = 'on' などを生成
                     target_key = f"{prefix}{value}_chk"
 
-                additional_data[target_key] = 'on'
+                additional_data[target_key] = "on"
 
         # 元のフォームデータに、変換して生成したデータを追加
         form_data.update(additional_data)
@@ -839,46 +896,41 @@ def save_patient_info():
     #     flash(f"情報の保存中にエラーが発生しました: {e}", "danger")
     #     return redirect(url_for("edit_patient_info"))
     except Exception as e:
-        app.logger.error(f"save_patient_info でエラー: {e}") # ログには詳細を記録
-        flash("情報の保存中にエラーが発生しました。システム管理者にご確認ください。", "danger") # ユーザーには短いメッセージを表示
+        app.logger.error(f"save_patient_info でエラー: {e}")  # ログには詳細を記録
+        flash(
+            "情報の保存中にエラーが発生しました。システム管理者にご確認ください。", "danger"
+        )  # ユーザーには短いメッセージを表示
         return redirect(url_for("edit_patient_info"))
 
 
-@app.route('/like_suggestion', methods=['POST'])
+@app.route("/like_suggestion", methods=["POST"])
 @login_required
 def like_suggestion():
     """AI提案の「いいね」評価を保存するAPIエンドポイント"""
     data = request.get_json()
-    patient_id = data.get('patient_id')
-    item_key = data.get('item_key')
-    liked_model = data.get('liked_model')  # 'general', 'specialized', または null
+    patient_id = data.get("patient_id")
+    item_key = data.get("item_key")
+    liked_model = data.get("liked_model")  # 'general', 'specialized', または null
 
     if not all([patient_id, item_key]):
-        return jsonify({'status': 'error', 'message': '必須フィールドが不足しています。'}), 400
+        return jsonify({"status": "error", "message": "必須フィールドが不足しています。"}), 400
 
     try:
         # この関数を database.py に作成する必要があります
         # どのユーザーが評価したかを記録するために current_user.id も渡します
         if liked_model:
             database.save_suggestion_like(
-                patient_id=patient_id,
-                item_key=item_key,
-                liked_model=liked_model,
-                staff_id=current_user.id
+                patient_id=patient_id, item_key=item_key, liked_model=liked_model, staff_id=current_user.id
             )
         else:
             # いいね削除
-            model_to_delete = data.get('model_to_delete')
+            model_to_delete = data.get("model_to_delete")
             if model_to_delete:
-                database.delete_suggestion_like(
-                    patient_id=patient_id,
-                    item_key=item_key,
-                    liked_model=model_to_delete
-                )
-        return jsonify({'status': 'success', 'message': f'項目「{item_key}」の評価を保存しました。'})
+                database.delete_suggestion_like(patient_id=patient_id, item_key=item_key, liked_model=model_to_delete)
+        return jsonify({"status": "success", "message": f"項目「{item_key}」の評価を保存しました。"})
     except Exception as e:
         app.logger.error(f"Error saving suggestion like: {e}")
-        return jsonify({'status': 'error', 'message': 'データベース処理中にエラーが発生しました。'}), 500
+        return jsonify({"status": "error", "message": "データベース処理中にエラーが発生しました。"}), 500
 
 
 @app.route("/api/regenerate", methods=["POST"])
@@ -892,7 +944,7 @@ def regenerate_item():
         current_text = data.get("current_text", "")
         instruction = data.get("instruction", "")
         therapist_notes = data.get("therapist_notes", "")
-        model_type = data.get("model_type") # 'general' or 'specialized'
+        model_type = data.get("model_type")  # 'general' or 'specialized'
         pipeline_name = data.get("pipeline_name", DEFAULT_RAG_PIPELINE)
 
         if not all([patient_id, item_key, instruction]):
@@ -911,7 +963,7 @@ def regenerate_item():
 
         # モデルタイプに応じてRAG Executorを準備
         rag_executor = None
-        if model_type == 'specialized':
+        if model_type == "specialized":
             rag_executor = get_rag_executor(pipeline_name)
             if not rag_executor:
                 raise Exception(f"パイプライン '{pipeline_name}' の Executorを取得できませんでした。")
@@ -921,15 +973,21 @@ def regenerate_item():
             print(f"--- Ollama (local) クライアントで再生成を実行します (RAG: {'あり' if rag_executor else 'なし'}) ---")
             logger.info(f"Calling Ollama regeneration stream for item: {item_key} (RAG: {bool(rag_executor)})")
             stream_generator = ollama_client.regenerate_ollama_plan_item_stream(
-                patient_data=patient_data, item_key=item_key, current_text=current_text,
-                instruction=instruction, rag_executor=rag_executor
+                patient_data=patient_data,
+                item_key=item_key,
+                current_text=current_text,
+                instruction=instruction,
+                rag_executor=rag_executor,
             )
-        else: # デフォルトは 'gemini'
+        else:  # デフォルトは 'gemini'
             print(f"--- Gemini (cloud) クライアントで再生成を実行します (RAG: {'あり' if rag_executor else 'なし'}) ---")
             logger.info(f"Calling Gemini regeneration stream for item: {item_key} (RAG: {bool(rag_executor)})")
             stream_generator = gemini_client.regenerate_plan_item_stream(
-                patient_data=patient_data, item_key=item_key, current_text=current_text,
-                instruction=instruction, rag_executor=rag_executor
+                patient_data=patient_data,
+                item_key=item_key,
+                current_text=current_text,
+                instruction=instruction,
+                rag_executor=rag_executor,
             )
 
         return Response(stream_generator, mimetype="text/event-stream")
@@ -953,7 +1011,7 @@ def get_plan_history(patient_id):
         history = database.get_plan_history_for_patient(patient_id)
         # 日付を読みやすいフォーマットに変換
         for item in history:
-            item['created_at'] = item['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            item["created_at"] = item["created_at"].strftime("%Y-%m-%d %H:%M:%S")
         return jsonify(history)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
