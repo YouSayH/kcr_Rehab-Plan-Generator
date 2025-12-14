@@ -339,6 +339,8 @@
         let regeneratedItems = new Set(); // 再生成履歴を記録するSet
 
         const activePipelineName = "{{ default_rag_pipeline }}"; // config.yamlに設定したRAG
+        
+        const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
         document.addEventListener('DOMContentLoaded', function () {
             const modelToGenerate = "{{ model_to_generate|safe }}";
