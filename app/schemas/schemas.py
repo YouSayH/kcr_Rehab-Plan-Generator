@@ -963,3 +963,40 @@ PATIENT_INFO_EXTRACTION_GROUPS = [
     PatientInfo_Goal_HumanFactors,
     # 今後の拡張のために他のグループもここに追加可能
 ]
+
+
+
+# GLiNER2 ハイブリッド構成用スキーマ
+# チェックボックス（事実）はGLiNER2で自動判定するため、LLMには「思考」「考察」「記述」が必要な項目のみを生成させます。
+class PlanGenerationSchema(BaseModel):
+    # 1. 臨床推論・リスク
+    main_risks_txt: str = RehabPlanSchema.model_fields['main_risks_txt']
+    main_contraindications_txt: str = RehabPlanSchema.model_fields['main_contraindications_txt']
+    
+    # 2. 機能障害の詳細記述 (GLiNER2で拾えない文脈の補完や詳細記述)
+    func_pain_txt: str = RehabPlanSchema.model_fields['func_pain_txt']
+    func_rom_limitation_txt: str = RehabPlanSchema.model_fields['func_rom_limitation_txt']
+    func_muscle_weakness_txt: str = RehabPlanSchema.model_fields['func_muscle_weakness_txt']
+    func_swallowing_disorder_txt: str = RehabPlanSchema.model_fields['func_swallowing_disorder_txt']
+    func_behavioral_psychiatric_disorder_txt: str = RehabPlanSchema.model_fields['func_behavioral_psychiatric_disorder_txt']
+    func_nutritional_disorder_txt: str = RehabPlanSchema.model_fields['func_nutritional_disorder_txt']
+    func_excretory_disorder_txt: str = RehabPlanSchema.model_fields['func_excretory_disorder_txt']
+    func_pressure_ulcer_txt: str = RehabPlanSchema.model_fields['func_pressure_ulcer_txt']
+    func_contracture_deformity_txt: str = RehabPlanSchema.model_fields['func_contracture_deformity_txt']
+    func_motor_muscle_tone_abnormality_txt: str = RehabPlanSchema.model_fields['func_motor_muscle_tone_abnormality_txt']
+    func_disorientation_txt: str = RehabPlanSchema.model_fields['func_disorientation_txt']
+    func_memory_disorder_txt: str = RehabPlanSchema.model_fields['func_memory_disorder_txt']
+
+    # 3. 目標・方針 (生成の核心部分)
+    goals_1_month_txt: str = RehabPlanSchema.model_fields['goals_1_month_txt']
+    goals_at_discharge_txt: str = RehabPlanSchema.model_fields['goals_at_discharge_txt']
+    policy_treatment_txt: str = RehabPlanSchema.model_fields['policy_treatment_txt']
+    policy_content_txt: str = RehabPlanSchema.model_fields['policy_content_txt']
+    adl_equipment_and_assistance_details_txt: str = RehabPlanSchema.model_fields['adl_equipment_and_assistance_details_txt']
+    
+    # 4. アクションプラン (2枚目)
+    goal_a_action_plan_txt: str = RehabPlanSchema.model_fields['goal_a_action_plan_txt']
+    goal_s_env_action_plan_txt: str = RehabPlanSchema.model_fields['goal_s_env_action_plan_txt']
+    goal_p_action_plan_txt: str = RehabPlanSchema.model_fields['goal_p_action_plan_txt']
+    goal_s_psychological_action_plan_txt: str = RehabPlanSchema.model_fields['goal_s_psychological_action_plan_txt']
+    goal_s_3rd_party_action_plan_txt: str = RehabPlanSchema.model_fields['goal_s_3rd_party_action_plan_txt']
