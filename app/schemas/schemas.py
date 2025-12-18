@@ -170,55 +170,55 @@ class PatientMasterSchema(BaseModel):
     main_contraindications_txt: Optional[str] = Field(None, description="禁忌や医学的な特記事項・注意点")
     func_consciousness_disorder_chk: Optional[bool] = Field(None, description="意識障害の有無")
     func_consciousness_disorder_jcs_gcs_txt: Optional[str] = Field(None, description="意識レベル (JCS, GCS)")
-    func_respiratory_disorder_chk: Optional[bool] = Field(None, description="呼吸機能障害の有無")
-    func_respiratory_o2_therapy_chk: Optional[bool] = Field(None, description="酸素療法の有無")
-    func_respiratory_o2_therapy_l_min_txt: Optional[str] = Field(None, description="酸素流量 (L/min)")
-    func_respiratory_tracheostomy_chk: Optional[bool] = Field(None, description="気管切開の有無")
-    func_respiratory_ventilator_chk: Optional[bool] = Field(None, description="人工呼吸器使用の有無")
-    func_circulatory_disorder_chk: Optional[bool] = Field(None, description="循環障害の有無")
-    func_circulatory_ef_chk: Optional[bool] = Field(None, description="心駆出率(EF)測定の有無")
-    func_circulatory_ef_val: Optional[int] = Field(None, description="心駆出率(EF)の値 (%)")
-    func_circulatory_arrhythmia_chk: Optional[bool] = Field(None, description="不整脈の有無")
-    func_circulatory_arrhythmia_status_slct: Optional[str] = Field(None, description="不整脈の状態 (例: 心房細動)")
-    func_risk_factors_chk: Optional[bool] = Field(None, description="危険因子の有無")
+    func_respiratory_disorder_chk: Optional[bool] = Field(None, description="呼吸機能障害の有無") # なし
+    func_respiratory_o2_therapy_chk: Optional[bool] = Field(None, description="酸素療法の有無") # なし
+    func_respiratory_o2_therapy_l_min_txt: Optional[str] = Field(None, description="酸素流量 (L/min)") # なし
+    func_respiratory_tracheostomy_chk: Optional[bool] = Field(None, description="気管切開の有無") # なし
+    func_respiratory_ventilator_chk: Optional[bool] = Field(None, description="人工呼吸器使用の有無") # なし
+    func_circulatory_disorder_chk: Optional[bool] = Field(None, description="循環障害の有無") # なし
+    func_circulatory_ef_chk: Optional[bool] = Field(None, description="心駆出率(EF)測定の有無") # なし
+    func_circulatory_ef_val: Optional[int] = Field(None, description="心駆出率(EF)の値 (%)") # なし
+    func_circulatory_arrhythmia_chk: Optional[bool] = Field(None, description="不整脈の有無") # なし
+    func_circulatory_arrhythmia_status_slct: Optional[str] = Field(None, description="不整脈の状態 (例: 心房細動)") # なし
+    func_risk_factors_chk: Optional[bool] = Field(None, description="危険因子の有無") # なし(子要素の有無でオンオフが付く)
     func_risk_hypertension_chk: Optional[bool] = Field(None, description="高血圧症の有無")
     func_risk_dyslipidemia_chk: Optional[bool] = Field(None, description="脂質異常症の有無")
     func_risk_diabetes_chk: Optional[bool] = Field(None, description="糖尿病の有無")
-    func_risk_smoking_chk: Optional[bool] = Field(None, description="喫煙歴の有無")
-    func_risk_obesity_chk: Optional[bool] = Field(None, description="肥満の有無")
-    func_risk_hyperuricemia_chk: Optional[bool] = Field(None, description="高尿酸血症の有無")
+    func_risk_smoking_chk: Optional[bool] = Field(None, description="喫煙歴の有無") # なし
+    func_risk_obesity_chk: Optional[bool] = Field(None, description="肥満の有無") # なし
+    func_risk_hyperuricemia_chk: Optional[bool] = Field(None, description="高尿酸血症の有無") # なし
     func_risk_ckd_chk: Optional[bool] = Field(None, description="慢性腎臓病(CKD)の有無")
-    func_risk_family_history_chk: Optional[bool] = Field(None, description="家族歴の有無")
+    func_risk_family_history_chk: Optional[bool] = Field(None, description="家族歴の有無") # なし
     func_risk_angina_chk: Optional[bool] = Field(None, description="狭心症の有無")
     func_risk_omi_chk: Optional[bool] = Field(None, description="陳旧性心筋梗塞(OMI)の有無")
     func_risk_other_chk: Optional[bool] = Field(None, description="その他の危険因子の有無")
     func_risk_other_txt: Optional[str] = Field(None, description="その他の危険因子の詳細")
     func_swallowing_disorder_chk: Optional[bool] = Field(None, description="摂食嚥下障害の有無")
     func_swallowing_disorder_txt: Optional[str] = Field(None, description="摂食嚥下障害の詳細")
-    func_nutritional_disorder_chk: Optional[bool] = Field(None, description="栄養障害の有無")
-    func_nutritional_disorder_txt: Optional[str] = Field(None, description="栄養障害の詳細")
-    func_excretory_disorder_chk: Optional[bool] = Field(None, description="排泄機能障害の有無")
-    func_excretory_disorder_txt: Optional[str] = Field(None, description="排泄機能障害の詳細")
-    func_pressure_ulcer_chk: Optional[bool] = Field(None, description="褥瘡の有無")
-    func_pressure_ulcer_txt: Optional[str] = Field(None, description="褥瘡の詳細 (部位、DESIGN-Rなど)")
+    func_nutritional_disorder_chk: Optional[bool] = Field(None, description="栄養障害の有無") # なし
+    func_nutritional_disorder_txt: Optional[str] = Field(None, description="栄養障害の詳細") # なし
+    func_excretory_disorder_chk: Optional[bool] = Field(None, description="排泄機能障害の有無") # なし
+    func_excretory_disorder_txt: Optional[str] = Field(None, description="排泄機能障害の詳細") # なし
+    func_pressure_ulcer_chk: Optional[bool] = Field(None, description="褥瘡の有無") # なし
+    func_pressure_ulcer_txt: Optional[str] = Field(None, description="褥瘡の詳細 (部位、DESIGN-Rなど)") # なし
     func_pain_chk: Optional[bool] = Field(None, description="疼痛の有無")
     func_pain_txt: Optional[str] = Field(None, description="疼痛の詳細 (部位、程度、NRSなど)")
     func_other_chk: Optional[bool] = Field(None, description="その他の心身機能障害の有無")
     func_other_txt: Optional[str] = Field(None, description="その他の心身機能障害の詳細")
     func_rom_limitation_chk: Optional[bool] = Field(None, description="関節可動域制限の有無")
     func_rom_limitation_txt: Optional[str] = Field(None, description="関節可動域制限の詳細")
-    func_contracture_deformity_chk: Optional[bool] = Field(None, description="拘縮・変形の有無")
-    func_contracture_deformity_txt: Optional[str] = Field(None, description="拘縮・変形の詳細")
+    func_contracture_deformity_chk: Optional[bool] = Field(None, description="拘縮・変形の有無") # なし
+    func_contracture_deformity_txt: Optional[str] = Field(None, description="拘縮・変形の詳細") # なし
     func_muscle_weakness_chk: Optional[bool] = Field(None, description="筋力低下の有無")
     func_muscle_weakness_txt: Optional[str] = Field(None, description="筋力低下の詳細 (MMTなど)")
-    func_motor_dysfunction_chk: Optional[bool] = Field(None, description="運動機能障害の有無")
+    func_motor_dysfunction_chk: Optional[bool] = Field(None, description="運動機能障害の有無") # なし
     func_motor_paralysis_chk: Optional[bool] = Field(None, description="麻痺の有無")
     func_motor_involuntary_movement_chk: Optional[bool] = Field(None, description="不随意運動の有無")
     func_motor_ataxia_chk: Optional[bool] = Field(None, description="運動失調の有無")
     func_motor_parkinsonism_chk: Optional[bool] = Field(None, description="パーキンソニズムの有無")
-    func_motor_muscle_tone_abnormality_chk: Optional[bool] = Field(None, description="筋緊張異常の有無")
-    func_motor_muscle_tone_abnormality_txt: Optional[str] = Field(None, description="筋緊張異常の詳細 (痙性, 固縮など)")
-    func_sensory_dysfunction_chk: Optional[bool] = Field(None, description="感覚機能障害の有無")
+    func_motor_muscle_tone_abnormality_chk: Optional[bool] = Field(None, description="筋緊張異常の有無") # なし
+    func_motor_muscle_tone_abnormality_txt: Optional[str] = Field(None, description="筋緊張異常の詳細 (痙性, 固縮など)") # なし
+    func_sensory_dysfunction_chk: Optional[bool] = Field(None, description="感覚機能障害の有無") # なし(PDFには存在しているが、Excelにはない)
     func_sensory_hearing_chk: Optional[bool] = Field(None, description="聴覚障害の有無")
     func_sensory_vision_chk: Optional[bool] = Field(None, description="視覚障害の有無")
     func_sensory_superficial_chk: Optional[bool] = Field(None, description="表在感覚障害の有無")
@@ -226,30 +226,30 @@ class PatientMasterSchema(BaseModel):
     func_speech_disorder_chk: Optional[bool] = Field(None, description="音声発話障害の有無")
     func_speech_articulation_chk: Optional[bool] = Field(None, description="構音障害の有無")
     func_speech_aphasia_chk: Optional[bool] = Field(None, description="失語症の有無")
-    func_speech_stuttering_chk: Optional[bool] = Field(None, description="吃音の有無")
+    func_speech_stuttering_chk: Optional[bool] = Field(None, description="吃音の有無") # なし
     func_speech_other_chk: Optional[bool] = Field(None, description="その他の音声発話障害の有無")
-    func_speech_other_txt: Optional[str] = Field(None, description="その他の音声発話障害の詳細")
-    func_higher_brain_dysfunction_chk: Optional[bool] = Field(None, description="高次脳機能障害の有無")
-    func_higher_brain_memory_chk: Optional[bool] = Field(None, description="記憶障害(高次脳)の有無")
-    func_higher_brain_attention_chk: Optional[bool] = Field(None, description="注意障害の有無")
-    func_higher_brain_apraxia_chk: Optional[bool] = Field(None, description="失行の有無")
-    func_higher_brain_agnosia_chk: Optional[bool] = Field(None, description="失認の有無")
-    func_higher_brain_executive_chk: Optional[bool] = Field(None, description="遂行機能障害の有無")
+    func_speech_other_txt: Optional[str] = Field(None, description="その他の音声発話障害の詳細") # なし(PDFには存在しているが、Excelにはない)
+    func_higher_brain_dysfunction_chk: Optional[bool] = Field(None, description="高次脳機能障害の有無") # 逆にこっちには高次脳機能障害の詳細がない(多分、"記憶", "注意", "失行", "失認", "遂行"が統合されている。)
+    func_higher_brain_memory_chk: Optional[bool] = Field(None, description="記憶障害(高次脳)の有無") # なし
+    func_higher_brain_attention_chk: Optional[bool] = Field(None, description="注意障害の有無") # なし
+    func_higher_brain_apraxia_chk: Optional[bool] = Field(None, description="失行の有無") # なし
+    func_higher_brain_agnosia_chk: Optional[bool] = Field(None, description="失認の有無") # なし
+    func_higher_brain_executive_chk: Optional[bool] = Field(None, description="遂行機能障害の有無") # なし
     func_behavioral_psychiatric_disorder_chk: Optional[bool] = Field(None, description="精神行動障害の有無")
     func_behavioral_psychiatric_disorder_txt: Optional[str] = Field(None, description="精神行動障害の詳細")
-    func_disorientation_chk: Optional[bool] = Field(None, description="見当識障害の有無")
-    func_disorientation_txt: Optional[str] = Field(None, description="見当識障害の詳細")
-    func_memory_disorder_chk: Optional[bool] = Field(None, description="記憶障害の有無")
-    func_memory_disorder_txt: Optional[str] = Field(None, description="記憶障害の詳細")
-    func_developmental_disorder_chk: Optional[bool] = Field(None, description="発達障害の有無")
-    func_developmental_asd_chk: Optional[bool] = Field(None, description="自閉症スペクトラム症(ASD)の有無")
-    func_developmental_ld_chk: Optional[bool] = Field(None, description="学習障害(LD)の有無")
-    func_developmental_adhd_chk: Optional[bool] = Field(None, description="注意欠陥多動性障害(ADHD)の有無")
-    func_basic_rolling_chk: Optional[bool] = Field(None, description="寝返り動作の評価有無")
-    func_basic_rolling_independent_chk: Optional[bool] = Field(None, description="寝返り: 自立")
-    func_basic_rolling_partial_assistance_chk: Optional[bool] = Field(None, description="寝返り: 一部介助")
-    func_basic_rolling_assistance_chk: Optional[bool] = Field(None, description="寝返り: 全介助")
-    func_basic_rolling_not_performed_chk: Optional[bool] = Field(None, description="寝返り: 行わない")
+    func_disorientation_chk: Optional[bool] = Field(None, description="見当識障害の有無") # なし
+    func_disorientation_txt: Optional[str] = Field(None, description="見当識障害の詳細") # なし
+    func_memory_disorder_chk: Optional[bool] = Field(None, description="記憶障害の有無") # なし
+    func_memory_disorder_txt: Optional[str] = Field(None, description="記憶障害の詳細") # なし
+    func_developmental_disorder_chk: Optional[bool] = Field(None, description="発達障害の有無") # なし
+    func_developmental_asd_chk: Optional[bool] = Field(None, description="自閉症スペクトラム症(ASD)の有無") # なし
+    func_developmental_ld_chk: Optional[bool] = Field(None, description="学習障害(LD)の有無") # なし
+    func_developmental_adhd_chk: Optional[bool] = Field(None, description="注意欠陥多動性障害(ADHD)の有無") # なし
+    func_basic_rolling_chk: Optional[bool] = Field(None, description="寝返り動作の評価有無") # なし(子要素がある)# チェックではなく、寝返りの詳細に記入される感じです。
+    func_basic_rolling_independent_chk: Optional[bool] = Field(None, description="寝返り: 自立") # チェックではなく、寝返りの詳細に記入される感じです。
+    func_basic_rolling_partial_assistance_chk: Optional[bool] = Field(None, description="寝返り: 一部介助") # チェックではなく、寝返りの詳細に記入される感じです。
+    func_basic_rolling_assistance_chk: Optional[bool] = Field(None, description="寝返り: 全介助") # チェックではなく、寝返りの詳細に記入される感じです。
+    func_basic_rolling_not_performed_chk: Optional[bool] = Field(None, description="寝返り: 行わない") # チェックではなく、寝返りの詳細に記入される感じです。
     func_basic_getting_up_chk: Optional[bool] = Field(None, description="起き上がり動作の評価有無")
     func_basic_getting_up_independent_chk: Optional[bool] = Field(None, description="起き上がり: 自立")
     func_basic_getting_up_partial_assistance_chk: Optional[bool] = Field(None, description="起き上がり: 一部介助")
@@ -269,9 +269,9 @@ class PatientMasterSchema(BaseModel):
     func_basic_standing_balance_independent_chk: Optional[bool] = Field(None, description="立位保持: 自立")
     func_basic_standing_balance_partial_assistance_chk: Optional[bool] = Field(None, description="立位保持: 一部介助")
     func_basic_standing_balance_assistance_chk: Optional[bool] = Field(None, description="立位保持: 全介助")
-    func_basic_standing_balance_not_performed_chk: Optional[bool] = Field(None, description="立位保持: 行わない")
-    func_basic_other_chk: Optional[bool] = Field(None, description="その他の基本動作の評価有無")
-    func_basic_other_txt: Optional[str] = Field(None, description="その他の基本動作の詳細")
+    func_basic_standing_balance_not_performed_chk: Optional[bool] = Field(None, description="立位保持: 行わない") # チェックではなく、・・・の詳細に記入される感じです。(↑はすべて同じ)
+    func_basic_other_chk: Optional[bool] = Field(None, description="その他の基本動作の評価有無") # なし
+    func_basic_other_txt: Optional[str] = Field(None, description="その他の基本動作の詳細") # なし
     adl_eating_fim_start_val: Optional[int] = Field(None, description="食事のFIM開始時値")
     adl_eating_fim_current_val: Optional[int] = Field(None, description="食事のFIM現在値")
     adl_eating_bi_start_val: Optional[int] = Field(None, description="食事のBI開始時値")
@@ -280,8 +280,8 @@ class PatientMasterSchema(BaseModel):
     adl_grooming_fim_current_val: Optional[int] = Field(None, description="整容のFIM現在値")
     adl_grooming_bi_start_val: Optional[int] = Field(None, description="整容のBI開始時値")
     adl_grooming_bi_current_val: Optional[int] = Field(None, description="整容のBI現在値")
-    adl_bathing_fim_start_val: Optional[int] = Field(None, description="入浴のFIM開始時値")
-    adl_bathing_fim_current_val: Optional[int] = Field(None, description="入浴のFIM現在値")
+    adl_bathing_fim_start_val: Optional[int] = Field(None, description="入浴のFIM開始時値") # 清拭に対応
+    adl_bathing_fim_current_val: Optional[int] = Field(None, description="入浴のFIM現在値") # 清拭に対応
     adl_bathing_bi_start_val: Optional[int] = Field(None, description="入浴のBI開始時値")
     adl_bathing_bi_current_val: Optional[int] = Field(None, description="入浴のBI現在値")
     adl_dressing_upper_fim_start_val: Optional[int] = Field(None, description="更衣(上半身)のFIM開始時値")
