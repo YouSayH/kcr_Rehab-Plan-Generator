@@ -29,7 +29,7 @@
                 </div>
             </div>
             <p id="generation-finished-text" style="display: none;" class="mb-1">
-                AIによる生成が完了しました。内容を確認・修正し、「この内容で確定して保存」ボタンを押してください。
+                AIによる生成が完了しました。内容を確認・修正し、「プレビューを確認」ボタンでプレビューを確認してください。
             </p>
         </header>
 
@@ -287,6 +287,38 @@
             </div>
         </div>
 
+        <!-- プレビューモーダル -->
+        <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-xl modal-dialog-scrollable"> <!-- XLサイズでスクロール可能に -->
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="previewModalLabel">総合実施計画書 プレビュー (様式23)</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body bg-light">
+                        <div id="preview-content-container" class="shadow-sm p-3 bg-white mx-auto"
+                            style="max-width: 210mm; min-height: 297mm;">
+                            <!-- ここにプレビューHTMLが挿入されます -->
+                            <div class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">プレビューを生成中...</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="bi bi-pencil"></i> 修正に戻る
+                        </button>
+                        <button type="button" id="confirm-save-btn" class="btn btn-primary">
+                            <i class="bi bi-file-earmark-excel"></i> 内容を確定してExcel出力
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- フッターボタンエリア -->
         <div class="fixed-bottom-footer">
             <button id="global-undo-button" class="btn btn-outline-secondary">
@@ -298,8 +330,9 @@
             <button id="reset-all-button" class="btn btn-outline-danger">
                 <i class="bi bi-arrow-clockwise"></i> 全入力欄リセット
             </button>
-            <button type="submit" id="submit-button" form="confirm-form" class="btn btn-primary generating-text"
-                disabled>
+            <!-- 隠しsubmitボタン (JSから発火用) -->
+            <button type="submit" id="hidden-submit-button" form="confirm-form" style="display: none;"></button>
+            <button type="button" id="submit-button" class="btn btn-primary generating-text" disabled>
                 AI生成完了までお待ちください...
             </button>
         </div>
@@ -339,7 +372,7 @@
         let regeneratedItems = new Set(); // 再生成履歴を記録するSet
 
         const activePipelineName = "{{ default_rag_pipeline }}"; // config.yamlに設定したRAG
-        
+
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -422,7 +455,7 @@
 
                     fetch("{{ url_for('like_suggestion') }}", {
                         method: 'POST',
-                        headers: { 
+                        headers: {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                         },
@@ -500,7 +533,7 @@
                     // DBからいいね情報を削除するAPIを呼び出す
                     fetch("{{ url_for('like_suggestion') }}", {
                         method: 'POST',
-                        headers: { 
+                        headers: {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                         },
@@ -533,7 +566,7 @@
                 // fetch APIを使用してストリーミングリクエストを送信
                 fetch('/api/regenerate', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
                     },
@@ -621,6 +654,81 @@
 
             const form = document.getElementById('confirm-form');
             const submitButton = document.getElementById('submit-button');
+            const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+            const previewContentContainer = document.getElementById('preview-content-container');
+            const confirmSaveBtn = document.getElementById('confirm-save-btn');
+
+            // 「プレビューして保存」ボタンクリック時の処理
+            submitButton.addEventListener('click', function () {
+                // 隠しフィールドの更新 (念のため)
+                if (typeof updateAllHiddenInputs === 'function') {
+                    updateAllHiddenInputs();
+                }
+
+                // ローディング表示
+                previewContentContainer.innerHTML = `
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">プレビューを生成中...</p>
+                    </div>
+                `;
+
+                previewModal.show();
+
+                // フォームデータをFormDataオブジェクトとして取得
+                const formData = new FormData(form);
+
+                // プレビューAPIへ送信
+                fetch('/api/preview_plan', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': csrfToken
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.text().then(text => { throw new Error(text) });
+                        }
+                        // 今回はHTMLテキストを受け取る
+                        return response.text();
+                    })
+                    .then(html => {
+                        // Luckysheet表示用コンテナのリセット
+                        previewContentContainer.className = '';
+                        previewContentContainer.style.maxWidth = 'none';
+                        previewContentContainer.style.minHeight = '0';
+                        previewContentContainer.style.width = '100%';
+                        previewContentContainer.style.height = '80vh';
+                        previewContentContainer.style.padding = '0';
+                        previewContentContainer.style.overflow = 'hidden';
+
+                        // Iframe作成 (srcdocを使用)
+                        const iframe = document.createElement('iframe');
+                        iframe.style.width = '100%';
+                        iframe.style.height = '100%';
+                        iframe.style.border = 'none';
+
+                        // srcdocにサーバーから受け取った完全なHTMLをセット
+                        iframe.srcdoc = html;
+
+                        previewContentContainer.innerHTML = '';
+                        previewContentContainer.appendChild(iframe);
+                    })
+                    .catch(error => {
+                        console.error('Preview error:', error);
+                        previewContentContainer.innerHTML = `<div class="alert alert-danger">プレビューの生成に失敗しました。<br>${error.message}</div>`;
+                    });
+            });
+
+            // モーダル内の「内容を確定してExcel出力」ボタン処理
+            confirmSaveBtn.addEventListener('click', function () {
+                // 本来の送信処理を実行
+                document.getElementById('hidden-submit-button').click();
+                previewModal.hide();
+            });
 
             function updateElementStyle(element) {
                 if (!element || !element.id) return;
@@ -796,17 +904,17 @@
                         generationHeaderStatus.innerHTML = '<div class="d-flex align-items-center"><i class="bi bi-check-circle-fill me-2"></i><strong>AIによる生成がすべて完了しました。</strong></div>';
                         generationFinishedText.style.display = 'block';
                     }
-                    submitButton.textContent = 'この内容で確定して保存';
+                    submitButton.textContent = 'プレビューして保存';
 
                 } else if (isGeneralFinished && !isRagFinished) {
                     // 通常モデルのみ完了（RAG生成中）
                     // ボタンは有効だが、注意書きを入れる
-                    submitButton.textContent = 'この内容で確定して保存 (RAG生成中)';
+                    submitButton.textContent = 'プレビューを確認 (RAG生成中)';
 
                 } else if (!isGeneralFinished && isRagFinished) {
                     // RAGモデルのみ完了（通常生成中）
                     // ボタンは有効だが、注意書きを入れる
-                    submitButton.textContent = 'この内容で確定して保存 (通常生成中)';
+                    submitButton.textContent = 'プレビューを確認 (通常生成中)';
                 }
             } //checkAllFinished()
 

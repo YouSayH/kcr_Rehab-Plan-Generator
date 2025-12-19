@@ -1,4 +1,5 @@
 import json
+import base64
 import logging
 import os
 import threading
@@ -15,6 +16,7 @@ from flask import (
     redirect,
     render_template,
     request,
+    send_file,
     send_from_directory,
     session,
     url_for,
@@ -798,10 +800,7 @@ def save_plan():
         output_filename = os.path.basename(output_filepath)
 
         # 【追加】一時的ないいね情報を削除
-        # この患者IDに紐づく suggestion_likes テーブルのレコードをすべて削除
         database.delete_all_likes_for_patient(patient_id)
-
-        flash("リハビリテーション総合実施計画書が正常に作成・保存されました。", "success")
 
         # ファイルダウンロードとページ移動を同時に行うための中間ページを表示
         return render_template(
@@ -809,9 +808,48 @@ def save_plan():
             download_url=url_for("download_file", filename=output_filename),
             redirect_url=url_for("index"),
         )
+
     except Exception as e:
-        flash(f"計画書の保存・Excel作成中にエラーが発生しました: {e}", "danger")
+        app.logger.error(f"Error saving plan: {e}")
+        flash(f"保存中にエラーが発生しました: {e}", "danger")
         return redirect(url_for("index"))
+
+
+@app.route("/api/preview_plan", methods=["POST"])
+@login_required
+def preview_plan():
+    """計画書のプレビュー用HTMLを返すAPI (ExcelデータをBase64埋め込み)"""
+    try:
+        patient_id = int(request.form.get("patient_id"))
+        
+        # 権限チェック
+        if not has_permission_for_patient(current_user, patient_id):
+            return Response("権限がありません。", status=403)
+
+        # フォームデータを取得
+        form_data = request.form.to_dict()
+        
+        # 患者基本情報を取得
+        patient_data = database.get_patient_data_for_plan(patient_id)
+        if not patient_data:
+            return Response("患者データが見つかりません。", status=404)
+
+        # フォームデータと患者データを結合
+        plan_data = patient_data.copy()
+        plan_data.update(form_data)
+        
+        # Excelファイルのバイナリデータを生成
+        excel_bytes = excel_writer.create_plan_sheet(plan_data, return_bytes=True)
+        
+        # Base64エンコード
+        b64_data = base64.b64encode(excel_bytes.read()).decode("utf-8")
+        
+        return render_template("preview_viewer.html", excel_base64=b64_data)
+
+    except Exception as e:
+        app.logger.error(f"Error generating preview: {e}")
+        return Response(f"プレビュー生成エラー: {e}", status=500)
+
 
 
 @app.route("/save_patient_info", methods=["POST"])
