@@ -969,6 +969,9 @@ PATIENT_INFO_EXTRACTION_GROUPS = [
 # GLiNER2 ハイブリッド構成用スキーマ
 # チェックボックス（事実）はGLiNER2で自動判定するため、LLMには「思考」「考察」「記述」が必要な項目のみを生成させます。
 class PlanGenerationSchema(BaseModel):
+    name: Optional[str] = Field(None, description="患者氏名")
+    header_disease_name_txt: Optional[str] = Field(None, description="診断名")
+    main_comorbidities_txt: str = Field(description="抽出されたリスク因子などに基づき、併存疾患・合併症を列挙して記述")
     # 1. 臨床推論・リスク
     main_risks_txt: str = RehabPlanSchema.model_fields['main_risks_txt']
     main_contraindications_txt: str = RehabPlanSchema.model_fields['main_contraindications_txt']

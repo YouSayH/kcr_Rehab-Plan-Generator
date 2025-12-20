@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import time
+import concurrent.futures
 import pprint  # デバッグ表示用に追加
 
 import ollama
@@ -15,6 +16,7 @@ from app.schemas.schemas import PATIENT_INFO_EXTRACTION_GROUPS, PlanGenerationSc
 from app.services.extraction.fast_extractor import FastExtractor
 
 load_dotenv()
+GENERATION_TIMEOUT_SEC = 40
 
 # ログ設定 (gemini_client.pyと同じファイルに出力)
 log_directory = "logs"
@@ -46,7 +48,10 @@ class PatientInfoParser:
         # gemini_client.py と同様に、環境変数から自動でキーを読み込む方式に変更
         self.client_type = client_type
         self.use_hybrid_mode = use_hybrid_mode
-        self.ollama_model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen3:8b")
+
+        # 設定がない場合は、メインのモデル(OLLAMA_MODEL_NAME)を使用する。
+        default_ollama_model = os.getenv("OLLAMA_MODEL_NAME", "qwen3:8b")
+        self.ollama_model_name = os.getenv("OLLAMA_EXTRACTION_MODEL_NAME", default_ollama_model)
 
         # Geminiクライアント設定
         if self.client_type == "gemini":
@@ -191,19 +196,46 @@ class PatientInfoParser:
                         response_mime_type="application/json",
                         response_schema=PlanGenerationSchema
                     )
-                    response = self.client.models.generate_content(
-                        model=self.model_name, contents=prompt, config=generation_config
-                    )
+
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(
+                            self.client.models.generate_content,
+                            model=self.model_name,
+                            contents=prompt,
+                            config=generation_config
+                        )
+                        response = future.result(timeout=GENERATION_TIMEOUT_SEC)
+
                     if response and response.parsed:
                         final_result.update(response.parsed.model_dump(mode="json"))
+
+
+                    # response = self.client.models.generate_content(
+                    #     model=self.model_name, contents=prompt, config=generation_config
+                    # )
+                    # if response and response.parsed:
+                    #     final_result.update(response.parsed.model_dump(mode="json"))
                 else:
                     # Ollamaで生成 (1回のリクエスト)
-                    response = ollama.chat(
-                        model=self.model_name,
-                        messages=[{"role": "user", "content": prompt}],
-                        format="json",
-                        options={"temperature": 0.2, "num_ctx": 8192}
-                    )
+
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(
+                            ollama.chat,
+                            model=self.model_name,
+                            messages=[{"role": "user", "content": prompt}],
+                            format="json",
+                            options={"temperature": 0.2, "num_ctx": 8192}
+                        )
+                        response = future.result(timeout=GENERATION_TIMEOUT_SEC)
+
+
+
+                    # response = ollama.chat(
+                    #     model=self.model_name,
+                    #     messages=[{"role": "user", "content": prompt}],
+                    #     format="json",
+                    #     options={"temperature": 0.2, "num_ctx": 8192}
+                    # )
                     raw_json = response["message"]["content"]
                     print("\n>>> [DEBUG] Ollama Raw JSON Response:")
                     print(raw_json[:6000] + "..." if len(raw_json) > 1000 else raw_json)
@@ -236,18 +268,29 @@ class PatientInfoParser:
                         # リトライ処理を追加
                         max_retries = 3
                         backoff_factor = 2  # 初回待機時間（秒）
+                        response = None
                         for attempt in range(max_retries):
                             try:
-                                response = self.client.models.generate_content(
-                                    model=self.model_name, contents=prompt, config=generation_config
-                                )
+                                with concurrent.futures.ThreadPoolExecutor() as executor:
+                                    future = executor.submit(
+                                        self.client.models.generate_content,
+                                        model=self.model_name,
+                                        contents=prompt,
+                                        config=generation_config
+                                    )
+                                    response = future.result(timeout=GENERATION_TIMEOUT_SEC)
+                                # response = self.client.models.generate_content(
+                                #     model=self.model_name, contents=prompt, config=generation_config
+                                # )
                                 break  # 成功した場合はループを抜ける
-                            except (ResourceExhausted, ServiceUnavailable) as e:
+                            except (ResourceExhausted, ServiceUnavailable, concurrent.futures.TimeoutError) as e:
                                 if attempt < max_retries - 1:
                                     wait_time = backoff_factor * (2**attempt)
+                                    error_type = "タイムアウト" if isinstance(e, concurrent.futures.TimeoutError) else "APIエラー"
                                     print(
-                                        f"   [警告] APIレート制限またはサーバーエラー。{wait_time}秒後に再試行します... ({attempt + 1}/{max_retries})"
+                                        f"   [警告] {error_type}。{wait_time}秒後に再試行します... ({attempt + 1}/{max_retries})"
                                     )
+
                                     time.sleep(wait_time)
                                 else:
                                     print(f"   [エラー] API呼び出しが{max_retries}回失敗しました。")
@@ -262,41 +305,102 @@ class PatientInfoParser:
                     else:
                         # Ollama (Local)
                         # (self.client は使わず、ollamaライブラリを直接使用)
-                        ollama_response = ollama.chat(
-                            model=self.model_name,  # (self.model_name は __init__ で 'qwen3:8b' 等に設定されている)
-                            messages=[{"role": "user", "content": prompt}],
-                            format="json",  # ストリーミングなし
-                        )
+                        max_retries = 3
+                        ollama_response = None
 
-                        raw_json_str = ollama_response["message"]["content"]
-                        logger.info(f"Ollama Raw Response (Parser, Group: {group_schema.__name__}):\n{raw_json_str}")
-                        try:
-                            raw_response_dict = json.loads(raw_json_str)
-                            # Pydantic検証 (Ollamaのネスト対策含む簡易版)
-                            data_to_validate = raw_response_dict
-                            if isinstance(raw_response_dict, dict):
-                                schema_fields = set(group_schema.model_fields.keys())
-                                if not schema_fields.issubset(raw_response_dict.keys()):
-                                    # ネストを探す簡易ロジック
-                                    for v in raw_response_dict.values():
-                                        if isinstance(v, dict) and schema_fields.intersection(v.keys()):
-                                            data_to_validate = v
-                                            break
+
+                        for attempt in range(max_retries):
+                            try:
+                                with concurrent.futures.ThreadPoolExecutor() as executor:
+                                    future = executor.submit(
+                                        ollama.chat,
+                                        model=self.model_name,
+                                        messages=[{"role": "user", "content": prompt}],
+                                        format="json",  # ストリーミングなし
+                                    )
+                                    # 60秒制限
+                                    ollama_response = future.result(timeout=GENERATION_TIMEOUT_SEC)
+                                break # 成功したらループを抜ける
+
+                            except (concurrent.futures.TimeoutError, Exception) as e:
+                                if attempt < max_retries - 1:
+                                    print(f"   [警告] Ollamaエラー/タイムアウト: {e}。再試行します... ({attempt + 1}/{max_retries})")
+                                    time.sleep(1)
+                                else:
+                                    logger.warning(f"Ollama failed after retries: {e}")
+                                    ollama_response = None
+
+                        if ollama_response:
+                            raw_json_str = ollama_response["message"]["content"]
+                            logger.info(f"Ollama Raw Response (Parser, Group: {group_schema.__name__}):\n{raw_json_str}")
+                            try:
+                                raw_response_dict = json.loads(raw_json_str)
+                                # Pydantic検証 (Ollamaのネスト対策含む簡易版)
+                                data_to_validate = raw_response_dict
+                                if isinstance(raw_response_dict, dict):
+                                    schema_fields = set(group_schema.model_fields.keys())
+                                    if not schema_fields.issubset(raw_response_dict.keys()):
+                                        # ネストを探す簡易ロジック
+                                        for v in raw_response_dict.values():
+                                            if isinstance(v, dict) and schema_fields.intersection(v.keys()):
+                                                data_to_validate = v
+                                                break
+                                
+                                group_result_obj = group_schema.model_validate(data_to_validate)
+                                group_result = group_result_obj.model_dump(mode="json")
+                            except Exception as e:
+                                logger.warning(f"Ollama JSON Error: {e}")
+                                group_result = {}
+
+                            # 性別の正規化など
+                            if "gender" in group_result and group_result["gender"]:
+                                if "男性" in group_result["gender"]:
+                                    group_result["gender"] = "男"
+                                elif "女性" in group_result["gender"]:
+                                    group_result["gender"] = "女"
+
+                            final_result.update(group_result)
+                        
+                        else:
+                            # レスポンスが取れなかった場合（全リトライ失敗）
+                            print(f"   [エラー] グループ {group_schema.__name__} (Ollama) の解析に失敗しました。")
+
+
+                    #     ollama_response = ollama.chat(
+                    #         model=self.model_name,  # (self.model_name は __init__ で 'qwen3:8b' 等に設定されている)
+                    #         messages=[{"role": "user", "content": prompt}],
+                    #         format="json",  # ストリーミングなし
+                    #     )
+
+                    #     raw_json_str = ollama_response["message"]["content"]
+                    #     logger.info(f"Ollama Raw Response (Parser, Group: {group_schema.__name__}):\n{raw_json_str}")
+                    #     try:
+                    #         raw_response_dict = json.loads(raw_json_str)
+                    #         # Pydantic検証 (Ollamaのネスト対策含む簡易版)
+                    #         data_to_validate = raw_response_dict
+                    #         if isinstance(raw_response_dict, dict):
+                    #             schema_fields = set(group_schema.model_fields.keys())
+                    #             if not schema_fields.issubset(raw_response_dict.keys()):
+                    #                 # ネストを探す簡易ロジック
+                    #                 for v in raw_response_dict.values():
+                    #                     if isinstance(v, dict) and schema_fields.intersection(v.keys()):
+                    #                         data_to_validate = v
+                    #                         break
                             
-                            group_result_obj = group_schema.model_validate(data_to_validate)
-                            group_result = group_result_obj.model_dump(mode="json")
-                        except Exception as e:
-                            logger.warning(f"Ollama JSON Error: {e}")
-                            group_result = {}
+                    #         group_result_obj = group_schema.model_validate(data_to_validate)
+                    #         group_result = group_result_obj.model_dump(mode="json")
+                    #     except Exception as e:
+                    #         logger.warning(f"Ollama JSON Error: {e}")
+                    #         group_result = {}
 
-                    # 性別の正規化など
-                    if "gender" in group_result and group_result["gender"]:
-                        if "男性" in group_result["gender"]:
-                            group_result["gender"] = "男"
-                        elif "女性" in group_result["gender"]:
-                            group_result["gender"] = "女"
+                    # # 性別の正規化など
+                    # if "gender" in group_result and group_result["gender"]:
+                    #     if "男性" in group_result["gender"]:
+                    #         group_result["gender"] = "男"
+                    #     elif "女性" in group_result["gender"]:
+                    #         group_result["gender"] = "女"
 
-                    final_result.update(group_result)
+                    # final_result.update(group_result)
 
                 except Exception as e:
                     print(f"グループ {group_schema.__name__} の解析中にエラーが発生しました: {e}")
