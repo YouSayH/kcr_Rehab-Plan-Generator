@@ -297,7 +297,8 @@ textarea.form-control {
 }
 
 .form-table-wrapper th {
-    background-color: #f2f2f2; /* Keep original gray for form fidelity */
+    background-color: #f2f2f2;
+    /* Keep original gray for form fidelity */
     text-align: center;
     font-weight: bold;
 }
@@ -324,10 +325,22 @@ textarea.input-field {
 }
 
 /* Utility Classes for Inputs */
-.small-input { width: 60px !important; }
-.date-input { width: 35px !important; }
-.year-input { width: 55px !important; }
-.inline-input { display: inline-block; width: auto; }
+.small-input {
+    width: 60px !important;
+}
+
+.date-input {
+    width: 35px !important;
+}
+
+.year-input {
+    width: 55px !important;
+}
+
+.inline-input {
+    display: inline-block;
+    width: auto;
+}
 
 .checkbox-label,
 .radio-label {
@@ -342,8 +355,13 @@ textarea.input-field {
     margin-right: 4px;
 }
 
-.sub-item { padding-left: 20px; }
-.sub-item-2 { padding-left: 40px; }
+.sub-item {
+    padding-left: 20px;
+}
+
+.sub-item-2 {
+    padding-left: 40px;
+}
 
 .vertical-rl {
     writing-mode: vertical-rl;
@@ -400,13 +418,27 @@ textarea.input-field {
     border-bottom: 2px solid var(--danger-color) !important;
 }
 
+/* 必須項目の未入力時ハイライト (JS制御クラス .is-invalid に対応) - 患者情報編集画面限定 */
+#patient-info-form .is-invalid {
+    background-color: #fff0f0 !important;
+    /* 薄い赤 */
+}
+
+/* HTMLのrequired属性に基づくフォールバック - 患者情報編集画面限定 */
+#patient-info-form input:required:invalid,
+#patient-info-form textarea:required:invalid,
+#patient-info-form select:required:invalid {
+    background-color: #fff0f0;
+}
+
 /* =========================================
    Confirm Page Layout & Styles
    ========================================= */
 .app-layout-body {
     height: 100%;
     margin: 0;
-    overflow: hidden; /* Suppress global scroll */
+    overflow: hidden;
+    /* Suppress global scroll */
 }
 
 .main-wrapper {
@@ -429,7 +461,10 @@ textarea.input-field {
     padding: 10px 15px 0 15px;
 }
 
-.full-height { height: 100%; }
+.full-height {
+    height: 100%;
+}
+
 .full-height-col {
     height: 100%;
     display: flex;
@@ -524,7 +559,9 @@ textarea.input-field {
 }
 
 /* Suggestion UI */
-.suggestion-container { margin-top: 10px; }
+.suggestion-container {
+    margin-top: 10px;
+}
 
 .suggestion-header {
     display: flex;
@@ -542,10 +579,17 @@ textarea.input-field {
     color: var(--primary-color);
 }
 
-.suggestion-body-wrapper { position: relative; }
+.suggestion-body-wrapper {
+    position: relative;
+}
 
-.suggestion-content { display: none; }
-.suggestion-content.active { display: block; }
+.suggestion-content {
+    display: none;
+}
+
+.suggestion-content.active {
+    display: block;
+}
 
 .suggestion-text {
     padding: 1rem;
@@ -577,7 +621,7 @@ textarea.input-field {
     height: auto;
 }
 
-details > summary {
+details>summary {
     cursor: pointer;
     outline: none;
     padding: 10px;
@@ -591,6 +635,6 @@ details > summary {
     list-style: revert;
 }
 
-details > summary:hover {
+details>summary:hover {
     background-color: var(--secondary-color);
 }
