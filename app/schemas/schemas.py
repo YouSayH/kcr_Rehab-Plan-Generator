@@ -966,40 +966,40 @@ PATIENT_INFO_EXTRACTION_GROUPS = [
 
 
 
-# GLiNER2 ハイブリッド構成用スキーマ
-# チェックボックス（事実）はGLiNER2で自動判定するため、LLMには「思考」「考察」「記述」が必要な項目のみを生成させます。
-class PlanGenerationSchema(BaseModel):
-    name: Optional[str] = Field(None, description="患者氏名")
-    header_disease_name_txt: Optional[str] = Field(None, description="診断名")
+class HybridStep1_Assessment(
+    PatientInfo_ADL,              # 数値・レベル判定
+    PatientInfo_BasicMovements,   # 基本動作レベル
+    PatientInfo_Nutrition,        # 栄養判定
+    PatientInfo_Social,           # 手帳など
+    RisksAndPrecautions,          # リスク・禁忌記述
+    FunctionalLimitations,        # 各機能障害の詳細記述
+    BaseModel
+):
+    """Step 1: 現状評価（数値補完・リスク・機能詳細）"""
+    # GLiNERの補完用
     main_comorbidities_txt: str = Field(description="抽出されたリスク因子などに基づき、併存疾患・合併症を列挙して記述")
-    # 1. 臨床推論・リスク
-    main_risks_txt: str = RehabPlanSchema.model_fields['main_risks_txt']
-    main_contraindications_txt: str = RehabPlanSchema.model_fields['main_contraindications_txt']
     
-    # 2. 機能障害の詳細記述 (GLiNER2で拾えない文脈の補完や詳細記述)
-    func_pain_txt: str = RehabPlanSchema.model_fields['func_pain_txt']
-    func_rom_limitation_txt: str = RehabPlanSchema.model_fields['func_rom_limitation_txt']
-    func_muscle_weakness_txt: str = RehabPlanSchema.model_fields['func_muscle_weakness_txt']
-    func_swallowing_disorder_txt: str = RehabPlanSchema.model_fields['func_swallowing_disorder_txt']
-    func_behavioral_psychiatric_disorder_txt: str = RehabPlanSchema.model_fields['func_behavioral_psychiatric_disorder_txt']
-    func_nutritional_disorder_txt: str = RehabPlanSchema.model_fields['func_nutritional_disorder_txt']
-    func_excretory_disorder_txt: str = RehabPlanSchema.model_fields['func_excretory_disorder_txt']
-    func_pressure_ulcer_txt: str = RehabPlanSchema.model_fields['func_pressure_ulcer_txt']
-    func_contracture_deformity_txt: str = RehabPlanSchema.model_fields['func_contracture_deformity_txt']
-    func_motor_muscle_tone_abnormality_txt: str = RehabPlanSchema.model_fields['func_motor_muscle_tone_abnormality_txt']
-    func_disorientation_txt: str = RehabPlanSchema.model_fields['func_disorientation_txt']
-    func_memory_disorder_txt: str = RehabPlanSchema.model_fields['func_memory_disorder_txt']
+    # 既存の項目を継承していますが、必要ならここで上書き定義も可能です
 
-    # 3. 目標・方針 (生成の核心部分)
-    goals_1_month_txt: str = RehabPlanSchema.model_fields['goals_1_month_txt']
-    goals_at_discharge_txt: str = RehabPlanSchema.model_fields['goals_at_discharge_txt']
-    policy_treatment_txt: str = RehabPlanSchema.model_fields['policy_treatment_txt']
-    policy_content_txt: str = RehabPlanSchema.model_fields['policy_content_txt']
-    adl_equipment_and_assistance_details_txt: str = RehabPlanSchema.model_fields['adl_equipment_and_assistance_details_txt']
-    
-    # 4. アクションプラン (2枚目)
-    goal_a_action_plan_txt: str = RehabPlanSchema.model_fields['goal_a_action_plan_txt']
-    goal_s_env_action_plan_txt: str = RehabPlanSchema.model_fields['goal_s_env_action_plan_txt']
-    goal_p_action_plan_txt: str = RehabPlanSchema.model_fields['goal_p_action_plan_txt']
-    goal_s_psychological_action_plan_txt: str = RehabPlanSchema.model_fields['goal_s_psychological_action_plan_txt']
-    goal_s_3rd_party_action_plan_txt: str = RehabPlanSchema.model_fields['goal_s_3rd_party_action_plan_txt']
+class HybridStep2_Goals(
+    PatientInfo_Goals,            # 目標チェックボックス系
+    Goals,                        # 目標文章 (短期・長期)
+    BaseModel
+):
+    """Step 2: 目標設定（予後予測・ゴール）"""
+    pass
+
+class HybridStep3_Plan(
+    TreatmentPolicy,              # 治療方針・プログラム
+    ActionPlans,                  # アクションプラン
+    BaseModel
+):
+    """Step 3: 治療計画（具体的アプローチ）"""
+    pass
+
+# ハイブリッドモードの実行順序リスト
+HYBRID_GENERATION_GROUPS = [
+    HybridStep1_Assessment,
+    HybridStep2_Goals,
+    HybridStep3_Plan,
+]

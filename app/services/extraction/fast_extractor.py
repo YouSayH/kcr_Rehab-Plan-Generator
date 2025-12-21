@@ -30,30 +30,74 @@ class FastExtractor:
         # GLiNER用ラベルマッピング
         # 「上がりにくい」「動かしにくい」など、患者表現も追加
         self.label_mapping = {
+            # --- リスク・既往歴 ---
             "func_risk_hypertension_chk": ["高血圧", "高血圧症", "HT", "Hypertension"],
             "func_risk_diabetes_chk": ["糖尿病", "DM", "Diabetes", "2型糖尿病"],
             "func_risk_dyslipidemia_chk": ["脂質異常症", "高脂血症", "DL", "Dyslipidemia"],
-            "func_risk_ckd_chk": ["CKD", "慢性腎臓病", "腎不全"],
+            "func_risk_ckd_chk": ["CKD", "慢性腎臓病", "腎不全", "透析"],
             "func_risk_angina_chk": ["狭心症", "AP"],
-            "func_risk_omi_chk": ["陳旧性心筋梗塞", "OMI"],
+            "func_risk_omi_chk": ["陳旧性心筋梗塞", "OMI", "心筋梗塞"],
+            "func_risk_smoking_chk": ["喫煙", "タバコ", "スモーカー", "Brinkman"], # 追加
+            "func_risk_obesity_chk": ["肥満", "Obesity"], # 追加
             
+            # --- 全身状態・意識 ---
+            "func_consciousness_disorder_chk": ["意識障害", "JCS", "GCS", "傾眠"], # 追加
+            "func_respiratory_disorder_chk": ["呼吸障害", "COPD", "肺炎", "呼吸不全", "酸素療法", "HOT"], # 追加
+
+            # --- 運動機能 ---
             "func_motor_paralysis_chk": ["麻痺", "片麻痺", "対麻痺", "四肢麻痺", "運動麻痺", "右片麻痺", "左片麻痺"],
-            "func_pain_chk": ["疼痛", "痛み", "Pain", "自発痛", "運動時痛", "激痛"],
+            "func_pain_chk": ["疼痛", "痛み", "Pain", "自発痛", "運動時痛", "激痛", "NRS"],
             "func_rom_limitation_chk": ["可動域制限", "ROM制限", "拘縮", "関節拘縮", "上がりにくい", "動かしにくい"],
             "func_muscle_weakness_chk": ["筋力低下", "脱力", "MMT低下", "力が入らない"],
-            "func_swallowing_disorder_chk": ["嚥下障害", "誤嚥", "ムセ", "Dysphagia", "飲み込みにくい"],
-            "func_disorientation_chk": ["見当識障害"],
-            "func_behavioral_psychiatric_disorder_chk": ["不穏", "暴言", "暴力", "拒絶", "せん妄", "注意力散漫", "落ち着きがない"],
-            "func_speech_aphasia_chk": ["失語", "失語症", "言葉が出にくい"],
-            "func_speech_articulation_chk": ["構音障害", "呂律", "ろれつ"],
-            "func_memory_disorder_chk": ["記憶障害", "物忘れ"],
-            "func_excretory_disorder_chk": ["排泄障害", "尿失禁", "便秘"],
+            "func_motor_ataxia_chk": ["失調", "運動失調", "ふらつき"], # 追加
+            "func_motor_parkinsonism_chk": ["パーキンソニズム", "固縮", "振戦", "すくみ足"], # 追加
+            "func_pressure_ulcer_chk": ["褥瘡", "床ずれ", "デクービタス", "創傷", "DESIGN-R"],
+            "func_circulatory_arrhythmia_chk": ["不整脈", "心房細動", "Af", "ペースメーカー", "PVC"],
+            "func_respiratory_tracheostomy_chk": ["気管切開", "気切", "カニューレ"],
             
+            # --- 追加推奨: 運動機能詳細 ---
+            "func_motor_involuntary_movement_chk": ["不随意運動", "ジスキネジア", "アテトーゼ", "舞踏様運動", "クローヌス"],
+            "func_motor_muscle_tone_abnormality_chk": ["筋緊張", "痙性", "低緊張", "MAS", "Ashworth"],
+            "func_contracture_deformity_chk": ["変形", "関節変形", "円背", "側弯", "内反尖足", "外反母趾"],
+
+            # --- 嚥下・栄養 ---
+            "func_swallowing_disorder_chk": ["嚥下障害", "誤嚥", "ムセ", "Dysphagia", "飲み込みにくい", "嚥下", "飲み込み", "とろみ", "刻み食"],
+            "nutrition_method_oral_chk": ["経口摂取", "常食", "全粥"], # 追加
+            "nutrition_method_tube_chk": ["経管栄養", "経鼻", "胃ろう", "PEG"], # 追加
+
+            # --- 認知・精神・高次脳 (大幅追加) ---
+            "func_disorientation_chk": ["見当識障害", "見当識"],
+            "func_behavioral_psychiatric_disorder_chk": ["不穏", "暴言", "暴力", "拒絶", "せん妄", "注意力散漫", "落ち着きがない", "注意力", "散漫"],
+            "func_memory_disorder_chk": ["記憶障害", "物忘れ", "HDS-R", "MMSE"],
+            "func_higher_brain_dysfunction_chk": ["高次脳機能障害"], # 親項目
+            "func_higher_brain_attention_chk": ["注意障害"], # 追加
+            "func_higher_brain_apraxia_chk": ["失行", "着衣失行", "観念運動失行"], # 追加
+            "func_higher_brain_agnosia_chk": ["失認", "半側空間無視", "USN"], # 追加
+            "func_higher_brain_executive_chk": ["遂行機能障害"], # 追加
+
+            # --- 言語・感覚 ---
+            "func_speech_aphasia_chk": ["失語", "失語症", "言葉が出にくい", "言語障害"],
+            "func_speech_articulation_chk": ["構音障害", "呂律", "ろれつ"],
             "func_sensory_hearing_chk": ["難聴", "聴覚障害", "聞こえにくい"],
             "func_sensory_vision_chk": ["視力低下", "盲", "半盲", "見えにくい"],
+            "func_sensory_superficial_chk": ["表在感覚", "触覚鈍麻", "しびれ", "感覚鈍麻"], # 追加
+            "func_sensory_deep_chk": ["深部感覚", "位置覚", "振動覚"], # 追加
+
+            # --- 排泄 ---
+            "func_excretory_disorder_chk": ["排泄障害", "尿失禁", "便秘", "バルーン", "導尿"],
             
+            # --- 社会背景 ---
             "social_care_level_status_chk": ["介護保険", "要介護", "要支援", "申請中"],
             "social_disability_certificate_physical_chk": ["身体障害者手帳"],
+            "social_disability_certificate_mental_chk": ["精神障害者保健福祉手帳"], # 追加
+            "social_disability_certificate_intellectual_chk": ["療育手帳", "愛の手帳"], # 追加
+
+            # --- 基本動作 (実施の有無のみ検出) ---
+            "func_basic_rolling_chk": ["寝返り"],
+            "func_basic_getting_up_chk": ["起き上がり"],
+            "func_basic_standing_up_chk": ["立ち上がり"],
+            "func_basic_sitting_balance_chk": ["座位", "端座位"],
+            "func_basic_standing_balance_chk": ["立位"],
         }
 
         self.comorbidity_names = {
