@@ -16,7 +16,7 @@ from app.schemas.schemas import PATIENT_INFO_EXTRACTION_GROUPS, HYBRID_GENERATIO
 from app.services.extraction.fast_extractor import FastExtractor
 
 load_dotenv()
-GENERATION_TIMEOUT_SEC = 45
+GENERATION_TIMEOUT_SEC = 120
 
 # ログ設定 (gemini_client.pyと同じファイルに出力)
 log_directory = "logs"
@@ -79,6 +79,7 @@ class PatientInfoParser:
                 self.use_hybrid_mode = False
 
     def _build_hybrid_prompt(self, text: str, facts: dict, schema: type, previous_steps_data: dict) -> str:
+
         """ハイブリッドモード用: 段階的生成プロンプト"""
         facts_json = json.dumps(facts, indent=2, ensure_ascii=False)
         schema_json = json.dumps(schema.model_json_schema(), indent=2, ensure_ascii=False)
@@ -86,8 +87,6 @@ class PatientInfoParser:
         # 過去のステップで生成された情報をコンテキストとして渡す
         context_str = ""
         if previous_steps_data:
-            # プロンプトに入れるため、重要な項目だけ抽出しても良いが、
-            # ここでは単純化して全て渡す（トークン数に注意）
             context_str = f"""
     # これまでの検討結果（決定事項として扱うこと）
     以下の情報は既に確定しています。これと矛盾しないようにしてください。
@@ -97,37 +96,72 @@ class PatientInfoParser:
             """
 
         step_instruction = ""
-        if "Assessment" in schema.__name__:
+        detailed_rules = ""
+
+        # クラス名による分岐 (部分一致で判定)
+        if "Assessment" in schema.__name__: # Step 1
             step_instruction = "GLiNERが抽出した事実を基に、FIM/BIの点数補完、リスクの洗い出し、機能障害の詳細記述を行ってください。"
-        elif "Goals" in schema.__name__:
-            step_instruction = "評価結果（現状）に基づき、実現可能な短期・長期目標と、退院後の生活イメージ（目標）を設定してください。"
-        elif "Plan" in schema.__name__:
-            step_instruction = "現状と目標のギャップを埋めるための、具体的な治療方針、訓練プログラム、環境調整プランを立案してください。"
+            detailed_rules = """
+    - **FIM/BIスコア**: テキストから必ず数値を読み取ってください。最新値を `_current_val`、開始時を `_start_val` に入れます。
+    - **基本動作**: `func_basic_` 系のレベル（自立/介助など）をテキストから判定してください。
+    - **リスク・機能**: `_txt` 項目には、具体的な症状や程度を記述してください。
+            """
+
+        elif "DetailedGoals" in schema.__name__: # Step 2
+            step_instruction = "現状評価（Step 1）に基づき、各活動項目（排泄、入浴、移動など）や環境因子の具体的な到達目標レベルを設定してください。"
+            detailed_rules = """
+    - **活動目標 (`goal_a_`)**: 現在のADL能力よりも「少し高い」または「維持」となる現実的な目標レベルを設定してください。
+    - **チェックボックス**: 目標とする動作レベル（例: `goal_a_toileting_independent_chk`）を積極的に `True` にしてください。
+    - **環境・人的因子**: 家屋改修や家族指導が必要と思われる場合は、該当する項目を `True` にしてください。
+            """
+
+        elif "GoalTexts" in schema.__name__: # Step 3 (新設)
+            step_instruction = "これまでの評価と詳細目標に基づき、退院時の状態像（長期目標）と1ヶ月後の目標（短期目標）を文章で記述してください。"
+            detailed_rules = """
+    - **整合性**: Step 1のADL評価、Step 2の活動目標と矛盾しない目標文を作成してください。
+    - **参加目標 (`goal_p_`)**: 復職や復学、家庭内役割などの目標があれば選択してください。不明な場合は予測で埋めず `null` でも構いませんが、テキストに記述がある場合は必ず反映してください。
+            """
+
+        elif "Plan" in schema.__name__: # Step 4
+            step_instruction = "目標と現状のギャップを埋めるための具体的な治療プログラムとアプローチを立案してください。"
+            detailed_rules = """
+    - **具体性**: 「歩行訓練」だけでなく、「屋外歩行訓練」「階段昇降訓練」など具体的に記述してください。
+    - **Action Plan**: 目標達成のために、患者本人、家族、環境に対してどのような働きかけを行うか記述してください。
+            """
 
         return f"""
-    あなたはリハビリテーション専門医です。
+あなたは日本のリハビリテーション専門医です。
+    **必ず日本語で出力してください。** (Output MUST be in Japanese.)
+
     臨床推論プロセスに基づき、以下のステップを実行してください。
 
     **現在のステップ: {step_instruction}**
 
-    # 入力テキスト
+    # 入力テキスト (ここから数値や詳細情報を読み取ってください)
     {text}
 
-    # AI抽出済み事実 (GLiNER)
+    # AI抽出済み事実 (GLiNER - キーワードのみ)
+    ※ここにはFIM点数や具体的な目標文は含まれていません。これらは入力テキストから補完してください。
     {facts_json}
     
     {context_str}
 
-    # 出力スキーマ (厳守)
-    以下のJSONスキーマで定義されたキーのみを使用してください。
-    数値やレベル判定は、テキストの根拠に基づいて正確に行ってください。
-    勝手なキー（例: func_mobility_txt, policy_pt_txtなど）を作成することは禁止です。
+    # 重要事項 (Strict Rules)
+    1. **出力言語**: JSONの値(value)は**すべて日本語**で記述してください。英語は禁止です。
+    2. **スキーマ遵守**: 以下の「出力スキーマ」で定義されている**キー名のみ**を絶対に使用してください。
+       - `func_balance_txt` や `adl_ambulation_...` のような**勝手なキーを作成することは厳禁**です。
+       - JSONスキーマにない情報は無視してください。
+    3. **値の補完**: テキストに明記がない項目は無理に埋めず `null` にしてください。
 
+    # ステップ固有のルール
+    {detailed_rules}
+
+    # 出力スキーマ (この構造を守ること)
     ```json
     {schema_json}
     ```
     """
-
+   
     def _build_prompt(self, text: str, group_schema: type[BaseModel], extracted_data_so_far: dict) -> str:
         """通常モード（段階的抽出）のためのプロンプト構築"""
 
@@ -260,6 +294,14 @@ class PatientInfoParser:
                 
                 # プロンプト作成 (これまでの結果 final_result を渡す)
                 prompt = self._build_hybrid_prompt(text, facts, group_schema, final_result)
+
+                logger.info(f"\n{'='*20} [Step {i+1}] Prompt ({group_schema.__name__}) {'='*20}\n{prompt}\n{'='*60}")
+
+                # --- [DEBUG] プロンプトの表示 ---
+                # print(f"\n>>> [DEBUG] Step {i+1} Prompt ({group_schema.__name__}):")
+                # print(prompt)
+                # print("-" * 40)
+                # ------------------------------
                 
                 step_success = False  # このステップが成功したかどうかのフラグ
 
@@ -286,7 +328,17 @@ class PatientInfoParser:
                                 response = future.result(timeout=current_remaining)
 
                             if response and response.parsed:
-                                final_result.update(response.parsed.model_dump(mode="json"))
+                                step_data = response.parsed.model_dump(mode="json")
+                                final_result.update(step_data)
+
+                                # --- [DEBUG] 出力結果の表示 ---
+                                # print(f"\n>>> [DEBUG] Step {i+1} Generated Data ({group_schema.__name__}):")
+                                # pprint.pprint(step_data)
+                                # print("-" * 40)
+                                # ----------------------------
+                                log_output = json.dumps(step_data, indent=2, ensure_ascii=False) # または generated_data
+                                logger.info(f"\n>>> [Step {i+1}] Generated Data ({group_schema.__name__}):\n{log_output}\n{'-'*40}")
+
                                 step_success = True
                                 break  # 成功したらリトライループを抜ける
 
@@ -304,6 +356,15 @@ class PatientInfoParser:
                             raw_json = response["message"]["content"]
                             generated_data = json.loads(raw_json)
                             final_result.update(generated_data)
+
+                            # --- [DEBUG] 出力結果の表示 ---
+                            # print(f"\n>>> [DEBUG] Step {i+1} Generated Data ({group_schema.__name__}):")
+                            # pprint.pprint(generated_data)
+                            # print("-" * 40)
+                            # ----------------------------
+                            log_output = json.dumps(step_data, indent=2, ensure_ascii=False) # または generated_data
+                            logger.info(f"\n>>> [Step {i+1}] Generated Data ({group_schema.__name__}):\n{log_output}\n{'-'*40}")
+
                             step_success = True
                             break  # 成功したらリトライループを抜ける
 

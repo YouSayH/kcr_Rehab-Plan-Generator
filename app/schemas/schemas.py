@@ -981,25 +981,58 @@ class HybridStep1_Assessment(
     
     # 既存の項目を継承していますが、必要ならここで上書き定義も可能です
 
-class HybridStep2_Goals(
-    PatientInfo_Goals,            # 目標チェックボックス系
-    Goals,                        # 目標文章 (短期・長期)
+# class HybridStep2_Goals(
+#     PatientInfo_Goals,              # 参加目標・目標文章 (既存)
+#     PatientInfo_Goal_Activity,      # ★追加: 活動目標 (goal_a_...)
+#     PatientInfo_Goal_Psychological, # ★追加: 心理的目標 (goal_s_psychological...)
+#     PatientInfo_Goal_Environment,   # ★追加: 環境因子 (goal_s_env...)
+#     PatientInfo_Goal_HumanFactors,  # ★追加: 人的因子 (goal_s_3rd_party...)
+#     Goals,                          # 目標文章 (短期・長期)
+#     BaseModel
+# ):
+#     """Step 2: 目標設定（予後予測・ゴール）"""
+#     pass
+
+class HybridStep2_DetailedGoals(
+    PatientInfo_Goal_Activity,      # 活動目標 (goal_a_...)
+    PatientInfo_Goal_Environment,   # 環境因子 (goal_s_env...)
+    PatientInfo_Goal_HumanFactors,  # 人的因子 (goal_s_3rd_party...)
+    PatientInfo_Goal_Psychological, # 心理的目標 (goal_s_psychological...)
     BaseModel
 ):
-    """Step 2: 目標設定（予後予測・ゴール）"""
+    """Step 2: 活動・環境・心理・人的因子の具体的目標設定"""
     pass
 
-class HybridStep3_Plan(
-    TreatmentPolicy,              # 治療方針・プログラム
-    ActionPlans,                  # アクションプラン
+# class HybridStep3_Plan(
+#     TreatmentPolicy,              # 治療方針・プログラム
+#     ActionPlans,                  # アクションプラン
+#     BaseModel
+# ):
+#     """Step 3: 治療計画（具体的アプローチ）"""
+#     pass
+
+class HybridStep3_GoalTexts(
+    PatientInfo_Goals,              # 参加目標・退院先など (goal_p_..., goals_discharge...)
+    Goals,                          # 短期・長期目標文章 (goals_1_month_txt, goals_at_discharge_txt)
     BaseModel
 ):
-    """Step 3: 治療計画（具体的アプローチ）"""
+    """Step 3: 短期・長期目標の記述と社会参加目標"""
+    pass
+
+
+# --- 【変更】Step 4: 治療計画 (旧 Step 3) ---
+class HybridStep4_Plan(
+    TreatmentPolicy,
+    ActionPlans,
+    BaseModel
+):
+    """Step 4: 治療計画（具体的アプローチ）"""
     pass
 
 # ハイブリッドモードの実行順序リスト
 HYBRID_GENERATION_GROUPS = [
     HybridStep1_Assessment,
-    HybridStep2_Goals,
-    HybridStep3_Plan,
+    HybridStep2_DetailedGoals,  # チェックボックス詳細
+    HybridStep3_GoalTexts,      # 文章・予後予測
+    HybridStep4_Plan,           # 治療計画
 ]
