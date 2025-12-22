@@ -16,7 +16,7 @@ from app.schemas.schemas import PATIENT_INFO_EXTRACTION_GROUPS, HYBRID_GENERATIO
 from app.services.extraction.fast_extractor import FastExtractor
 
 load_dotenv()
-GENERATION_TIMEOUT_SEC = 120
+GENERATION_TIMEOUT_SEC = 240
 
 # ログ設定 (gemini_client.pyと同じファイルに出力)
 log_directory = "logs"
@@ -34,6 +34,49 @@ if not logger.hasHandlers():  # ハンドラが未設定の場合のみ設定
     file_handler.setFormatter(formatter)
     logger.addHandler(file_handler)
 
+def optimize_schema_for_prompt(schema_cls: type, target_fields_pattern: str = None) -> dict:
+    """
+    LLMプロンプト用にJSONスキーマを最適化する。
+    1. Optional (anyOf: [type, null]) を削除し、シンプルな型定義にする。
+    2. 生成させたいフィールドを全て 'required' に追加する。
+    3. (オプション) target_fields_pattern に一致しないフィールドを除外する（ノイズ削減）。
+    """
+    raw_schema = schema_cls.model_json_schema()
+    properties = raw_schema.get("properties", {})
+    new_properties = {}
+    required_fields = []
+
+    for key, prop in properties.items():
+        # A. 不要なフィールドの除外 (例: GLiNERが抽出済みの _chk は除外する)
+        # Step 1では '_val' (数値) と '_txt' (記述) と '_level' だけ生成させたい場合など
+        if target_fields_pattern:
+             # 例: "_chk" を除外したい場合など。
+             # ここでは簡易的に「全てのプロパティを処理する」が、必要に応じてフィルタリングしてください。
+             pass
+
+        # B. 型定義の簡略化 (anyOf -> type)
+        if "anyOf" in prop:
+            # anyOfの中から 'null' でない方の型定義を探す
+            real_type = next((x for x in prop["anyOf"] if x.get("type") != "null"), None)
+            if real_type:
+                # descriptionやtitleは元のpropから引き継ぐ
+                new_prop = {k: v for k, v in prop.items() if k != "anyOf" and k != "default"}
+                new_prop.update(real_type)
+                new_properties[key] = new_prop
+        else:
+            new_properties[key] = prop
+
+        # C. 全フィールドを必須(required)にする
+        # LLMに「不明ならnull」と指示してあるので、スキーマ上は必須にして
+        # キー自体は必ず出力させたほうが安定する。
+        required_fields.append(key)
+
+    return {
+        "type": "object",
+        "properties": new_properties,
+        "required": required_fields, # ここで強力に指定
+        "description": raw_schema.get("description", "")
+    }
 
 class PatientInfoParser:
     """
@@ -77,12 +120,82 @@ class PatientInfoParser:
             except Exception as e:
                 print(f"PatientInfoParser: GLiNER2の初期化に失敗しました。通常モードで動作します。Error: {e}")
                 self.use_hybrid_mode = False
+        
+    
+    def _restore_checkboxes(self, data: dict) -> dict:
+        """
+        LLMが生成した軽量データ(level文字列など)から、
+        DB保存用のチェックボックス(True/False)を復元する後処理
+        """
+        # 1. 基本動作の復元
+        basic_move_map = {
+            "rolling": "func_basic_rolling",
+            "getting_up": "func_basic_getting_up",
+            "standing_up": "func_basic_standing_up",
+            "sitting_balance": "func_basic_sitting_balance",
+            "standing_balance": "func_basic_standing_balance"
+        }
+        
+        for key, prefix in basic_move_map.items():
+            level_key = f"{prefix}_level"
+            if level_key in data and data[level_key]:
+                val = data[level_key]
+                data[f"{prefix}_chk"] = True # 親項目のチェック
+                
+                # 値に応じた詳細チェックボックスをON
+                if val == 'independent':
+                    data[f"{prefix}_independent_chk"] = True
+                elif val == 'partial_assist':
+                    data[f"{prefix}_partial_assistance_chk"] = True
+                elif val == 'assist':
+                    data[f"{prefix}_assistance_chk"] = True
+                elif val == 'not_performed':
+                    data[f"{prefix}_not_performed_chk"] = True
+
+        # 2. 介護度の復元
+        if "social_care_level_status_slct" in data and data["social_care_level_status_slct"]:
+            slct = data["social_care_level_status_slct"]
+            data["social_care_level_status_chk"] = True
+             
+            if slct == 'applying':
+                data["social_care_level_applying_chk"] = True
+            elif 'care_' in slct: # care_1 〜 care_5
+                data["social_care_level_care_slct"] = True
+                num = slct.split('_')[1] 
+                data[f"social_care_level_care_num{num}_slct"] = True
+            elif 'support_' in slct: # support_1, support_2
+                data["social_care_level_support_chk"] = True
+                num = slct.split('_')[1]
+                data[f"social_care_level_support_num{num}_slct"] = True
+
+        return data
 
     def _build_hybrid_prompt(self, text: str, facts: dict, schema: type, previous_steps_data: dict) -> str:
 
         """ハイブリッドモード用: 段階的生成プロンプト"""
         facts_json = json.dumps(facts, indent=2, ensure_ascii=False)
-        schema_json = json.dumps(schema.model_json_schema(), indent=2, ensure_ascii=False)
+        if "Assessment" in schema.__name__:
+            optimized_schema = optimize_schema_for_prompt(schema)
+            
+            # _chk フィールドをプロパティと必須リストから削除する
+            props = optimized_schema.get("properties", {})
+            required = optimized_schema.get("required", [])
+            
+            # 削除対象のキーを特定
+            keys_to_remove = [k for k in props.keys() if k.endswith("_chk")]
+            
+            for k in keys_to_remove:
+                del props[k]
+                if k in required:
+                    required.remove(k)
+            
+            schema_json = json.dumps(optimized_schema, indent=2, ensure_ascii=False)
+            
+        else:
+            # その他のステップ: 通常の最適化（Optional削除・全必須化）のみ適用
+            optimized_schema = optimize_schema_for_prompt(schema)
+            schema_json = json.dumps(optimized_schema, indent=2, ensure_ascii=False)
+        # ------------------------------------
         
         # 過去のステップで生成された情報をコンテキストとして渡す
         context_str = ""
@@ -99,20 +212,31 @@ class PatientInfoParser:
         detailed_rules = ""
 
         # クラス名による分岐 (部分一致で判定)
-        if "Assessment" in schema.__name__: # Step 1
-            step_instruction = "GLiNERが抽出した事実を基に、FIM/BIの点数補完、リスクの洗い出し、機能障害の詳細記述を行ってください。"
+
+        if "ADL" in schema.__name__: # 【追加】Step 1-A: 数値抽出
+            step_instruction = "カルテテキストから、FIM/BIの各項目スコア（数値）を読み取って補完してください。"
             detailed_rules = """
-    - **FIM/BIスコア**: テキストから必ず数値を読み取ってください。最新値を `_current_val`、開始時を `_start_val` に入れます。
-    - **基本動作**: `func_basic_` 系のレベル（自立/介助など）をテキストから判定してください。
-    - **リスク・機能**: `_txt` 項目には、具体的な症状や程度を記述してください。
+    - **FIM/BIスコア**: テキストに記載されている数値を正確に抽出してください。
+    - **時系列**: 日付が複数ある場合、最新の値を `_current_val`、その前を `_start_val` に入れます。
+    - **記述の解釈**: 「自立」=7点、「見守り」=5点、「全介助」=1点のように、テキストの記述を適切な点数に変換して入力してください。
             """
 
-        elif "DetailedGoals" in schema.__name__: # Step 2
-            step_instruction = "現状評価（Step 1）に基づき、各活動項目（排泄、入浴、移動など）や環境因子の具体的な到達目標レベルを設定してください。"
+        elif "Assessment" in schema.__name__: # 【変更】Step 1-B: 記述・レベル判定
+            step_instruction = "GLiNERが抽出した事実を基に、基本動作レベルの判定、リスクの洗い出し、機能障害の詳細記述を行ってください。"
             detailed_rules = """
-    - **活動目標 (`goal_a_`)**: 現在のADL能力よりも「少し高い」または「維持」となる現実的な目標レベルを設定してください。
-    - **チェックボックス**: 目標とする動作レベル（例: `goal_a_toileting_independent_chk`）を積極的に `True` にしてください。
-    - **環境・人的因子**: 家屋改修や家族指導が必要と思われる場合は、該当する項目を `True` にしてください。
+    - **基本動作**: `func_basic_` 系のレベル（自立/介助など）をテキストから判定し、最も適切な `level` (independent等) を選択してください。
+    - **リスク・機能**: `_txt` 項目には、具体的な症状や程度を日本語で記述してください。
+            """
+        elif "Goal" in schema.__name__ and "Texts" not in schema.__name__: # Step 2 (Goal A & S)
+            # "Goal_Social_Env" や "Goal_Activity" にマッチさせる
+            step_instruction = "現状評価に基づき、具体的な到達目標レベルや環境因子の設定を行ってください。"
+            detailed_rules = """
+    - **最重要: JSON構造について**:
+      - 出力JSONは**絶対にネスト（階層化）させないでください**。すべてのキーをトップレベル（ルート）に配置してください。
+      - ❌ 悪い例: `{"goal_a": {"bed_mobility": ...}}`
+      - ✅ 良い例: `{"goal_a_bed_mobility_chk": true, ...}`
+    - **目標設定**: 現状のADL能力よりも「少し高い」または「維持」となる現実的な目標を設定してください。
+    - **チェックボックス**: 該当する項目を積極的に `True` にしてください。
             """
 
         elif "GoalTexts" in schema.__name__: # Step 3 (新設)
@@ -325,8 +449,8 @@ class PatientInfoParser:
                                     contents=prompt,
                                     config=generation_config
                                 )
-                                response = future.result(timeout=current_remaining)
-
+                                # response = future.result(timeout=current_remaining)
+                                response = future.result(timeout=120)
                             if response and response.parsed:
                                 step_data = response.parsed.model_dump(mode="json")
                                 final_result.update(step_data)
@@ -341,9 +465,11 @@ class PatientInfoParser:
 
                                 step_success = True
                                 break  # 成功したらリトライループを抜ける
-
-                        else: # Ollama
-                            with concurrent.futures.ThreadPoolExecutor() as executor:
+                            
+                        else: # Ollama (Local)
+                            # 1. 毎回新しいExecutorを作成 (タイムアウト時に即座に中断するため)
+                            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                            try:
                                 future = executor.submit(
                                     ollama.chat,
                                     model=self.model_name,
@@ -351,22 +477,53 @@ class PatientInfoParser:
                                     format="json",
                                     options={"temperature": 0.2, "num_ctx": 8192}
                                 )
-                                response = future.result(timeout=current_remaining)
+                                
+                                # 2. 設定した制限時間で結果を待つ
+                                # response = future.result(timeout=current_remaining)
+                                response = future.result(timeout=120)
+                                raw_json = response["message"]["content"]
+                                generated_data = json.loads(raw_json)
 
-                            raw_json = response["message"]["content"]
-                            generated_data = json.loads(raw_json)
-                            final_result.update(generated_data)
+                                # =====================================================
+                                # 【追加】即時構造チェック (Self-Correction Logic)
+                                # =====================================================
+                                
+                                # A. ネスト（階層化）の禁止チェック
+                                for key, value in generated_data.items():
+                                    if isinstance(value, dict):
+                                        raise ValueError(f"不正なネスト構造を検出しました (Key: {key})。フラットなJSONが必要です。")
 
-                            # --- [DEBUG] 出力結果の表示 ---
-                            # print(f"\n>>> [DEBUG] Step {i+1} Generated Data ({group_schema.__name__}):")
-                            # pprint.pprint(generated_data)
-                            # print("-" * 40)
-                            # ----------------------------
-                            log_output = json.dumps(step_data, indent=2, ensure_ascii=False) # または generated_data
-                            logger.info(f"\n>>> [Step {i+1}] Generated Data ({group_schema.__name__}):\n{log_output}\n{'-'*40}")
+                                # B. Pydanticスキーマによる厳密なバリデーション
+                                try:
+                                    # バリデーションのみ実行
+                                    group_schema.model_validate(generated_data)
+                                except ValidationError as ve:
+                                    raise ValueError(f"スキーマ検証エラー: {ve}")
 
-                            step_success = True
-                            break  # 成功したらリトライループを抜ける
+                                # =====================================================
+
+                                final_result.update(generated_data)
+
+                                log_output = json.dumps(generated_data, indent=2, ensure_ascii=False)
+                                logger.info(f"\n>>> [Step {i+1}] Generated Data ({group_schema.__name__}):\n{log_output}\n{'-'*40}")
+
+                                step_success = True
+                                executor.shutdown(wait=False)
+                                break  # 成功したらリトライループを抜ける
+
+                            except Exception as e:
+                                error_msg = f"LLM Generation Error (Step {i+1}, Attempt {attempt+1}/{max_retries}): {e}"
+                                logger.error(error_msg)
+                                print(error_msg)
+                                
+                                # 失敗時、即座にスレッドを破棄してリトライへ
+                                executor.shutdown(wait=False)
+                                
+                                if attempt < max_retries - 1:
+                                    print(f"--- Retrying Step {i+1}... ---")
+                                    time.sleep(1)
+                                else:
+                                    print(f"--- Failed Step {i+1} after {max_retries} attempts. ---")
 
                     except Exception as e:
                         error_msg = f"LLM Generation Error (Step {i+1}, Attempt {attempt+1}/{max_retries}): {e}"
@@ -383,6 +540,8 @@ class PatientInfoParser:
                 if not step_success:
                     print(f"--- Aborting generation process due to repeated errors in Step {i+1} ---")
                     break
+            if self.use_hybrid_mode:
+                final_result = self._restore_checkboxes(final_result)
             return final_result
 
 

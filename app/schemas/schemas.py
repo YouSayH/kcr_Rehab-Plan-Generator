@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, Literal
 
 from pydantic import BaseModel, Field
 
@@ -966,20 +966,102 @@ PATIENT_INFO_EXTRACTION_GROUPS = [
 
 
 
-class HybridStep1_Assessment(
-    PatientInfo_ADL,              # 数値・レベル判定
-    PatientInfo_BasicMovements,   # 基本動作レベル
-    PatientInfo_Nutrition,        # 栄養判定
-    PatientInfo_Social,           # 手帳など
-    RisksAndPrecautions,          # リスク・禁忌記述
-    FunctionalLimitations,        # 各機能障害の詳細記述
+
+
+
+
+# =========================================================
+# 【追加】LLM生成負荷を下げるための軽量スキーマ (Prompt Optimized)
+# =========================================================
+
+class PatientInfo_BasicMovements_Prompt(BaseModel):
+    """基本動作：チェックボックスの代わりに'level'文字列1つで判定させる"""
+    # 約30個のチェックボックスを5個の文字列フィールドに削減
+    func_basic_rolling_level: Optional[Literal['independent', 'partial_assist', 'assist', 'not_performed']] = Field(None, description="寝返り")
+    func_basic_getting_up_level: Optional[Literal['independent', 'partial_assist', 'assist', 'not_performed']] = Field(None, description="起き上がり")
+    func_basic_standing_up_level: Optional[Literal['independent', 'partial_assist', 'assist', 'not_performed']] = Field(None, description="立ち上がり")
+    func_basic_sitting_balance_level: Optional[Literal['independent', 'partial_assist', 'assist', 'not_performed']] = Field(None, description="座位保持")
+    func_basic_standing_balance_level: Optional[Literal['independent', 'partial_assist', 'assist', 'not_performed']] = Field(None, description="立位保持")
+
+class PatientInfo_Social_Prompt(BaseModel):
+    """社会背景：詳細情報のみ抽出（有無フラグは自動判定するため除外）"""
+    # 複数のチェックボックスを1つの選択式フィールドに集約
+    social_care_level_status_slct: Optional[Literal['applying', 'support_1', 'support_2', 'care_1', 'care_2', 'care_3', 'care_4', 'care_5']] = Field(None, description="介護度。申請中なら'applying'、認定済みなら該当レベルを選択。")
+    social_disability_certificate_physical_type_txt: Optional[str] = Field(None, description="身体障害者手帳の種別")
+    social_disability_certificate_physical_rank_val: Optional[int] = Field(None, description="身体障害者手帳の等級")
+    social_disability_certificate_mental_rank_val: Optional[int] = Field(None, description="精神障害者保健福祉手帳の等級")
+    social_disability_certificate_intellectual_grade_txt: Optional[str] = Field(None, description="療育手帳の等級")
+
+class PatientInfo_Nutrition_Prompt(BaseModel):
+    """栄養：主要な数値と評価のみ"""
+    nutrition_bmi_val: Optional[float] = Field(None, description="BMI値")
+    nutrition_swallowing_diet_slct: Optional[str] = Field(None, description="嚥下調整食の形態")
+    nutrition_swallowing_diet_code_txt: Optional[str] = Field(None, description="学会分類コード")
+    nutrition_status_assessment_slct: Optional[Literal['no_problem', 'malnutrition', 'malnutrition_risk', 'overnutrition', 'other']] = Field(None, description="栄養状態評価")
+
+
+class HybridStep1A_1_FIM_Motor_SelfCare_ADL(BaseModel):
+    """Step 1-A1: FIM 運動項目 (セルフケア: 食事〜トイレ動作)"""
+    # 6項目 (Eating, Grooming, Bathing, Dressing U/L, Toileting)
+    adl_eating_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_eating_fim_start_val']
+    adl_eating_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_eating_fim_current_val']
+    adl_grooming_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_grooming_fim_start_val']
+    adl_grooming_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_grooming_fim_current_val']
+    adl_bathing_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bathing_fim_start_val']
+    adl_bathing_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bathing_fim_current_val']
+    adl_dressing_upper_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_upper_fim_start_val']
+    adl_dressing_upper_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_upper_fim_current_val']
+    adl_dressing_lower_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_lower_fim_start_val']
+    adl_dressing_lower_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_lower_fim_current_val']
+    adl_toileting_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_toileting_fim_start_val']
+    adl_toileting_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_toileting_fim_current_val']
+
+class HybridStep1A_2_FIM_Motor_Mobility_ADL(BaseModel):
+    """Step 1-A2: FIM 運動項目 (排泄管理・移乗・移動)"""
+    # 7項目 (Bladder, Bowel, Transfer x3, Locomotion x2)
+    adl_bladder_management_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bladder_management_fim_start_val']
+    adl_bladder_management_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bladder_management_fim_current_val']
+    adl_bowel_management_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bowel_management_fim_start_val']
+    adl_bowel_management_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bowel_management_fim_current_val']
+    adl_transfer_bed_chair_wc_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_bed_chair_wc_fim_start_val']
+    adl_transfer_bed_chair_wc_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_bed_chair_wc_fim_current_val']
+    adl_transfer_toilet_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_toilet_fim_start_val']
+    adl_transfer_toilet_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_toilet_fim_current_val']
+    adl_transfer_tub_shower_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_tub_shower_fim_start_val']
+    adl_transfer_tub_shower_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_tub_shower_fim_current_val']
+    adl_locomotion_walk_walkingAids_wc_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_walk_walkingAids_wc_fim_start_val']
+    adl_locomotion_walk_walkingAids_wc_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_walk_walkingAids_wc_fim_current_val']
+    adl_locomotion_stairs_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_stairs_fim_start_val']
+    adl_locomotion_stairs_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_stairs_fim_current_val']
+
+class HybridStep1A_3_FIM_Cognitive_ADL(BaseModel):
+    """Step 1-A3: FIM 認知項目 (5項目)"""
+    # 前回と同じ (Cognitive Items)
+    adl_comprehension_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_comprehension_fim_start_val']
+    adl_comprehension_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_comprehension_fim_current_val']
+    adl_expression_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_expression_fim_start_val']
+    adl_expression_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_expression_fim_current_val']
+    adl_social_interaction_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_social_interaction_fim_start_val']
+    adl_social_interaction_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_social_interaction_fim_current_val']
+    adl_problem_solving_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_problem_solving_fim_start_val']
+    adl_problem_solving_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_problem_solving_fim_current_val']
+    adl_memory_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_memory_fim_start_val']
+    adl_memory_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_memory_fim_current_val']
+
+
+# --- Step 1-B: 基本情報・リスク・機能抽出 (記述・選択肢のみ) ---
+class HybridStep1B_Assessment(
+    PatientInfo_BasicMovements_Prompt, # 軽量版
+    PatientInfo_Nutrition_Prompt,      # 軽量版
+    PatientInfo_Social_Prompt,         # 軽量版
+    RisksAndPrecautions,               # 記述
+    FunctionalLimitations,             # 記述
     BaseModel
 ):
-    """Step 1: 現状評価（数値補完・リスク・機能詳細）"""
+    """Step 1-B: 基本動作・栄養・社会背景・リスク評価"""
     # GLiNERの補完用
-    main_comorbidities_txt: str = Field(description="抽出されたリスク因子などに基づき、併存疾患・合併症を列挙して記述")
-    
-    # 既存の項目を継承していますが、必要ならここで上書き定義も可能です
+    main_comorbidities_txt: str = Field(..., description="抽出された事実に基づき、併存疾患・合併症を列挙")
+
 
 # class HybridStep2_Goals(
 #     PatientInfo_Goals,              # 参加目標・目標文章 (既存)
@@ -993,14 +1075,20 @@ class HybridStep1_Assessment(
 #     """Step 2: 目標設定（予後予測・ゴール）"""
 #     pass
 
-class HybridStep2_DetailedGoals(
-    PatientInfo_Goal_Activity,      # 活動目標 (goal_a_...)
-    PatientInfo_Goal_Environment,   # 環境因子 (goal_s_env...)
-    PatientInfo_Goal_HumanFactors,  # 人的因子 (goal_s_3rd_party...)
-    PatientInfo_Goal_Psychological, # 心理的目標 (goal_s_psychological...)
+class HybridStep2A_Goal_Social_Env(
+    PatientInfo_Goal_Environment,   # 環境因子
+    PatientInfo_Goal_HumanFactors,  # 人的因子
+    PatientInfo_Goal_Psychological, # 心理的目標
     BaseModel
 ):
-    """Step 2: 活動・環境・心理・人的因子の具体的目標設定"""
+    """Step 2-A: 環境・心理・人的因子の目標設定"""
+    pass
+
+class HybridStep2B_Goal_Activity(
+    PatientInfo_Goal_Activity,      # 活動目標 (項目数が多いので独立)
+    BaseModel
+):
+    """Step 2-B: 活動項目の目標設定"""
     pass
 
 # class HybridStep3_Plan(
@@ -1028,11 +1116,13 @@ class HybridStep4_Plan(
 ):
     """Step 4: 治療計画（具体的アプローチ）"""
     pass
-
-# ハイブリッドモードの実行順序リスト
 HYBRID_GENERATION_GROUPS = [
-    HybridStep1_Assessment,
-    HybridStep2_DetailedGoals,  # チェックボックス詳細
-    HybridStep3_GoalTexts,      # 文章・予後予測
-    HybridStep4_Plan,           # 治療計画
+    HybridStep1A_1_FIM_Motor_SelfCare_ADL,  # ① 運動:セルフケア
+    HybridStep1A_2_FIM_Motor_Mobility_ADL,  # ② 運動:移乗・移動
+    HybridStep1A_3_FIM_Cognitive_ADL,       # ③ 認知
+    HybridStep1B_Assessment,                # ④ リスク・記述
+    HybridStep2A_Goal_Social_Env,           # ⑤ 環境・心理 (Goal S)
+    HybridStep2B_Goal_Activity,             # ⑥ 活動目標 (Goal A)
+    HybridStep3_GoalTexts,                  # ⑦ 目標文章
+    HybridStep4_Plan,                       # ⑧ 治療計画
 ]
