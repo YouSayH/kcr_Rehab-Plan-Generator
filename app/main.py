@@ -179,21 +179,23 @@ def get_rag_executor(pipeline_name: str) -> RAGExecutor:
 
 
 # 患者情報解析パーサーを初期化
+USE_HYBRID_MODE = os.getenv("USE_HYBRID_MODE", "false").lower() == "true"
+
 print("Initializing Patient Info Parser...")
 try:
-    if LLM_CLIENT_TYPE == "ollama":
-        print("INFO: PatientInfoParserは現在Ollamaクライアントを自動的に使用します（要実装確認）。")
-        # 本来は patient_info_parser.py も切り替えに対応させる
-        patient_info_parser = PatientInfoParser(client_type="ollama")
-        print("Patient Info Parser initialized successfully.")
-    else:
-        patient_info_parser = PatientInfoParser(client_type="gemini")
-        print("Patient Info Parser initialized successfully.")
+    # クライアントタイプ(gemini/ollama)と、ハイブリッドモード(True/False)を指定して初期化
+    patient_info_parser = PatientInfoParser(
+        client_type=LLM_CLIENT_TYPE,
+        use_hybrid_mode=USE_HYBRID_MODE
+    )
+    
+    mode_name = "Hybrid Mode (GLiNER2 + LLM)" if USE_HYBRID_MODE else "Standard Mode (Multi-step LLM)"
+    print(f"Patient Info Parser initialized successfully. [{mode_name}]")
 
 except Exception as e:
     print(f"FATAL: Failed to initialize Patient Info Parser: {e}")
+    # 初期化に失敗した場合、アプリがクラッシュしないように None を設定
     patient_info_parser = None
-
 
 # 管理者判別デコレータ
 # @admin_required を付けたページにアクセスがあると、

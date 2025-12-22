@@ -52,7 +52,7 @@ if not logger.hasHandlers():
 # プロトタイプ開発用の設定 (Trueにするとダミーデータを返す)
 USE_DUMMY_DATA = False
 
-
+GENERATION_TIMEOUT_SEC = 60
 # --- ヘルパー関数群 (gemini_client.pyと共通) ---
 
 
@@ -786,6 +786,7 @@ def generate_ollama_plan_stream(patient_data: dict):
                     logger.info(f"--- Group: {group_schema.__name__} (Attempt: {attempt+1}/{max_retries}) ---")
 
                     print(prompt)
+                    start_time = time.time()
                     # API呼び出し
                     stream = ollama.chat(
                         model=OLLAMA_MODEL_NAME,
@@ -796,6 +797,8 @@ def generate_ollama_plan_stream(patient_data: dict):
 
                     accumulated_json_string = ""
                     for chunk in stream:
+                        if time.time() - start_time > GENERATION_TIMEOUT_SEC:
+                            raise TimeoutError(f"Generation exceeded {GENERATION_TIMEOUT_SEC} seconds.")
                         if chunk["message"]["content"]:
                             accumulated_json_string += chunk["message"]["content"]
 
@@ -849,7 +852,7 @@ def generate_ollama_plan_stream(patient_data: dict):
                     # 成功したらリトライループを抜ける
                     break
 
-                except (ValidationError, json.JSONDecodeError, ValueError) as e:
+                except (ValidationError, json.JSONDecodeError, ValueError, TimeoutError) as e:
                     print(f"エラー発生 (試行 {attempt+1}/{max_retries}): {e}")
                     logger.error(f"エラー詳細: {e}")
 
@@ -1095,6 +1098,7 @@ def regenerate_ollama_plan_item_stream(
                 logging.info("Regeneration Prompt:\n" + prompt)
 
                 print(prompt)
+                start_time = time.time()
 
                 # 6. API呼び出し実行 (Ollama, ストリーミング)
                 stream = ollama.chat(
@@ -1106,6 +1110,8 @@ def regenerate_ollama_plan_item_stream(
 
                 accumulated_json_string = ""
                 for chunk in stream:
+                    if time.time() - start_time > GENERATION_TIMEOUT_SEC:
+                            raise TimeoutError(f"Generation exceeded {GENERATION_TIMEOUT_SEC} seconds.")
                     if chunk["message"]["content"]:
                         accumulated_json_string += chunk["message"]["content"]
 
@@ -1141,7 +1147,7 @@ def regenerate_ollama_plan_item_stream(
                 # 成功したらループを抜ける
                 break
 
-            except (json.JSONDecodeError, ValidationError, ValueError) as e:
+            except (ValidationError, json.JSONDecodeError, ValueError, TimeoutError) as e:
                 print(f"Ollama再生成エラー (試行 {attempt+1}/{max_retries}): {e}")
                 logger.error(f"Ollama再生成エラー: {e}\nデータ: {accumulated_json_string}")
 
