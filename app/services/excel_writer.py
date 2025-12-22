@@ -493,7 +493,7 @@ def write_date_to_sheet(wb, date_value, base_key):
         print(f"   [エラー] 日付 '{base_key}' の書き込み中にエラー: {e}")
 
 
-def create_plan_sheet(plan_data):
+def create_plan_sheet(plan_data, return_bytes=False):
     """【最終版・座標指定方式】Excelに計画書を書き込む"""
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
@@ -508,9 +508,7 @@ def create_plan_sheet(plan_data):
         if "date" in db_col_name or "gender" in db_col_name:
             continue
 
-        # 治療方針のキーは後で個別に処理するのでスキップ
-        if db_col_name in ["header_therapy_pt_chk", "header_therapy_ot_chk", "header_therapy_st_chk"]:
-            continue
+
 
         value = plan_data.get(db_col_name)
         if value is None or value == "":
@@ -570,26 +568,7 @@ def create_plan_sheet(plan_data):
     except Exception as e:
         print(f"   [エラー] 性別の特殊処理中にエラー: {e}")
 
-    # 治療方針のチェックボックスを名前付き範囲で処理
-    try:
-        pt_checked = plan_data.get("header_therapy_pt_chk", False)
-        ot_checked = plan_data.get("header_therapy_ot_chk", False)
-        st_checked = plan_data.get("header_therapy_st_chk", False)
 
-        pt_cell = get_cell_by_name(wb, "header_therapy_pt_chk")
-        ot_cell = get_cell_by_name(wb, "header_therapy_ot_chk")
-        st_cell = get_cell_by_name(wb, "header_therapy_st_chk")
-
-        if pt_cell:
-            pt_cell.value = "☑" if pt_checked else "☐"
-        if ot_cell:
-            ot_cell.value = "☑" if ot_checked else "☐"
-        if st_cell:
-            st_cell.value = "☑" if st_checked else "☐"
-
-        print("   [成功] 治療方針のチェックボックスを名前付き範囲で設定しました。")
-    except Exception as e:
-        print(f"   [エラー] 治療方針のチェックボックス処理中にエラー: {e}")
 
     # 住宅種別処理 (専用ブロック)
     try:
@@ -648,6 +627,13 @@ def create_plan_sheet(plan_data):
         print(f"   [エラー] 復職の特殊処理中にエラー: {e}")
 
     # 3. ファイルの保存
+    if return_bytes:
+        import io
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        return output
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     safe_patient_name = "".join(c for c in plan_data.get("name", "NoName") if c.isalnum())
     output_filename = f"RehabPlan_{safe_patient_name}_{timestamp}.xlsx"
