@@ -6,7 +6,6 @@ from datetime import datetime
 # ロガー設定
 logger = logging.getLogger(__name__)
 
-
 class FastExtractor:
     def __init__(self, use_gpu=True, model_name="fastino/gliner2-large-v1"):
         self.model = None

@@ -2,7 +2,6 @@ import base64
 import json
 import logging
 import os
-import threading
 from datetime import timedelta
 
 import yaml
@@ -39,7 +38,7 @@ import app.services.llm.gemini_client as gemini_client
 import app.services.llm.ollama_client as ollama_client
 from app.constants import ITEM_KEY_TO_JAPANESE
 from app.services.llm.patient_info_parser import PatientInfoParser
-from app.services.llm.rag_executor import RAGExecutor
+from app.services.rag_manager import get_rag_executor
 from app.utils.decorators import admin_required
 from app.utils.helpers import get_plan_checked, has_permission_for_patient
 
@@ -107,47 +106,7 @@ login_manager.init_app(app)
 # どのページにリダイレクト（転送）するかを指定します。'login'は下の@app.route('/login')を持つ関数名を指します。
 login_manager.login_view = "login"
 
-# pipeline_nameをキー、RAGExecutorインスタンスを値とする辞書（キャッシュ）
-rag_executors = {}
-# 複数ユーザーからの同時アクセスで問題が起きないようにするためのロック機構
-rag_executor_lock = threading.Lock()
 
-
-def get_rag_executor(pipeline_name: str) -> RAGExecutor:
-    """
-    RAGExecutorのインスタンスをキャッシュから取得または新規作成する関数。
-    """
-    # ロックを開始（このブロック内は1つのスレッドしか入れない）
-    with rag_executor_lock:
-        # 1. キャッシュに存在すれば、それを返す（高速）
-        if pipeline_name in rag_executors:
-            print(f"'{pipeline_name}' のExecutorをキャッシュから再利用します。")
-            return rag_executors[pipeline_name]
-
-        # 2. キャッシュにない場合、既存のキャッシュを全てクリアする (メモリ解放)
-        # これにより、メモリ上には常に「今から作る1つ」しか存在しなくなる
-        if rag_executors:
-            print("メモリ節約のため、古いRAG Executorのキャッシュを破棄します。")
-            rag_executors.clear()
-
-            # 必要であればGCを実行
-            # import gc
-            # gc.collect()
-
-        # 3. 新規作成処理
-        # 【重要】インデントを戻して、ifブロックの外に出すこと！
-        print(f"'{pipeline_name}' のExecutorを新規に初期化します...")
-        try:
-            executor = RAGExecutor(pipeline_name=pipeline_name)
-            rag_executors[pipeline_name] = executor  # キャッシュに保存
-            print(f"'{pipeline_name}' の初期化が完了し、キャッシュに保存しました。")
-            return executor
-        except Exception as e:
-            print(f"FATAL: RAG Executor ('{pipeline_name}') の初期化に失敗しました: {e}")
-            # エラー時は変なキャッシュが残らないように念のため消しておく
-            if pipeline_name in rag_executors:
-                del rag_executors[pipeline_name]
-            raise e
 
 
 # 患者情報解析パーサーを初期化
