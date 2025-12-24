@@ -64,6 +64,8 @@ services:
       - --default-authentication-plugin=mysql_native_password
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_general_ci
+      - --innodb-buffer-pool-size=64M  # キャッシュ領域を64MBに制限 (デフォルトは128MB以上)
+      - --max-connections=20           # 同時接続数を制限してメモリ消費を抑える
     volumes:
       # MySQLデータをローカルに永続化
       - mysql_data:/var/lib/mysql
