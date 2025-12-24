@@ -2,21 +2,24 @@
 import re
 import logging
 from datetime import datetime
-import torch
 
 # ロガー設定
 logger = logging.getLogger(__name__)
 
-try:
-    from gliner2 import GLiNER2
-    HAS_GLINER = True
-except ImportError:
-    HAS_GLINER = False
-    logger.warning("gliner2 library not found. Install with `pip install gliner2`")
 
 class FastExtractor:
     def __init__(self, use_gpu=True, model_name="fastino/gliner2-large-v1"):
         self.model = None
+
+        # この __init__ は、ハイブリッドモードがONの時しか呼ばれないため安全です
+        try:
+            import torch  # ここで初めて torch をロード
+            from gliner2 import GLiNER2 # ここで初めて gliner2 をロード
+            HAS_GLINER = True
+        except ImportError:
+            HAS_GLINER = False
+            logger.warning("gliner2 or torch not found. Install with `pip install gliner2 torch`")
+
         if HAS_GLINER:
             if use_gpu and torch.cuda.is_available():
                 print(f"Loading GLiNER2 ({model_name}) on CUDA...")
@@ -26,7 +29,7 @@ class FastExtractor:
             else:
                 print(f"Loading GLiNER2 ({model_name}) on CPU...")
                 self.model = GLiNER2.from_pretrained(model_name)
-            
+
         # GLiNER用ラベルマッピング
         # 「上がりにくい」「動かしにくい」など、患者表現も追加
         self.label_mapping = {
