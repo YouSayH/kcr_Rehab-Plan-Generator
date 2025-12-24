@@ -19,8 +19,3 @@ bcrypt
 requests
 
 ollama
-gliner2
-
-# ruriを使うなら
-# pip install -U "transformers>=4.48.0" sentence-transformers
-# pip install flash-attn --no-build-isolation
