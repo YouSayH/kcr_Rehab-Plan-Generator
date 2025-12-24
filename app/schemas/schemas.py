@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -559,394 +559,403 @@ class PatientMasterSchema(BaseModel):
 # --- PatientMasterSchemaの分割定義 ---
 # 巨大なスキーマをAPIが処理可能な小さなグループに分割します。
 
+def _get_desc(field_name: str) -> str:
+    """PatientMasterSchemaからフィールドの説明文(description)を取得する"""
+    field_info = PatientMasterSchema.model_fields.get(field_name)
+    if field_info and field_info.description:
+        return field_info.description
+    return "特記なし"
+
+
 class PatientInfo_Basic(BaseModel):
     """患者の基本情報とリハビリテーションの概要"""
-    name: Optional[str] = PatientMasterSchema.model_fields['name']
-    age: Optional[int] = PatientMasterSchema.model_fields['age']
+    name: Optional[str] = Field(None, description=_get_desc('name'))
+    age: Optional[int] = Field(None, description=_get_desc('age'))
     gender: Optional[str] = Field(None, description="患者の性別。'男性'なら'男'、'女性'なら'女'と出力してください。")
-    header_evaluation_date: Optional[date] = PatientMasterSchema.model_fields['header_evaluation_date']
-    header_disease_name_txt: Optional[str] = PatientMasterSchema.model_fields['header_disease_name_txt']
-    header_treatment_details_txt: Optional[str] = PatientMasterSchema.model_fields['header_treatment_details_txt']
-    header_onset_date: Optional[date] = PatientMasterSchema.model_fields['header_onset_date']
-    header_rehab_start_date: Optional[date] = PatientMasterSchema.model_fields['header_rehab_start_date']
-    header_therapy_pt_chk: Optional[bool] = PatientMasterSchema.model_fields['header_therapy_pt_chk']
-    header_therapy_ot_chk: Optional[bool] = PatientMasterSchema.model_fields['header_therapy_ot_chk']
-    header_therapy_st_chk: Optional[bool] = PatientMasterSchema.model_fields['header_therapy_st_chk']
-    main_comorbidities_txt: Optional[str] = PatientMasterSchema.model_fields['main_comorbidities_txt']
-    main_risks_txt: Optional[str] = PatientMasterSchema.model_fields['main_risks_txt']
-    main_contraindications_txt: Optional[str] = PatientMasterSchema.model_fields['main_contraindications_txt']
+
+    header_evaluation_date: Optional[date] = Field(None, description=_get_desc('header_evaluation_date'))
+    header_disease_name_txt: Optional[str] = Field(None, description=_get_desc('header_disease_name_txt'))
+    header_treatment_details_txt: Optional[str] = Field(None, description=_get_desc('header_treatment_details_txt'))
+    header_onset_date: Optional[date] = Field(None, description=_get_desc('header_onset_date'))
+    header_rehab_start_date: Optional[date] = Field(None, description=_get_desc('header_rehab_start_date'))
+    header_therapy_pt_chk: Optional[bool] = Field(None, description=_get_desc('header_therapy_pt_chk'))
+    header_therapy_ot_chk: Optional[bool] = Field(None, description=_get_desc('header_therapy_ot_chk'))
+    header_therapy_st_chk: Optional[bool] = Field(None, description=_get_desc('header_therapy_st_chk'))
+    main_comorbidities_txt: Optional[str] = Field(None, description=_get_desc('main_comorbidities_txt'))
+    main_risks_txt: Optional[str] = Field(None, description=_get_desc('main_risks_txt'))
+    main_contraindications_txt: Optional[str] = Field(None, description=_get_desc('main_contraindications_txt'))
 
 class PatientInfo_Function_General(BaseModel):
     """患者の心身機能・構造に関する評価（全般）"""
-    func_consciousness_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_consciousness_disorder_chk']
-    func_consciousness_disorder_jcs_gcs_txt: Optional[str] = PatientMasterSchema.model_fields['func_consciousness_disorder_jcs_gcs_txt']
-    func_respiratory_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_respiratory_disorder_chk']
-    func_respiratory_o2_therapy_chk: Optional[bool] = PatientMasterSchema.model_fields['func_respiratory_o2_therapy_chk']
-    func_respiratory_o2_therapy_l_min_txt: Optional[str] = PatientMasterSchema.model_fields['func_respiratory_o2_therapy_l_min_txt']
-    func_respiratory_tracheostomy_chk: Optional[bool] = PatientMasterSchema.model_fields['func_respiratory_tracheostomy_chk']
-    func_respiratory_ventilator_chk: Optional[bool] = PatientMasterSchema.model_fields['func_respiratory_ventilator_chk']
-    func_circulatory_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_circulatory_disorder_chk']
-    func_circulatory_ef_chk: Optional[bool] = PatientMasterSchema.model_fields['func_circulatory_ef_chk']
-    func_circulatory_ef_val: Optional[int] = PatientMasterSchema.model_fields['func_circulatory_ef_val']
-    func_circulatory_arrhythmia_chk: Optional[bool] = PatientMasterSchema.model_fields['func_circulatory_arrhythmia_chk']
+    func_consciousness_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_consciousness_disorder_chk'))
+    func_consciousness_disorder_jcs_gcs_txt: Optional[str] = Field(None, description=_get_desc('func_consciousness_disorder_jcs_gcs_txt'))
+    func_respiratory_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_respiratory_disorder_chk'))
+    func_respiratory_o2_therapy_chk: Optional[bool] = Field(None, description=_get_desc('func_respiratory_o2_therapy_chk'))
+    func_respiratory_o2_therapy_l_min_txt: Optional[str] = Field(None, description=_get_desc('func_respiratory_o2_therapy_l_min_txt'))
+    func_respiratory_tracheostomy_chk: Optional[bool] = Field(None, description=_get_desc('func_respiratory_tracheostomy_chk'))
+    func_respiratory_ventilator_chk: Optional[bool] = Field(None, description=_get_desc('func_respiratory_ventilator_chk'))
+    func_circulatory_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_circulatory_disorder_chk'))
+    func_circulatory_ef_chk: Optional[bool] = Field(None, description=_get_desc('func_circulatory_ef_chk'))
+    func_circulatory_ef_val: Optional[int] = Field(None, description=_get_desc('func_circulatory_ef_val'))
+    func_circulatory_arrhythmia_chk: Optional[bool] = Field(None, description=_get_desc('func_circulatory_arrhythmia_chk'))
     func_circulatory_arrhythmia_status_slct: Optional[str] = Field(None, description="不整脈の有無。'yes'または'no'のいずれか。")
-    func_risk_factors_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_factors_chk']
-    func_risk_hypertension_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_hypertension_chk']
-    func_risk_dyslipidemia_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_dyslipidemia_chk']
-    func_risk_diabetes_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_diabetes_chk']
-    func_risk_smoking_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_smoking_chk']
-    func_risk_obesity_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_obesity_chk']
-    func_risk_hyperuricemia_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_hyperuricemia_chk']
-    func_risk_ckd_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_ckd_chk']
-    func_risk_family_history_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_family_history_chk']
-    func_risk_angina_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_angina_chk']
-    func_risk_omi_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_omi_chk']
-    func_risk_other_chk: Optional[bool] = PatientMasterSchema.model_fields['func_risk_other_chk']
-    func_risk_other_txt: Optional[str] = PatientMasterSchema.model_fields['func_risk_other_txt']
-    func_swallowing_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_swallowing_disorder_chk']
-    func_swallowing_disorder_txt: Optional[str] = PatientMasterSchema.model_fields['func_swallowing_disorder_txt']
-    func_nutritional_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_nutritional_disorder_chk']
-    func_nutritional_disorder_txt: Optional[str] = PatientMasterSchema.model_fields['func_nutritional_disorder_txt']
-    func_excretory_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_excretory_disorder_chk']
-    func_excretory_disorder_txt: Optional[str] = PatientMasterSchema.model_fields['func_excretory_disorder_txt']
-    func_pressure_ulcer_chk: Optional[bool] = PatientMasterSchema.model_fields['func_pressure_ulcer_chk']
-    func_pressure_ulcer_txt: Optional[str] = PatientMasterSchema.model_fields['func_pressure_ulcer_txt']
-    func_pain_chk: Optional[bool] = PatientMasterSchema.model_fields['func_pain_chk']
-    func_pain_txt: Optional[str] = PatientMasterSchema.model_fields['func_pain_txt']
-    func_other_chk: Optional[bool] = PatientMasterSchema.model_fields['func_other_chk']
-    func_other_txt: Optional[str] = PatientMasterSchema.model_fields['func_other_txt']
+    func_risk_factors_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_factors_chk'))
+    func_risk_hypertension_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_hypertension_chk'))
+    func_risk_dyslipidemia_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_dyslipidemia_chk'))
+    func_risk_diabetes_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_diabetes_chk'))
+    func_risk_smoking_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_smoking_chk'))
+    func_risk_obesity_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_obesity_chk'))
+    func_risk_hyperuricemia_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_hyperuricemia_chk'))
+    func_risk_ckd_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_ckd_chk'))
+    func_risk_family_history_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_family_history_chk'))
+    func_risk_angina_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_angina_chk'))
+    func_risk_omi_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_omi_chk'))
+    func_risk_other_chk: Optional[bool] = Field(None, description=_get_desc('func_risk_other_chk'))
+    func_risk_other_txt: Optional[str] = Field(None, description=_get_desc('func_risk_other_txt'))
+    func_swallowing_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_swallowing_disorder_chk'))
+    func_swallowing_disorder_txt: Optional[str] = Field(None, description=_get_desc('func_swallowing_disorder_txt'))
+    func_nutritional_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_nutritional_disorder_chk'))
+    func_nutritional_disorder_txt: Optional[str] = Field(None, description=_get_desc('func_nutritional_disorder_txt'))
+    func_excretory_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_excretory_disorder_chk'))
+    func_excretory_disorder_txt: Optional[str] = Field(None, description=_get_desc('func_excretory_disorder_txt'))
+    func_pressure_ulcer_chk: Optional[bool] = Field(None, description=_get_desc('func_pressure_ulcer_chk'))
+    func_pressure_ulcer_txt: Optional[str] = Field(None, description=_get_desc('func_pressure_ulcer_txt'))
+    func_pain_chk: Optional[bool] = Field(None, description=_get_desc('func_pain_chk'))
+    func_pain_txt: Optional[str] = Field(None, description=_get_desc('func_pain_txt'))
+    func_other_chk: Optional[bool] = Field(None, description=_get_desc('func_other_chk'))
+    func_other_txt: Optional[str] = Field(None, description=_get_desc('func_other_txt'))
 
 class PatientInfo_Function_Motor(BaseModel):
     """患者の心身機能・構造に関する評価（運動機能）"""
-    func_rom_limitation_chk: Optional[bool] = PatientMasterSchema.model_fields['func_rom_limitation_chk']
-    func_rom_limitation_txt: Optional[str] = PatientMasterSchema.model_fields['func_rom_limitation_txt']
-    func_contracture_deformity_chk: Optional[bool] = PatientMasterSchema.model_fields['func_contracture_deformity_chk']
-    func_contracture_deformity_txt: Optional[str] = PatientMasterSchema.model_fields['func_contracture_deformity_txt']
-    func_muscle_weakness_chk: Optional[bool] = PatientMasterSchema.model_fields['func_muscle_weakness_chk']
-    func_muscle_weakness_txt: Optional[str] = PatientMasterSchema.model_fields['func_muscle_weakness_txt']
-    func_motor_dysfunction_chk: Optional[bool] = PatientMasterSchema.model_fields['func_motor_dysfunction_chk']
-    func_motor_paralysis_chk: Optional[bool] = PatientMasterSchema.model_fields['func_motor_paralysis_chk']
-    func_motor_involuntary_movement_chk: Optional[bool] = PatientMasterSchema.model_fields['func_motor_involuntary_movement_chk']
-    func_motor_ataxia_chk: Optional[bool] = PatientMasterSchema.model_fields['func_motor_ataxia_chk']
-    func_motor_parkinsonism_chk: Optional[bool] = PatientMasterSchema.model_fields['func_motor_parkinsonism_chk']
-    func_motor_muscle_tone_abnormality_chk: Optional[bool] = PatientMasterSchema.model_fields['func_motor_muscle_tone_abnormality_chk']
-    func_motor_muscle_tone_abnormality_txt: Optional[str] = PatientMasterSchema.model_fields['func_motor_muscle_tone_abnormality_txt']
+    func_rom_limitation_chk: Optional[bool] = Field(None, description=_get_desc('func_rom_limitation_chk'))
+    func_rom_limitation_txt: Optional[str] = Field(None, description=_get_desc('func_rom_limitation_txt'))
+    func_contracture_deformity_chk: Optional[bool] = Field(None, description=_get_desc('func_contracture_deformity_chk'))
+    func_contracture_deformity_txt: Optional[str] = Field(None, description=_get_desc('func_contracture_deformity_txt'))
+    func_muscle_weakness_chk: Optional[bool] = Field(None, description=_get_desc('func_muscle_weakness_chk'))
+    func_muscle_weakness_txt: Optional[str] = Field(None, description=_get_desc('func_muscle_weakness_txt'))
+    func_motor_dysfunction_chk: Optional[bool] = Field(None, description=_get_desc('func_motor_dysfunction_chk'))
+    func_motor_paralysis_chk: Optional[bool] = Field(None, description=_get_desc('func_motor_paralysis_chk'))
+    func_motor_involuntary_movement_chk: Optional[bool] = Field(None, description=_get_desc('func_motor_involuntary_movement_chk'))
+    func_motor_ataxia_chk: Optional[bool] = Field(None, description=_get_desc('func_motor_ataxia_chk'))
+    func_motor_parkinsonism_chk: Optional[bool] = Field(None, description=_get_desc('func_motor_parkinsonism_chk'))
+    func_motor_muscle_tone_abnormality_chk: Optional[bool] = Field(None, description=_get_desc('func_motor_muscle_tone_abnormality_chk'))
+    func_motor_muscle_tone_abnormality_txt: Optional[str] = Field(None, description=_get_desc('func_motor_muscle_tone_abnormality_txt'))
 
 class PatientInfo_Function_Cognitive(BaseModel):
     """患者の心身機能・構造に関する評価（感覚・認知・言語）"""
-    func_sensory_dysfunction_chk: Optional[bool] = PatientMasterSchema.model_fields['func_sensory_dysfunction_chk']
-    func_sensory_hearing_chk: Optional[bool] = PatientMasterSchema.model_fields['func_sensory_hearing_chk']
-    func_sensory_vision_chk: Optional[bool] = PatientMasterSchema.model_fields['func_sensory_vision_chk']
-    func_sensory_superficial_chk: Optional[bool] = PatientMasterSchema.model_fields['func_sensory_superficial_chk']
-    func_sensory_deep_chk: Optional[bool] = PatientMasterSchema.model_fields['func_sensory_deep_chk']
-    func_speech_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_speech_disorder_chk']
-    func_speech_articulation_chk: Optional[bool] = PatientMasterSchema.model_fields['func_speech_articulation_chk']
-    func_speech_aphasia_chk: Optional[bool] = PatientMasterSchema.model_fields['func_speech_aphasia_chk']
-    func_speech_stuttering_chk: Optional[bool] = PatientMasterSchema.model_fields['func_speech_stuttering_chk']
-    func_speech_other_chk: Optional[bool] = PatientMasterSchema.model_fields['func_speech_other_chk']
-    func_speech_other_txt: Optional[str] = PatientMasterSchema.model_fields['func_speech_other_txt']
-    func_higher_brain_dysfunction_chk: Optional[bool] = PatientMasterSchema.model_fields['func_higher_brain_dysfunction_chk']
-    func_higher_brain_memory_chk: Optional[bool] = PatientMasterSchema.model_fields['func_higher_brain_memory_chk']
-    func_higher_brain_attention_chk: Optional[bool] = PatientMasterSchema.model_fields['func_higher_brain_attention_chk']
-    func_higher_brain_apraxia_chk: Optional[bool] = PatientMasterSchema.model_fields['func_higher_brain_apraxia_chk']
-    func_higher_brain_agnosia_chk: Optional[bool] = PatientMasterSchema.model_fields['func_higher_brain_agnosia_chk']
-    func_higher_brain_executive_chk: Optional[bool] = PatientMasterSchema.model_fields['func_higher_brain_executive_chk']
-    func_behavioral_psychiatric_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_behavioral_psychiatric_disorder_chk']
-    func_behavioral_psychiatric_disorder_txt: Optional[str] = PatientMasterSchema.model_fields['func_behavioral_psychiatric_disorder_txt']
-    func_disorientation_chk: Optional[bool] = PatientMasterSchema.model_fields['func_disorientation_chk']
-    func_disorientation_txt: Optional[str] = PatientMasterSchema.model_fields['func_disorientation_txt']
-    func_memory_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_memory_disorder_chk']
-    func_memory_disorder_txt: Optional[str] = PatientMasterSchema.model_fields['func_memory_disorder_txt']
-    func_developmental_disorder_chk: Optional[bool] = PatientMasterSchema.model_fields['func_developmental_disorder_chk']
-    func_developmental_asd_chk: Optional[bool] = PatientMasterSchema.model_fields['func_developmental_asd_chk']
-    func_developmental_ld_chk: Optional[bool] = PatientMasterSchema.model_fields['func_developmental_ld_chk']
-    func_developmental_adhd_chk: Optional[bool] = PatientMasterSchema.model_fields['func_developmental_adhd_chk']
+    func_sensory_dysfunction_chk: Optional[bool] = Field(None, description=_get_desc('func_sensory_dysfunction_chk'))
+    func_sensory_hearing_chk: Optional[bool] = Field(None, description=_get_desc('func_sensory_hearing_chk'))
+    func_sensory_vision_chk: Optional[bool] = Field(None, description=_get_desc('func_sensory_vision_chk'))
+    func_sensory_superficial_chk: Optional[bool] = Field(None, description=_get_desc('func_sensory_superficial_chk'))
+    func_sensory_deep_chk: Optional[bool] = Field(None, description=_get_desc('func_sensory_deep_chk'))
+    func_speech_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_speech_disorder_chk'))
+    func_speech_articulation_chk: Optional[bool] = Field(None, description=_get_desc('func_speech_articulation_chk'))
+    func_speech_aphasia_chk: Optional[bool] = Field(None, description=_get_desc('func_speech_aphasia_chk'))
+    func_speech_stuttering_chk: Optional[bool] = Field(None, description=_get_desc('func_speech_stuttering_chk'))
+    func_speech_other_chk: Optional[bool] = Field(None, description=_get_desc('func_speech_other_chk'))
+    func_speech_other_txt: Optional[str] = Field(None, description=_get_desc('func_speech_other_txt'))
+    func_higher_brain_dysfunction_chk: Optional[bool] = Field(None, description=_get_desc('func_higher_brain_dysfunction_chk'))
+    func_higher_brain_memory_chk: Optional[bool] = Field(None, description=_get_desc('func_higher_brain_memory_chk'))
+    func_higher_brain_attention_chk: Optional[bool] = Field(None, description=_get_desc('func_higher_brain_attention_chk'))
+    func_higher_brain_apraxia_chk: Optional[bool] = Field(None, description=_get_desc('func_higher_brain_apraxia_chk'))
+    func_higher_brain_agnosia_chk: Optional[bool] = Field(None, description=_get_desc('func_higher_brain_agnosia_chk'))
+    func_higher_brain_executive_chk: Optional[bool] = Field(None, description=_get_desc('func_higher_brain_executive_chk'))
+    func_behavioral_psychiatric_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_behavioral_psychiatric_disorder_chk'))
+    func_behavioral_psychiatric_disorder_txt: Optional[str] = Field(None, description=_get_desc('func_behavioral_psychiatric_disorder_txt'))
+    func_disorientation_chk: Optional[bool] = Field(None, description=_get_desc('func_disorientation_chk'))
+    func_disorientation_txt: Optional[str] = Field(None, description=_get_desc('func_disorientation_txt'))
+    func_memory_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_memory_disorder_chk'))
+    func_memory_disorder_txt: Optional[str] = Field(None, description=_get_desc('func_memory_disorder_txt'))
+    func_developmental_disorder_chk: Optional[bool] = Field(None, description=_get_desc('func_developmental_disorder_chk'))
+    func_developmental_asd_chk: Optional[bool] = Field(None, description=_get_desc('func_developmental_asd_chk'))
+    func_developmental_ld_chk: Optional[bool] = Field(None, description=_get_desc('func_developmental_ld_chk'))
+    func_developmental_adhd_chk: Optional[bool] = Field(None, description=_get_desc('func_developmental_adhd_chk'))
 
 class PatientInfo_ADL(BaseModel):
     """患者のADL評価 (FIM, BI)"""
     # ADL関連の項目を抽出
-    adl_eating_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_eating_fim_start_val']
-    adl_eating_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_eating_fim_current_val']
-    adl_eating_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_eating_bi_start_val']
-    adl_eating_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_eating_bi_current_val']
-    adl_grooming_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_grooming_fim_start_val']
-    adl_grooming_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_grooming_fim_current_val']
-    adl_grooming_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_grooming_bi_start_val']
-    adl_grooming_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_grooming_bi_current_val']
-    adl_bathing_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bathing_fim_start_val']
-    adl_bathing_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bathing_fim_current_val']
-    adl_bathing_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bathing_bi_start_val']
-    adl_bathing_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bathing_bi_current_val']
-    adl_dressing_upper_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_upper_fim_start_val']
-    adl_dressing_upper_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_upper_fim_current_val']
-    adl_dressing_lower_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_lower_fim_start_val']
-    adl_dressing_lower_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_lower_fim_current_val']
-    adl_dressing_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_bi_start_val']
-    adl_dressing_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_bi_current_val']
-    adl_toileting_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_toileting_fim_start_val']
-    adl_toileting_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_toileting_fim_current_val']
-    adl_toileting_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_toileting_bi_start_val']
-    adl_toileting_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_toileting_bi_current_val']
-    adl_bladder_management_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bladder_management_fim_start_val']
-    adl_bladder_management_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bladder_management_fim_current_val']
-    adl_bladder_management_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bladder_management_bi_start_val']
-    adl_bladder_management_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bladder_management_bi_current_val']
-    adl_bowel_management_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bowel_management_fim_start_val']
-    adl_bowel_management_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bowel_management_fim_current_val']
-    adl_bowel_management_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bowel_management_bi_start_val']
-    adl_bowel_management_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bowel_management_bi_current_val']
-    adl_transfer_bed_chair_wc_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_bed_chair_wc_fim_start_val']
-    adl_transfer_bed_chair_wc_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_bed_chair_wc_fim_current_val']
-    adl_transfer_toilet_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_toilet_fim_start_val']
-    adl_transfer_toilet_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_toilet_fim_current_val']
-    adl_transfer_tub_shower_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_tub_shower_fim_start_val']
-    adl_transfer_tub_shower_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_tub_shower_fim_current_val']
-    adl_transfer_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_bi_start_val']
-    adl_transfer_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_bi_current_val']
-    adl_locomotion_walk_walkingAids_wc_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_walk_walkingAids_wc_fim_start_val']
-    adl_locomotion_walk_walkingAids_wc_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_walk_walkingAids_wc_fim_current_val']
-    adl_locomotion_walk_walkingAids_wc_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_walk_walkingAids_wc_bi_start_val']
-    adl_locomotion_walk_walkingAids_wc_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_walk_walkingAids_wc_bi_current_val']
-    adl_locomotion_stairs_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_stairs_fim_start_val']
-    adl_locomotion_stairs_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_stairs_fim_current_val']
-    adl_locomotion_stairs_bi_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_stairs_bi_start_val']
-    adl_locomotion_stairs_bi_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_stairs_bi_current_val']
-    adl_comprehension_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_comprehension_fim_start_val']
-    adl_comprehension_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_comprehension_fim_current_val']
-    adl_expression_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_expression_fim_start_val']
-    adl_expression_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_expression_fim_current_val']
-    adl_social_interaction_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_social_interaction_fim_start_val']
-    adl_social_interaction_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_social_interaction_fim_current_val']
-    adl_problem_solving_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_problem_solving_fim_start_val']
-    adl_problem_solving_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_problem_solving_fim_current_val']
-    adl_memory_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_memory_fim_start_val']
-    adl_memory_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_memory_fim_current_val']
+    adl_eating_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_eating_fim_start_val'))
+    adl_eating_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_eating_fim_current_val'))
+    adl_eating_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_eating_bi_start_val'))
+    adl_eating_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_eating_bi_current_val'))
+    adl_grooming_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_fim_start_val'))
+    adl_grooming_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_fim_current_val'))
+    adl_grooming_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_bi_start_val'))
+    adl_grooming_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_bi_current_val'))
+    adl_bathing_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_fim_start_val'))
+    adl_bathing_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_fim_current_val'))
+    adl_bathing_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_bi_start_val'))
+    adl_bathing_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_bi_current_val'))
+    adl_dressing_upper_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_upper_fim_start_val'))
+    adl_dressing_upper_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_upper_fim_current_val'))
+    adl_dressing_lower_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_lower_fim_start_val'))
+    adl_dressing_lower_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_lower_fim_current_val'))
+    adl_dressing_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_bi_start_val'))
+    adl_dressing_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_bi_current_val'))
+    adl_toileting_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_fim_start_val'))
+    adl_toileting_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_fim_current_val'))
+    adl_toileting_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_bi_start_val'))
+    adl_toileting_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_bi_current_val'))
+    adl_bladder_management_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_fim_start_val'))
+    adl_bladder_management_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_fim_current_val'))
+    adl_bladder_management_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_bi_start_val'))
+    adl_bladder_management_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_bi_current_val'))
+    adl_bowel_management_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_fim_start_val'))
+    adl_bowel_management_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_fim_current_val'))
+    adl_bowel_management_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_bi_start_val'))
+    adl_bowel_management_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_bi_current_val'))
+    adl_transfer_bed_chair_wc_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bed_chair_wc_fim_start_val'))
+    adl_transfer_bed_chair_wc_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bed_chair_wc_fim_current_val'))
+    adl_transfer_toilet_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_toilet_fim_start_val'))
+    adl_transfer_toilet_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_toilet_fim_current_val'))
+    adl_transfer_tub_shower_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_tub_shower_fim_start_val'))
+    adl_transfer_tub_shower_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_tub_shower_fim_current_val'))
+    adl_transfer_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bi_start_val'))
+    adl_transfer_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bi_current_val'))
+    adl_locomotion_walk_walkingAids_wc_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_fim_start_val'))
+    adl_locomotion_walk_walkingAids_wc_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_fim_current_val'))
+    adl_locomotion_walk_walkingAids_wc_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_bi_start_val'))
+    adl_locomotion_walk_walkingAids_wc_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_bi_current_val'))
+    adl_locomotion_stairs_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_fim_start_val'))
+    adl_locomotion_stairs_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_fim_current_val'))
+    adl_locomotion_stairs_bi_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_bi_start_val'))
+    adl_locomotion_stairs_bi_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_bi_current_val'))
+    adl_comprehension_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_comprehension_fim_start_val'))
+    adl_comprehension_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_comprehension_fim_current_val'))
+    adl_expression_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_expression_fim_start_val'))
+    adl_expression_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_expression_fim_current_val'))
+    adl_social_interaction_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_social_interaction_fim_start_val'))
+    adl_social_interaction_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_social_interaction_fim_current_val'))
+    adl_problem_solving_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_problem_solving_fim_start_val'))
+    adl_problem_solving_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_problem_solving_fim_current_val'))
+    adl_memory_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_memory_fim_start_val'))
+    adl_memory_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_memory_fim_current_val'))
 
 class PatientInfo_BasicMovements(BaseModel):
     """患者の基本動作に関する評価"""
-    func_basic_rolling_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_rolling_chk']
+    func_basic_rolling_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_rolling_chk'))
     func_basic_rolling_level: Optional[str] = Field(None, description="寝返りのレベルを 'independent', 'partial_assist', 'assist', 'not_performed' のいずれかで記述。")
-    func_basic_rolling_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_rolling_independent_chk']
+    func_basic_rolling_independent_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_rolling_independent_chk'))
     func_basic_rolling_partial_assistance_chk: Optional[bool] = Field(None, description="寝返り: 一部介助。'一部介助'や'軽介助'という記述があればtrueにしてください。")
-    func_basic_rolling_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_rolling_assistance_chk']
-    func_basic_rolling_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_rolling_not_performed_chk']
-    func_basic_getting_up_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_getting_up_chk']
-    func_basic_getting_up_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_getting_up_independent_chk']
+    func_basic_rolling_assistance_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_rolling_assistance_chk'))
+    func_basic_rolling_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_rolling_not_performed_chk'))
+    func_basic_getting_up_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_getting_up_chk'))
+    func_basic_getting_up_independent_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_getting_up_independent_chk'))
     func_basic_getting_up_partial_assistance_chk: Optional[bool] = Field(None, description="起き上がり: 一部介助。'一部介助'や'軽介助'という記述があればtrueにしてください。")
     func_basic_getting_up_level: Optional[str] = Field(None, description="起き上がりのレベルを 'independent', 'partial_assist', 'assist', 'not_performed' のいずれかで記述。")
-    func_basic_getting_up_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_getting_up_assistance_chk']
-    func_basic_getting_up_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_getting_up_not_performed_chk']
-    func_basic_standing_up_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_standing_up_chk']
+    func_basic_getting_up_assistance_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_getting_up_assistance_chk'))
+    func_basic_getting_up_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_getting_up_not_performed_chk'))
+    func_basic_standing_up_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_standing_up_chk'))
     func_basic_standing_up_level: Optional[str] = Field(None, description="立ち上がりのレベルを 'independent', 'partial_assist', 'assist', 'not_performed' のいずれかで記述。")
-    func_basic_standing_up_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_standing_up_independent_chk']
+    func_basic_standing_up_independent_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_standing_up_independent_chk'))
     func_basic_standing_up_partial_assistance_chk: Optional[bool] = Field(None, description="立ち上がり: 一部介助。'一部介助'や'軽介助'という記述があればtrueにしてください。")
-    func_basic_standing_up_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_standing_up_assistance_chk']
-    func_basic_standing_up_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_standing_up_not_performed_chk']
-    func_basic_sitting_balance_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_sitting_balance_chk']
+    func_basic_standing_up_assistance_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_standing_up_assistance_chk'))
+    func_basic_standing_up_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_standing_up_not_performed_chk'))
+    func_basic_sitting_balance_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_sitting_balance_chk'))
     func_basic_sitting_balance_level: Optional[str] = Field(None, description="座位保持のレベルを 'independent', 'partial_assist', 'assist', 'not_performed' のいずれかで記述。")
-    func_basic_sitting_balance_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_sitting_balance_independent_chk']
-    func_basic_sitting_balance_partial_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_sitting_balance_partial_assistance_chk']
-    func_basic_sitting_balance_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_sitting_balance_assistance_chk']
-    func_basic_sitting_balance_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_sitting_balance_not_performed_chk']
-    func_basic_standing_balance_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_standing_balance_chk']
+    func_basic_sitting_balance_independent_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_sitting_balance_independent_chk'))
+    func_basic_sitting_balance_partial_assistance_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_sitting_balance_partial_assistance_chk'))
+    func_basic_sitting_balance_assistance_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_sitting_balance_assistance_chk'))
+    func_basic_sitting_balance_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_sitting_balance_not_performed_chk'))
+    func_basic_standing_balance_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_standing_balance_chk'))
     func_basic_standing_balance_level: Optional[str] = Field(None, description="立位保持のレベルを 'independent', 'partial_assist', 'assist', 'not_performed' のいずれかで記述。")
-    func_basic_standing_balance_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_standing_balance_independent_chk']
+    func_basic_standing_balance_independent_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_standing_balance_independent_chk'))
     func_basic_standing_balance_partial_assistance_chk: Optional[bool] = Field(None, description="立位保持: 一部介助。'一部介助'や'軽介助'という記述があればtrueにしてください。")
-    func_basic_standing_balance_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_standing_balance_assistance_chk']
-    func_basic_standing_balance_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_standing_balance_not_performed_chk']
-    func_basic_other_chk: Optional[bool] = PatientMasterSchema.model_fields['func_basic_other_chk']
-    func_basic_other_txt: Optional[str] = PatientMasterSchema.model_fields['func_basic_other_txt']
+    func_basic_standing_balance_assistance_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_standing_balance_assistance_chk'))
+    func_basic_standing_balance_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_standing_balance_not_performed_chk'))
+    func_basic_other_chk: Optional[bool] = Field(None, description=_get_desc('func_basic_other_chk'))
+    func_basic_other_txt: Optional[str] = Field(None, description=_get_desc('func_basic_other_txt'))
 
 class PatientInfo_Goals(BaseModel):
     """患者の目標設定に関する情報"""
     # 1枚目
-    goals_1_month_txt: Optional[str] = PatientMasterSchema.model_fields['goals_1_month_txt']
-    goals_at_discharge_txt: Optional[str] = PatientMasterSchema.model_fields['goals_at_discharge_txt']
-    goals_planned_hospitalization_period_chk: Optional[bool] = PatientMasterSchema.model_fields['goals_planned_hospitalization_period_chk']
-    goals_planned_hospitalization_period_txt: Optional[str] = PatientMasterSchema.model_fields['goals_planned_hospitalization_period_txt']
-    goals_discharge_destination_chk: Optional[bool] = PatientMasterSchema.model_fields['goals_discharge_destination_chk']
-    goals_discharge_destination_txt: Optional[str] = PatientMasterSchema.model_fields['goals_discharge_destination_txt']
-    goals_long_term_care_needed_chk: Optional[bool] = PatientMasterSchema.model_fields['goals_long_term_care_needed_chk']
+    goals_1_month_txt: Optional[str] = Field(None, description=_get_desc('goals_1_month_txt'))
+    goals_at_discharge_txt: Optional[str] = Field(None, description=_get_desc('goals_at_discharge_txt'))
+    goals_planned_hospitalization_period_chk: Optional[bool] = Field(None, description=_get_desc('goals_planned_hospitalization_period_chk'))
+    goals_planned_hospitalization_period_txt: Optional[str] = Field(None, description=_get_desc('goals_planned_hospitalization_period_txt'))
+    goals_discharge_destination_chk: Optional[bool] = Field(None, description=_get_desc('goals_discharge_destination_chk'))
+    goals_discharge_destination_txt: Optional[str] = Field(None, description=_get_desc('goals_discharge_destination_txt'))
+    goals_long_term_care_needed_chk: Optional[bool] = Field(None, description=_get_desc('goals_long_term_care_needed_chk'))
     # 2枚目：参加
-    goal_p_residence_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_residence_chk']
+    goal_p_residence_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_residence_chk'))
     goal_p_residence_slct: Optional[str] = Field(None, description="住居場所の選択肢。'home_detached', 'home_apartment', 'facility', 'other' のいずれか。")
-    goal_p_residence_other_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_residence_other_txt']
-    goal_p_return_to_work_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_return_to_work_chk']
-    goal_p_return_to_work_status_slct: Optional[str] = PatientMasterSchema.model_fields['goal_p_return_to_work_status_slct']
-    goal_p_return_to_work_status_other_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_return_to_work_status_other_txt']
-    goal_p_return_to_work_commute_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_return_to_work_commute_change_chk']
+    goal_p_residence_other_txt: Optional[str] = Field(None, description=_get_desc('goal_p_residence_other_txt'))
+    goal_p_return_to_work_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_return_to_work_chk'))
+    goal_p_return_to_work_status_slct: Optional[str] = Field(None, description=_get_desc('goal_p_return_to_work_status_slct'))
+    goal_p_return_to_work_status_other_txt: Optional[str] = Field(None, description=_get_desc('goal_p_return_to_work_status_other_txt'))
+    goal_p_return_to_work_commute_change_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_return_to_work_commute_change_chk'))
     goal_p_schooling_status_slct: Optional[str] = Field(None, description="就学状況の選択肢。'possible', 'needs_consideration', 'change_course', 'not_possible', 'other' のいずれか。")
-    goal_p_schooling_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_chk']
-    goal_p_schooling_status_possible_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_status_possible_chk']
-    goal_p_schooling_status_needs_consideration_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_status_needs_consideration_chk']
-    goal_p_schooling_status_change_course_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_status_change_course_chk']
-    goal_p_schooling_status_not_possible_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_status_not_possible_chk']
-    goal_p_schooling_status_other_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_status_other_chk']
-    goal_p_schooling_status_other_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_schooling_status_other_txt']
-    goal_p_schooling_destination_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_destination_chk']
-    goal_p_schooling_destination_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_schooling_destination_txt']
-    goal_p_schooling_commute_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_schooling_commute_change_chk']
-    goal_p_schooling_commute_change_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_schooling_commute_change_txt']
-    goal_p_household_role_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_household_role_chk']
-    goal_p_household_role_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_household_role_txt']
-    goal_p_social_activity_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_social_activity_chk']
-    goal_p_social_activity_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_social_activity_txt']
-    goal_p_hobby_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_p_hobby_chk']
-    goal_p_hobby_txt: Optional[str] = PatientMasterSchema.model_fields['goal_p_hobby_txt']
+    goal_p_schooling_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_schooling_chk'))
+    goal_p_schooling_status_possible_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_schooling_status_possible_chk'))
+    goal_p_schooling_status_needs_consideration_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_schooling_status_needs_consideration_chk'))
+    goal_p_schooling_status_change_course_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_schooling_status_change_course_chk'))
+    goal_p_schooling_status_not_possible_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_schooling_status_not_possible_chk'))
+    goal_p_schooling_status_other_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_schooling_status_other_chk'))
+    goal_p_schooling_status_other_txt: Optional[str] = Field(None, description=_get_desc('goal_p_schooling_status_other_txt'))
+    goal_p_schooling_destination_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_schooling_destination_chk'))
+    goal_p_schooling_destination_txt: Optional[str] = Field(None, description=_get_desc('goal_p_schooling_destination_txt'))
+    goal_p_schooling_commute_change_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_schooling_commute_change_chk'))
+    goal_p_schooling_commute_change_txt: Optional[str] = Field(None, description=_get_desc('goal_p_schooling_commute_change_txt'))
+    goal_p_household_role_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_household_role_chk'))
+    goal_p_household_role_txt: Optional[str] = Field(None, description=_get_desc('goal_p_household_role_txt'))
+    goal_p_social_activity_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_social_activity_chk'))
+    goal_p_social_activity_txt: Optional[str] = Field(None, description=_get_desc('goal_p_social_activity_txt'))
+    goal_p_hobby_chk: Optional[bool] = Field(None, description=_get_desc('goal_p_hobby_chk'))
+    goal_p_hobby_txt: Optional[str] = Field(None, description=_get_desc('goal_p_hobby_txt'))
 
 class PatientInfo_Social(BaseModel):
     """患者の社会保障サービスに関する情報"""
-    social_care_level_status_chk: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_status_chk']
-    social_care_level_applying_chk: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_applying_chk']
-    social_care_level_support_chk: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_support_chk']
-    social_care_level_support_num1_slct: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_support_num1_slct']
-    social_care_level_support_num2_slct: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_support_num2_slct']
-    social_care_level_care_slct: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_care_slct']
-    social_care_level_care_num1_slct: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_care_num1_slct']
-    social_care_level_care_num2_slct: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_care_num2_slct']
-    social_care_level_care_num3_slct: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_care_num3_slct']
-    social_care_level_care_num4_slct: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_care_num4_slct']
-    social_care_level_care_num5_slct: Optional[bool] = PatientMasterSchema.model_fields['social_care_level_care_num5_slct']
-    social_disability_certificate_physical_chk: Optional[bool] = PatientMasterSchema.model_fields['social_disability_certificate_physical_chk']
-    social_disability_certificate_physical_txt: Optional[str] = PatientMasterSchema.model_fields['social_disability_certificate_physical_txt']
-    social_disability_certificate_physical_type_txt: Optional[str] = PatientMasterSchema.model_fields['social_disability_certificate_physical_type_txt']
-    social_disability_certificate_physical_rank_val: Optional[int] = PatientMasterSchema.model_fields['social_disability_certificate_physical_rank_val']
-    social_disability_certificate_mental_chk: Optional[bool] = PatientMasterSchema.model_fields['social_disability_certificate_mental_chk']
-    social_disability_certificate_mental_rank_val: Optional[int] = PatientMasterSchema.model_fields['social_disability_certificate_mental_rank_val']
-    social_disability_certificate_intellectual_chk: Optional[bool] = PatientMasterSchema.model_fields['social_disability_certificate_intellectual_chk']
-    social_disability_certificate_intellectual_txt: Optional[str] = PatientMasterSchema.model_fields['social_disability_certificate_intellectual_txt']
-    social_disability_certificate_intellectual_grade_txt: Optional[str] = PatientMasterSchema.model_fields['social_disability_certificate_intellectual_grade_txt']
-    social_disability_certificate_other_chk: Optional[bool] = PatientMasterSchema.model_fields['social_disability_certificate_other_chk']
-    social_disability_certificate_other_txt: Optional[str] = PatientMasterSchema.model_fields['social_disability_certificate_other_txt']
+    social_care_level_status_chk: Optional[bool] = Field(None, description=_get_desc('social_care_level_status_chk'))
+    social_care_level_applying_chk: Optional[bool] = Field(None, description=_get_desc('social_care_level_applying_chk'))
+    social_care_level_support_chk: Optional[bool] = Field(None, description=_get_desc('social_care_level_support_chk'))
+    social_care_level_support_num1_slct: Optional[bool] = Field(None, description=_get_desc('social_care_level_support_num1_slct'))
+    social_care_level_support_num2_slct: Optional[bool] = Field(None, description=_get_desc('social_care_level_support_num2_slct'))
+    social_care_level_care_slct: Optional[bool] = Field(None, description=_get_desc('social_care_level_care_slct'))
+    social_care_level_care_num1_slct: Optional[bool] = Field(None, description=_get_desc('social_care_level_care_num1_slct'))
+    social_care_level_care_num2_slct: Optional[bool] = Field(None, description=_get_desc('social_care_level_care_num2_slct'))
+    social_care_level_care_num3_slct: Optional[bool] = Field(None, description=_get_desc('social_care_level_care_num3_slct'))
+    social_care_level_care_num4_slct: Optional[bool] = Field(None, description=_get_desc('social_care_level_care_num4_slct'))
+    social_care_level_care_num5_slct: Optional[bool] = Field(None, description=_get_desc('social_care_level_care_num5_slct'))
+    social_disability_certificate_physical_chk: Optional[bool] = Field(None, description=_get_desc('social_disability_certificate_physical_chk'))
+    social_disability_certificate_physical_txt: Optional[str] = Field(None, description=_get_desc('social_disability_certificate_physical_txt'))
+    social_disability_certificate_physical_type_txt: Optional[str] = Field(None, description=_get_desc('social_disability_certificate_physical_type_txt'))
+    social_disability_certificate_physical_rank_val: Optional[int] = Field(None, description=_get_desc('social_disability_certificate_physical_rank_val'))
+    social_disability_certificate_mental_chk: Optional[bool] = Field(None, description=_get_desc('social_disability_certificate_mental_chk'))
+    social_disability_certificate_mental_rank_val: Optional[int] = Field(None, description=_get_desc('social_disability_certificate_mental_rank_val'))
+    social_disability_certificate_intellectual_chk: Optional[bool] = Field(None, description=_get_desc('social_disability_certificate_intellectual_chk'))
+    social_disability_certificate_intellectual_txt: Optional[str] = Field(None, description=_get_desc('social_disability_certificate_intellectual_txt'))
+    social_disability_certificate_intellectual_grade_txt: Optional[str] = Field(None, description=_get_desc('social_disability_certificate_intellectual_grade_txt'))
+    social_disability_certificate_other_chk: Optional[bool] = Field(None, description=_get_desc('social_disability_certificate_other_chk'))
+    social_disability_certificate_other_txt: Optional[str] = Field(None, description=_get_desc('social_disability_certificate_other_txt'))
 
 class PatientInfo_Nutrition(BaseModel):
     """患者の栄養状態に関する情報"""
-    nutrition_height_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_height_chk']
-    nutrition_height_val: Optional[float] = PatientMasterSchema.model_fields['nutrition_height_val']
-    nutrition_weight_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_weight_chk']
-    nutrition_weight_val: Optional[float] = PatientMasterSchema.model_fields['nutrition_weight_val']
-    nutrition_bmi_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_bmi_chk']
-    nutrition_bmi_val: Optional[float] = PatientMasterSchema.model_fields['nutrition_bmi_val']
-    nutrition_method_oral_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_method_oral_chk']
-    nutrition_method_tube_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_method_tube_chk']
-    nutrition_method_iv_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_method_iv_chk']
-    nutrition_method_peg_chk: Optional[bool] = PatientMasterSchema.model_fields['nutrition_method_peg_chk']
-    nutrition_swallowing_diet_slct: Optional[str] = PatientMasterSchema.model_fields['nutrition_swallowing_diet_slct']
-    nutrition_swallowing_diet_code_txt: Optional[str] = PatientMasterSchema.model_fields['nutrition_swallowing_diet_code_txt']
+    nutrition_height_chk: Optional[bool] = Field(None, description=_get_desc('nutrition_height_chk'))
+    nutrition_height_val: Optional[float] = Field(None, description=_get_desc('nutrition_height_val'))
+    nutrition_weight_chk: Optional[bool] = Field(None, description=_get_desc('nutrition_weight_chk'))
+    nutrition_weight_val: Optional[float] = Field(None, description=_get_desc('nutrition_weight_val'))
+    nutrition_bmi_chk: Optional[bool] = Field(None, description=_get_desc('nutrition_bmi_chk'))
+    nutrition_bmi_val: Optional[float] = Field(None, description=_get_desc('nutrition_bmi_val'))
+    nutrition_method_oral_chk: Optional[bool] = Field(None, description=_get_desc('nutrition_method_oral_chk'))
+    nutrition_method_tube_chk: Optional[bool] = Field(None, description=_get_desc('nutrition_method_tube_chk'))
+    nutrition_method_iv_chk: Optional[bool] = Field(None, description=_get_desc('nutrition_method_iv_chk'))
+    nutrition_method_peg_chk: Optional[bool] = Field(None, description=_get_desc('nutrition_method_peg_chk'))
+    nutrition_swallowing_diet_slct: Optional[str] = Field(None, description=_get_desc('nutrition_swallowing_diet_slct'))
+    nutrition_swallowing_diet_code_txt: Optional[str] = Field(None, description=_get_desc('nutrition_swallowing_diet_code_txt'))
     nutrition_status_assessment_slct: Optional[str] = Field(None, description="栄養状態の評価。'no_problem', 'malnutrition', 'malnutrition_risk', 'overnutrition', 'other' のいずれか。")
-    nutrition_status_assessment_other_txt: Optional[str] = PatientMasterSchema.model_fields['nutrition_status_assessment_other_txt']
-    nutrition_required_energy_val: Optional[int] = PatientMasterSchema.model_fields['nutrition_required_energy_val']
-    nutrition_required_protein_val: Optional[int] = PatientMasterSchema.model_fields['nutrition_required_protein_val']
-    nutrition_total_intake_energy_val: Optional[int] = PatientMasterSchema.model_fields['nutrition_total_intake_energy_val']
-    nutrition_total_intake_protein_val: Optional[int] = PatientMasterSchema.model_fields['nutrition_total_intake_protein_val']
+    nutrition_status_assessment_other_txt: Optional[str] = Field(None, description=_get_desc('nutrition_status_assessment_other_txt'))
+    nutrition_required_energy_val: Optional[int] = Field(None, description=_get_desc('nutrition_required_energy_val'))
+    nutrition_required_protein_val: Optional[int] = Field(None, description=_get_desc('nutrition_required_protein_val'))
+    nutrition_total_intake_energy_val: Optional[int] = Field(None, description=_get_desc('nutrition_total_intake_energy_val'))
+    nutrition_total_intake_protein_val: Optional[int] = Field(None, description=_get_desc('nutrition_total_intake_protein_val'))
 
 class PatientInfo_Goal_Activity(BaseModel):
     """患者の活動目標に関する情報"""
     goal_a_bed_mobility_level: Optional[str] = Field(None, description="床上移動のレベルを 'independent', 'assist', 'not_performed' のいずれかで記述。")
-    goal_a_bed_mobility_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_bed_mobility_chk']
-    goal_a_bed_mobility_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_bed_mobility_independent_chk']
-    goal_a_bed_mobility_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_bed_mobility_assistance_chk']
-    goal_a_bed_mobility_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_bed_mobility_not_performed_chk']
+    goal_a_bed_mobility_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_bed_mobility_chk'))
+    goal_a_bed_mobility_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_bed_mobility_independent_chk'))
+    goal_a_bed_mobility_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_bed_mobility_assistance_chk'))
+    goal_a_bed_mobility_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_bed_mobility_not_performed_chk'))
     goal_a_indoor_mobility_level: Optional[str] = Field(None, description="屋内移動のレベルを 'independent', 'assist', 'not_performed' のいずれかで記述。")
-    goal_a_indoor_mobility_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_indoor_mobility_chk']
-    goal_a_indoor_mobility_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_indoor_mobility_independent_chk']
-    goal_a_indoor_mobility_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_indoor_mobility_assistance_chk']
-    goal_a_indoor_mobility_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_indoor_mobility_not_performed_chk']
+    goal_a_indoor_mobility_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_indoor_mobility_chk'))
+    goal_a_indoor_mobility_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_indoor_mobility_independent_chk'))
+    goal_a_indoor_mobility_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_indoor_mobility_assistance_chk'))
+    goal_a_indoor_mobility_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_indoor_mobility_not_performed_chk'))
     goal_a_outdoor_mobility_level: Optional[str] = Field(None, description="屋外移動のレベルを 'independent', 'assist', 'not_performed' のいずれかで記述。")
-    goal_a_outdoor_mobility_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_outdoor_mobility_chk']
-    goal_a_outdoor_mobility_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_outdoor_mobility_independent_chk']
-    goal_a_outdoor_mobility_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_outdoor_mobility_assistance_chk']
-    goal_a_outdoor_mobility_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_outdoor_mobility_not_performed_chk']
+    goal_a_outdoor_mobility_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_outdoor_mobility_chk'))
+    goal_a_outdoor_mobility_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_outdoor_mobility_independent_chk'))
+    goal_a_outdoor_mobility_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_outdoor_mobility_assistance_chk'))
+    goal_a_outdoor_mobility_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_outdoor_mobility_not_performed_chk'))
     goal_a_driving_level: Optional[str] = Field(None, description="自動車運転のレベルを 'independent', 'assist', 'not_performed' のいずれかで記述。")
-    goal_a_driving_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_driving_chk']
-    goal_a_driving_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_driving_independent_chk']
-    goal_a_driving_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_driving_assistance_chk']
-    goal_a_driving_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_driving_not_performed_chk']
+    goal_a_driving_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_driving_chk'))
+    goal_a_driving_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_driving_independent_chk'))
+    goal_a_driving_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_driving_assistance_chk'))
+    goal_a_driving_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_driving_not_performed_chk'))
     goal_a_transport_level: Optional[str] = Field(None, description="公共交通機関利用のレベルを 'independent', 'assist', 'not_performed' のいずれかで記述。")
-    goal_a_public_transport_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_public_transport_chk']
-    goal_a_public_transport_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_public_transport_independent_chk']
-    goal_a_public_transport_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_public_transport_assistance_chk']
-    goal_a_public_transport_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_public_transport_not_performed_chk']
+    goal_a_public_transport_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_public_transport_chk'))
+    goal_a_public_transport_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_public_transport_independent_chk'))
+    goal_a_public_transport_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_public_transport_assistance_chk'))
+    goal_a_public_transport_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_public_transport_not_performed_chk'))
     goal_a_toileting_level: Optional[str] = Field(None, description="排泄(移乗以外)のレベルを 'independent', 'assist' のいずれかで記述。")
-    goal_a_toileting_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_toileting_chk']
-    goal_a_toileting_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_toileting_independent_chk']
-    goal_a_toileting_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_toileting_assistance_chk']
+    goal_a_toileting_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_toileting_chk'))
+    goal_a_toileting_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_toileting_independent_chk'))
+    goal_a_toileting_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_toileting_assistance_chk'))
     goal_a_eating_level: Optional[str] = Field(None, description="食事のレベルを 'independent', 'assist', 'not_performed' のいずれかで記述。")
-    goal_a_eating_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_eating_chk']
-    goal_a_eating_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_eating_independent_chk']
-    goal_a_eating_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_eating_assistance_chk']
-    goal_a_eating_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_eating_not_performed_chk']
+    goal_a_eating_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_eating_chk'))
+    goal_a_eating_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_eating_independent_chk'))
+    goal_a_eating_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_eating_assistance_chk'))
+    goal_a_eating_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_eating_not_performed_chk'))
     goal_a_grooming_level: Optional[str] = Field(None, description="整容のレベルを 'independent', 'assist' のいずれかで記述。")
-    goal_a_grooming_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_grooming_chk']
-    goal_a_grooming_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_grooming_independent_chk']
-    goal_a_grooming_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_grooming_assistance_chk']
+    goal_a_grooming_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_grooming_chk'))
+    goal_a_grooming_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_grooming_independent_chk'))
+    goal_a_grooming_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_grooming_assistance_chk'))
     goal_a_dressing_level: Optional[str] = Field(None, description="更衣のレベルを 'independent', 'assist' のいずれかで記述。")
-    goal_a_dressing_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_dressing_chk']
-    goal_a_dressing_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_dressing_independent_chk']
-    goal_a_dressing_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_dressing_assistance_chk']
+    goal_a_dressing_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_dressing_chk'))
+    goal_a_dressing_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_dressing_independent_chk'))
+    goal_a_dressing_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_dressing_assistance_chk'))
     goal_a_bathing_level: Optional[str] = Field(None, description="入浴のレベルを 'independent', 'assist' のいずれかで記述。")
-    goal_a_bathing_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_bathing_chk']
-    goal_a_bathing_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_bathing_independent_chk']
-    goal_a_bathing_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_bathing_assistance_chk']
+    goal_a_bathing_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_bathing_chk'))
+    goal_a_bathing_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_bathing_independent_chk'))
+    goal_a_bathing_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_bathing_assistance_chk'))
     goal_a_housework_level: Optional[str] = Field(None, description="家事のレベルを 'all', 'partial', 'not_performed' のいずれかで記述。")
-    goal_a_housework_meal_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_housework_meal_chk']
-    goal_a_housework_meal_all_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_housework_meal_all_chk']
-    goal_a_housework_meal_not_performed_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_housework_meal_not_performed_chk']
-    goal_a_housework_meal_partial_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_housework_meal_partial_chk']
-    goal_a_housework_meal_partial_txt: Optional[str] = PatientMasterSchema.model_fields['goal_a_housework_meal_partial_txt']
+    goal_a_housework_meal_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_housework_meal_chk'))
+    goal_a_housework_meal_all_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_housework_meal_all_chk'))
+    goal_a_housework_meal_not_performed_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_housework_meal_not_performed_chk'))
+    goal_a_housework_meal_partial_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_housework_meal_partial_chk'))
+    goal_a_housework_meal_partial_txt: Optional[str] = Field(None, description=_get_desc('goal_a_housework_meal_partial_txt'))
     goal_a_writing_level: Optional[str] = Field(None, description="書字のレベルを 'independent', 'independent_after_hand_change', 'other' のいずれかで記述。")
-    goal_a_writing_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_writing_chk']
-    goal_a_writing_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_writing_independent_chk']
-    goal_a_writing_independent_after_hand_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_writing_independent_after_hand_change_chk']
-    goal_a_writing_other_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_writing_other_chk']
-    goal_a_writing_other_txt: Optional[str] = PatientMasterSchema.model_fields['goal_a_writing_other_txt']
+    goal_a_writing_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_writing_chk'))
+    goal_a_writing_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_writing_independent_chk'))
+    goal_a_writing_independent_after_hand_change_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_writing_independent_after_hand_change_chk'))
+    goal_a_writing_other_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_writing_other_chk'))
+    goal_a_writing_other_txt: Optional[str] = Field(None, description=_get_desc('goal_a_writing_other_txt'))
     goal_a_ict_level: Optional[str] = Field(None, description="ICT機器利用のレベルを 'independent', 'assist' のいずれかで記述。")
-    goal_a_ict_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_ict_chk']
-    goal_a_ict_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_ict_independent_chk']
-    goal_a_ict_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_ict_assistance_chk']
+    goal_a_ict_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_ict_chk'))
+    goal_a_ict_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_ict_independent_chk'))
+    goal_a_ict_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_ict_assistance_chk'))
     goal_a_communication_level: Optional[str] = Field(None, description="コミュニケーションのレベルを 'independent', 'assist' のいずれかで記述。")
-    goal_a_communication_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_communication_chk']
-    goal_a_communication_independent_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_communication_independent_chk']
-    goal_a_communication_assistance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_a_communication_assistance_chk']
+    goal_a_communication_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_communication_chk'))
+    goal_a_communication_independent_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_communication_independent_chk'))
+    goal_a_communication_assistance_chk: Optional[bool] = Field(None, description=_get_desc('goal_a_communication_assistance_chk'))
 
 class PatientInfo_Goal_Psychological(BaseModel):
     """患者の心理面に関する目標"""
-    goal_s_psychological_support_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_psychological_support_chk']
-    goal_s_psychological_support_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_psychological_support_txt']
-    goal_s_disability_acceptance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_disability_acceptance_chk']
-    goal_s_disability_acceptance_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_disability_acceptance_txt']
-    goal_s_psychological_other_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_psychological_other_chk']
-    goal_s_psychological_other_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_psychological_other_txt']
+    goal_s_psychological_support_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_psychological_support_chk'))
+    goal_s_psychological_support_txt: Optional[str] = Field(None, description=_get_desc('goal_s_psychological_support_txt'))
+    goal_s_disability_acceptance_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_disability_acceptance_chk'))
+    goal_s_disability_acceptance_txt: Optional[str] = Field(None, description=_get_desc('goal_s_disability_acceptance_txt'))
+    goal_s_psychological_other_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_psychological_other_chk'))
+    goal_s_psychological_other_txt: Optional[str] = Field(None, description=_get_desc('goal_s_psychological_other_txt'))
 
 class PatientInfo_Goal_Environment(BaseModel):
     """患者の環境因子に関する目標"""
-    goal_s_env_home_modification_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_home_modification_chk']
-    goal_s_env_home_modification_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_env_home_modification_txt']
-    goal_s_env_assistive_device_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_assistive_device_chk']
-    goal_s_env_assistive_device_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_env_assistive_device_txt']
-    goal_s_env_social_security_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_social_security_chk']
-    goal_s_env_social_security_physical_disability_cert_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_social_security_physical_disability_cert_chk']
-    goal_s_env_social_security_disability_pension_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_social_security_disability_pension_chk']
-    goal_s_env_social_security_intractable_disease_cert_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_social_security_intractable_disease_cert_chk']
-    goal_s_env_social_security_other_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_social_security_other_chk']
-    goal_s_env_social_security_other_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_env_social_security_other_txt']
-    goal_s_env_care_insurance_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_care_insurance_chk']
-    goal_s_env_care_insurance_details_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_env_care_insurance_details_txt']
-    goal_s_env_disability_welfare_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_disability_welfare_chk']
-    goal_s_env_disability_welfare_other_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_disability_welfare_other_chk']
-    goal_s_env_other_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_env_other_chk']
-    goal_s_env_other_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_env_other_txt']
+    goal_s_env_home_modification_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_home_modification_chk'))
+    goal_s_env_home_modification_txt: Optional[str] = Field(None, description=_get_desc('goal_s_env_home_modification_txt'))
+    goal_s_env_assistive_device_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_assistive_device_chk'))
+    goal_s_env_assistive_device_txt: Optional[str] = Field(None, description=_get_desc('goal_s_env_assistive_device_txt'))
+    goal_s_env_social_security_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_social_security_chk'))
+    goal_s_env_social_security_physical_disability_cert_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_social_security_physical_disability_cert_chk'))
+    goal_s_env_social_security_disability_pension_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_social_security_disability_pension_chk'))
+    goal_s_env_social_security_intractable_disease_cert_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_social_security_intractable_disease_cert_chk'))
+    goal_s_env_social_security_other_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_social_security_other_chk'))
+    goal_s_env_social_security_other_txt: Optional[str] = Field(None, description=_get_desc('goal_s_env_social_security_other_txt'))
+    goal_s_env_care_insurance_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_care_insurance_chk'))
+    goal_s_env_care_insurance_details_txt: Optional[str] = Field(None, description=_get_desc('goal_s_env_care_insurance_details_txt'))
+    goal_s_env_disability_welfare_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_disability_welfare_chk'))
+    goal_s_env_disability_welfare_other_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_disability_welfare_other_chk'))
+    goal_s_env_other_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_env_other_chk'))
+    goal_s_env_other_txt: Optional[str] = Field(None, description=_get_desc('goal_s_env_other_txt'))
 
 class PatientInfo_Goal_HumanFactors(BaseModel):
     """患者の人的因子（第三者の不利）に関する目標"""
-    goal_s_3rd_party_main_caregiver_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_3rd_party_main_caregiver_chk']
-    goal_s_3rd_party_main_caregiver_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_3rd_party_main_caregiver_txt']
-    goal_s_3rd_party_family_structure_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_3rd_party_family_structure_change_chk']
-    goal_s_3rd_party_family_structure_change_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_3rd_party_family_structure_change_txt']
-    goal_s_3rd_party_household_role_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_3rd_party_household_role_change_chk']
-    goal_s_3rd_party_household_role_change_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_3rd_party_household_role_change_txt']
-    goal_s_3rd_party_family_activity_change_chk: Optional[bool] = PatientMasterSchema.model_fields['goal_s_3rd_party_family_activity_change_chk']
-    goal_s_3rd_party_family_activity_change_txt: Optional[str] = PatientMasterSchema.model_fields['goal_s_3rd_party_family_activity_change_txt']
+    goal_s_3rd_party_main_caregiver_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_3rd_party_main_caregiver_chk'))
+    goal_s_3rd_party_main_caregiver_txt: Optional[str] = Field(None, description=_get_desc('goal_s_3rd_party_main_caregiver_txt'))
+    goal_s_3rd_party_family_structure_change_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_3rd_party_family_structure_change_chk'))
+    goal_s_3rd_party_family_structure_change_txt: Optional[str] = Field(None, description=_get_desc('goal_s_3rd_party_family_structure_change_txt'))
+    goal_s_3rd_party_household_role_change_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_3rd_party_household_role_change_chk'))
+    goal_s_3rd_party_household_role_change_txt: Optional[str] = Field(None, description=_get_desc('goal_s_3rd_party_household_role_change_txt'))
+    goal_s_3rd_party_family_activity_change_chk: Optional[bool] = Field(None, description=_get_desc('goal_s_3rd_party_family_activity_change_chk'))
+    goal_s_3rd_party_family_activity_change_txt: Optional[str] = Field(None, description=_get_desc('goal_s_3rd_party_family_activity_change_txt'))
 
 # 抽出処理を行うスキーマのリスト
 PATIENT_INFO_EXTRACTION_GROUPS = [
@@ -1005,50 +1014,50 @@ class PatientInfo_Nutrition_Prompt(BaseModel):
 class HybridStep1A_1_FIM_Motor_SelfCare_ADL(BaseModel):
     """Step 1-A1: FIM 運動項目 (セルフケア: 食事〜トイレ動作)"""
     # 6項目 (Eating, Grooming, Bathing, Dressing U/L, Toileting)
-    adl_eating_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_eating_fim_start_val']
-    adl_eating_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_eating_fim_current_val']
-    adl_grooming_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_grooming_fim_start_val']
-    adl_grooming_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_grooming_fim_current_val']
-    adl_bathing_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bathing_fim_start_val']
-    adl_bathing_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bathing_fim_current_val']
-    adl_dressing_upper_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_upper_fim_start_val']
-    adl_dressing_upper_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_upper_fim_current_val']
-    adl_dressing_lower_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_lower_fim_start_val']
-    adl_dressing_lower_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_dressing_lower_fim_current_val']
-    adl_toileting_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_toileting_fim_start_val']
-    adl_toileting_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_toileting_fim_current_val']
+    adl_eating_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_eating_fim_start_val'))
+    adl_eating_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_eating_fim_current_val'))
+    adl_grooming_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_fim_start_val'))
+    adl_grooming_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_fim_current_val'))
+    adl_bathing_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_fim_start_val'))
+    adl_bathing_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_fim_current_val'))
+    adl_dressing_upper_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_upper_fim_start_val'))
+    adl_dressing_upper_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_upper_fim_current_val'))
+    adl_dressing_lower_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_lower_fim_start_val'))
+    adl_dressing_lower_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_lower_fim_current_val'))
+    adl_toileting_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_fim_start_val'))
+    adl_toileting_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_fim_current_val'))
 
 class HybridStep1A_2_FIM_Motor_Mobility_ADL(BaseModel):
     """Step 1-A2: FIM 運動項目 (排泄管理・移乗・移動)"""
     # 7項目 (Bladder, Bowel, Transfer x3, Locomotion x2)
-    adl_bladder_management_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bladder_management_fim_start_val']
-    adl_bladder_management_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bladder_management_fim_current_val']
-    adl_bowel_management_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_bowel_management_fim_start_val']
-    adl_bowel_management_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_bowel_management_fim_current_val']
-    adl_transfer_bed_chair_wc_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_bed_chair_wc_fim_start_val']
-    adl_transfer_bed_chair_wc_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_bed_chair_wc_fim_current_val']
-    adl_transfer_toilet_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_toilet_fim_start_val']
-    adl_transfer_toilet_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_toilet_fim_current_val']
-    adl_transfer_tub_shower_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_tub_shower_fim_start_val']
-    adl_transfer_tub_shower_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_transfer_tub_shower_fim_current_val']
-    adl_locomotion_walk_walkingAids_wc_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_walk_walkingAids_wc_fim_start_val']
-    adl_locomotion_walk_walkingAids_wc_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_walk_walkingAids_wc_fim_current_val']
-    adl_locomotion_stairs_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_stairs_fim_start_val']
-    adl_locomotion_stairs_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_locomotion_stairs_fim_current_val']
+    adl_bladder_management_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_fim_start_val'))
+    adl_bladder_management_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_fim_current_val'))
+    adl_bowel_management_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_fim_start_val'))
+    adl_bowel_management_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_fim_current_val'))
+    adl_transfer_bed_chair_wc_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bed_chair_wc_fim_start_val'))
+    adl_transfer_bed_chair_wc_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bed_chair_wc_fim_current_val'))
+    adl_transfer_toilet_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_toilet_fim_start_val'))
+    adl_transfer_toilet_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_toilet_fim_current_val'))
+    adl_transfer_tub_shower_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_tub_shower_fim_start_val'))
+    adl_transfer_tub_shower_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_tub_shower_fim_current_val'))
+    adl_locomotion_walk_walkingAids_wc_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_fim_start_val'))
+    adl_locomotion_walk_walkingAids_wc_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_fim_current_val'))
+    adl_locomotion_stairs_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_fim_start_val'))
+    adl_locomotion_stairs_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_fim_current_val'))
 
 class HybridStep1A_3_FIM_Cognitive_ADL(BaseModel):
     """Step 1-A3: FIM 認知項目 (5項目)"""
     # 前回と同じ (Cognitive Items)
-    adl_comprehension_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_comprehension_fim_start_val']
-    adl_comprehension_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_comprehension_fim_current_val']
-    adl_expression_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_expression_fim_start_val']
-    adl_expression_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_expression_fim_current_val']
-    adl_social_interaction_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_social_interaction_fim_start_val']
-    adl_social_interaction_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_social_interaction_fim_current_val']
-    adl_problem_solving_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_problem_solving_fim_start_val']
-    adl_problem_solving_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_problem_solving_fim_current_val']
-    adl_memory_fim_start_val: Optional[int] = PatientMasterSchema.model_fields['adl_memory_fim_start_val']
-    adl_memory_fim_current_val: Optional[int] = PatientMasterSchema.model_fields['adl_memory_fim_current_val']
+    adl_comprehension_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_comprehension_fim_start_val'))
+    adl_comprehension_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_comprehension_fim_current_val'))
+    adl_expression_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_expression_fim_start_val'))
+    adl_expression_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_expression_fim_current_val'))
+    adl_social_interaction_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_social_interaction_fim_start_val'))
+    adl_social_interaction_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_social_interaction_fim_current_val'))
+    adl_problem_solving_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_problem_solving_fim_start_val'))
+    adl_problem_solving_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_problem_solving_fim_current_val'))
+    adl_memory_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_memory_fim_start_val'))
+    adl_memory_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_memory_fim_current_val'))
 
 
 # --- Step 1-B: 基本情報・リスク・機能抽出 (記述・選択肢のみ) ---

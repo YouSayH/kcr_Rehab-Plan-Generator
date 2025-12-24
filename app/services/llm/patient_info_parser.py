@@ -1,9 +1,9 @@
+import concurrent.futures
 import json
 import logging
 import os
-import time
-import concurrent.futures
 import pprint  # デバッグ表示用に追加
+import time
 
 import ollama
 from dotenv import load_dotenv
@@ -12,7 +12,7 @@ from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
 from google.genai import types
 from pydantic import BaseModel, ValidationError
 
-from app.schemas.schemas import PATIENT_INFO_EXTRACTION_GROUPS, HYBRID_GENERATION_GROUPS
+from app.schemas.schemas import HYBRID_GENERATION_GROUPS, PATIENT_INFO_EXTRACTION_GROUPS
 from app.services.extraction.fast_extractor import FastExtractor
 
 load_dotenv()
@@ -81,7 +81,7 @@ def optimize_schema_for_prompt(schema_cls: type, target_fields_pattern: str = No
 class PatientInfoParser:
     """
     Gemini APIまたはローカルLLMを使用して、非構造化テキストから構造化された患者情報を抽出するクラス。
-    
+
     モード:
     1. 通常モード (Gemini/Ollama): スキーマをグループに分割して段階的に抽出する（高精度・低スペック環境向け）。
     2. ハイブリッドモード (Local GPU): GLiNER2で事実を高速抽出し、LLMで考察のみを生成する（高速・高スペック環境向け）。
@@ -120,8 +120,8 @@ class PatientInfoParser:
             except Exception as e:
                 print(f"PatientInfoParser: GLiNER2の初期化に失敗しました。通常モードで動作します。Error: {e}")
                 self.use_hybrid_mode = False
-        
-    
+
+
     def _restore_checkboxes(self, data: dict) -> dict:
         """
         LLMが生成した軽量データ(level文字列など)から、
@@ -135,13 +135,13 @@ class PatientInfoParser:
             "sitting_balance": "func_basic_sitting_balance",
             "standing_balance": "func_basic_standing_balance"
         }
-        
+
         for key, prefix in basic_move_map.items():
             level_key = f"{prefix}_level"
             if level_key in data and data[level_key]:
                 val = data[level_key]
                 data[f"{prefix}_chk"] = True # 親項目のチェック
-                
+
                 # 値に応じた詳細チェックボックスをON
                 if val == 'independent':
                     data[f"{prefix}_independent_chk"] = True
@@ -156,12 +156,12 @@ class PatientInfoParser:
         if "social_care_level_status_slct" in data and data["social_care_level_status_slct"]:
             slct = data["social_care_level_status_slct"]
             data["social_care_level_status_chk"] = True
-             
+
             if slct == 'applying':
                 data["social_care_level_applying_chk"] = True
             elif 'care_' in slct: # care_1 〜 care_5
                 data["social_care_level_care_slct"] = True
-                num = slct.split('_')[1] 
+                num = slct.split('_')[1]
                 data[f"social_care_level_care_num{num}_slct"] = True
             elif 'support_' in slct: # support_1, support_2
                 data["social_care_level_support_chk"] = True
@@ -176,27 +176,27 @@ class PatientInfoParser:
         facts_json = json.dumps(facts, indent=2, ensure_ascii=False)
         if "Assessment" in schema.__name__:
             optimized_schema = optimize_schema_for_prompt(schema)
-            
+
             # _chk フィールドをプロパティと必須リストから削除する
             props = optimized_schema.get("properties", {})
             required = optimized_schema.get("required", [])
-            
+
             # 削除対象のキーを特定
             keys_to_remove = [k for k in props.keys() if k.endswith("_chk")]
-            
+
             for k in keys_to_remove:
                 del props[k]
                 if k in required:
                     required.remove(k)
-            
+
             schema_json = json.dumps(optimized_schema, indent=2, ensure_ascii=False)
-            
+
         else:
             # その他のステップ: 通常の最適化（Optional削除・全必須化）のみ適用
             optimized_schema = optimize_schema_for_prompt(schema)
             schema_json = json.dumps(optimized_schema, indent=2, ensure_ascii=False)
         # ------------------------------------
-        
+
         # 過去のステップで生成された情報をコンテキストとして渡す
         context_str = ""
         if previous_steps_data:
@@ -267,7 +267,7 @@ class PatientInfoParser:
     # AI抽出済み事実 (GLiNER - キーワードのみ)
     ※ここにはFIM点数や具体的な目標文は含まれていません。これらは入力テキストから補完してください。
     {facts_json}
-    
+
     {context_str}
 
     # 重要事項 (Strict Rules)
@@ -285,7 +285,7 @@ class PatientInfoParser:
     {schema_json}
     ```
     """
-   
+
     def _build_prompt(self, text: str, group_schema: type[BaseModel], extracted_data_so_far: dict) -> str:
         """通常モード（段階的抽出）のためのプロンプト構築"""
 
@@ -337,7 +337,7 @@ class PatientInfoParser:
         """ハイブリッドモード用: 文章生成専用プロンプト"""
         facts_json = json.dumps(facts, indent=2, ensure_ascii=False)
         schema_json = json.dumps(schema.model_json_schema(), indent=2, ensure_ascii=False)
-        
+
         return f"""
     あなたはリハビリテーション専門医です。
     以下の「カルテテキスト」から、AIが見落とした情報の補完と、医学的な考察を行ってください。
@@ -350,7 +350,7 @@ class PatientInfoParser:
     1. **数値とレベルの判定 (最重要)**:
        - GLiNERは数値を抽出できません。**FIM/BIの点数、ADLの自立度(independent/assistance等)、関節可動域の角度**などをテキストから読み取り、JSONに入力してください。
        - 特に `adl_` で始まるFIM/BIスコアと、`func_basic_` で始まる基本動作レベルは必ず埋めてください。
-       
+
     2. **記述の作成**:
        - `_txt` で終わるフィールドに、専門的な考察記述を作成してください。
 
@@ -382,12 +382,12 @@ class PatientInfoParser:
         def get_remaining_time():
             elapsed = time.time() - total_start_time
             return max(0.1, GENERATION_TIMEOUT_SEC - elapsed)
-        
+
 
         # --- ハイブリッドモード (高速・高スペック環境) ---
         if self.use_hybrid_mode and self.fast_extractor:
             print("--- [Step 1] GLiNER2 Extraction (Facts) ---")
-            
+
             # 1. 事実情報の高速抽出 (GLiNER2)
             try:
                 facts = self.fast_extractor.extract_facts(text)
@@ -415,7 +415,7 @@ class PatientInfoParser:
                     break
 
                 print(f"--- Processing Hybrid Step {i+1}: {group_schema.__name__} ---")
-                
+
                 # プロンプト作成 (これまでの結果 final_result を渡す)
                 prompt = self._build_hybrid_prompt(text, facts, group_schema, final_result)
 
@@ -426,14 +426,14 @@ class PatientInfoParser:
                 # print(prompt)
                 # print("-" * 40)
                 # ------------------------------
-                
+
                 step_success = False  # このステップが成功したかどうかのフラグ
 
                 # リトライループ (最大5回)
                 for attempt in range(max_retries):
                     current_remaining = get_remaining_time()
                     if current_remaining <= 1.0:
-                        print(f"--- Time Limit Exceeded during retry. Stopping. ---")
+                        print("--- Time Limit Exceeded during retry. Stopping. ---")
                         break
 
                     try:
@@ -465,7 +465,7 @@ class PatientInfoParser:
 
                                 step_success = True
                                 break  # 成功したらリトライループを抜ける
-                            
+
                         else: # Ollama (Local)
                             # 1. 毎回新しいExecutorを作成 (タイムアウト時に即座に中断するため)
                             executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
@@ -477,7 +477,7 @@ class PatientInfoParser:
                                     format="json",
                                     options={"temperature": 0.2, "num_ctx": 8192}
                                 )
-                                
+
                                 # 2. 設定した制限時間で結果を待つ
                                 # response = future.result(timeout=current_remaining)
                                 response = future.result(timeout=120)
@@ -487,7 +487,7 @@ class PatientInfoParser:
                                 # =====================================================
                                 # 【追加】即時構造チェック (Self-Correction Logic)
                                 # =====================================================
-                                
+
                                 # A. ネスト（階層化）の禁止チェック
                                 for key, value in generated_data.items():
                                     if isinstance(value, dict):
@@ -515,10 +515,10 @@ class PatientInfoParser:
                                 error_msg = f"LLM Generation Error (Step {i+1}, Attempt {attempt+1}/{max_retries}): {e}"
                                 logger.error(error_msg)
                                 print(error_msg)
-                                
+
                                 # 失敗時、即座にスレッドを破棄してリトライへ
                                 executor.shutdown(wait=False)
-                                
+
                                 if attempt < max_retries - 1:
                                     print(f"--- Retrying Step {i+1}... ---")
                                     time.sleep(1)
@@ -529,7 +529,7 @@ class PatientInfoParser:
                         error_msg = f"LLM Generation Error (Step {i+1}, Attempt {attempt+1}/{max_retries}): {e}"
                         logger.error(error_msg)
                         print(error_msg)
-                        
+
                         # リトライ上限に達していない場合は少し待機して次へ
                         if attempt < max_retries - 1:
                             time.sleep(1)
@@ -556,8 +556,9 @@ class PatientInfoParser:
 
                 prompt = self._build_prompt(text, group_schema, final_result)
 
-                logger.info(f"--- Parsing Group: {group_schema.__name__} --- (Client: {self.client_type})")
-                
+                # logger.info(f"--- Parsing Group: {group_schema.__name__} --- (Client: {self.client_type})")
+                logger.info(f"\n{'#'*30} PROMPT START ({group_schema.__name__}) {'#'*30}\n{prompt}\n{'#'*30} PROMPT END {'#'*30}")
+
                 try:
                     group_result = {}
 
@@ -594,8 +595,32 @@ class PatientInfoParser:
                                 else:
                                     raise e
 
+                        if response:
+                            raw_text = response.text if hasattr(response, 'text') else str(response)
+                            logger.info(f"\n{'!'*30} RAW RESPONSE START ({group_schema.__name__}) {'!'*30}\n{raw_text}\n{'!'*30} RAW RESPONSE END {'!'*30}")
+                        else:
+                            logger.warning(f"Response object is None for {group_schema.__name__}")
+
                         if response and response.parsed:
                             group_result = response.parsed.model_dump(mode="json")
+                            logger.info(f"\n{'*'*30} PARSED JSON ({group_schema.__name__}) {'*'*30}\n{json.dumps(group_result, indent=2, ensure_ascii=False)}\n{'*'*30}")
+
+                        elif response and response.text:
+                            print(f"Warning: SDK parse failed for {group_schema.__name__}. Trying manual parse.")
+                            clean_text = response.text.strip()
+                            if clean_text.startswith("```json"):
+                                clean_text = clean_text[7:]
+                            elif clean_text.startswith("```"):
+                                clean_text = clean_text[3:]
+                            if clean_text.endswith("```"):
+                                clean_text = clean_text[:-3]
+
+                            try:
+                                group_result = json.loads(clean_text.strip())
+                                logger.info(f"\n{'*'*30} MANUAL PARSED JSON ({group_schema.__name__}) {'*'*30}\n{json.dumps(group_result, indent=2, ensure_ascii=False)}\n{'*'*30}")
+                            except Exception as e:
+                                logger.error(f"Manual JSON Parse Error: {e}\nRaw Text: {response.text}")
+                                print(f"手動パースも失敗しました: {e}")
 
                     else:
                         # Ollama (Local)
@@ -652,19 +677,19 @@ class PatientInfoParser:
                                 elif "女性" in group_result["gender"]:
                                     group_result["gender"] = "女"
 
-                            final_result.update(group_result)
+                    final_result.update(group_result)
                 except concurrent.futures.TimeoutError:
                     current_remaining = get_remaining_time()
                     error_msg = f"Group {i+1} Timed Out (Remaining: {current_remaining:.1f}s)"
                     logger.error(error_msg)
                     print(f"LLM生成エラー(Group {i+1}): {error_msg}")
                     continue
-                
+
                 except Exception as e:
                     print(f"グループ {group_schema.__name__} の解析中にエラーが発生しました: {e}")
                     logger.error(f"Parser Error (Group: {group_schema.__name__}): {e}", exc_info=True)
                     continue
-                
+
                 # レート制限対策 (残り時間がある場合のみ)
                 if get_remaining_time() > 1.0:
                     time.sleep(0.5)
