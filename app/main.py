@@ -1,10 +1,9 @@
-import json
 import base64
+import json
 import logging
 import os
 import threading
 from datetime import timedelta
-from functools import wraps
 
 import yaml
 from dotenv import load_dotenv
@@ -16,7 +15,6 @@ from flask import (
     redirect,
     render_template,
     request,
-    send_file,
     send_from_directory,
     session,
     url_for,
@@ -39,8 +37,11 @@ import app.core.database as database
 import app.services.excel_writer as excel_writer
 import app.services.llm.gemini_client as gemini_client
 import app.services.llm.ollama_client as ollama_client
+from app.constants import ITEM_KEY_TO_JAPANESE
 from app.services.llm.patient_info_parser import PatientInfoParser
 from app.services.llm.rag_executor import RAGExecutor
+from app.utils.decorators import admin_required
+from app.utils.helpers import get_plan_checked, has_permission_for_patient
 
 load_dotenv()
 
@@ -60,35 +61,6 @@ if not logger.hasHandlers():  # ハンドラが未設定の場合のみ設定
 
 LLM_CLIENT_TYPE = os.getenv("LLM_CLIENT_TYPE", "gemini")
 print(f"--- LLMクライアントとして '{LLM_CLIENT_TYPE}' を使用します ---")
-
-# show_summary.py からITEM_KEY_TO_JAPANESEを移植
-ITEM_KEY_TO_JAPANESE = {
-    "main_risks_txt": "安静度・リスク",
-    "main_contraindications_txt": "禁忌・特記事項",
-    "adl_equipment_and_assistance_details_txt": "使用用具及び介助内容等",
-    "goals_1_month_txt": "目標（1ヶ月）",
-    "goals_at_discharge_txt": "目標（終了時）",
-    "policy_treatment_txt": "治療方針",
-    "policy_content_txt": "治療内容",
-    "func_pain_txt": "疼痛",
-    "func_rom_limitation_txt": "関節可動域制限",
-    "func_muscle_weakness_txt": "筋力低下",
-    "func_swallowing_disorder_txt": "摂食嚥下障害",
-    "func_behavioral_psychiatric_disorder_txt": "精神行動障害",
-    "func_nutritional_disorder_txt": "栄養障害",
-    "func_excretory_disorder_txt": "排泄機能障害",
-    "func_pressure_ulcer_txt": "褥瘡",
-    "func_contracture_deformity_txt": "拘縮・変形",
-    "func_motor_muscle_tone_abnormality_txt": "筋緊張異常",
-    "func_disorientation_txt": "見当識障害",
-    "func_memory_disorder_txt": "記憶障害",
-    "goal_p_action_plan_txt": "参加の具体的な対応方針",
-    "goal_a_action_plan_txt": "活動の具体的な対応方針",
-    "goal_s_psychological_action_plan_txt": "心理の具体的な対応方針",
-    "goal_s_env_action_plan_txt": "環境の具体的な対応方針",
-    "goal_s_3rd_party_action_plan_txt": "第三者の不利に関する具体的な対応方針",
-}
-
 
 def load_active_pipeline_from_config():
     # 設定ファイルのパス (app.pyと同じ階層にあると仮定)
@@ -188,7 +160,7 @@ try:
         client_type=LLM_CLIENT_TYPE,
         use_hybrid_mode=USE_HYBRID_MODE
     )
-    
+
     mode_name = "Hybrid Mode (GLiNER2 + LLM)" if USE_HYBRID_MODE else "Standard Mode (Multi-step LLM)"
     print(f"Patient Info Parser initialized successfully. [{mode_name}]")
 
@@ -196,63 +168,6 @@ except Exception as e:
     print(f"FATAL: Failed to initialize Patient Info Parser: {e}")
     # 初期化に失敗した場合、アプリがクラッシュしないように None を設定
     patient_info_parser = None
-
-# 管理者判別デコレータ
-# @admin_required を付けたページにアクセスがあると、
-# 本来の処理（ページの表示など）を実行する前に、判別する
-def admin_required(f):
-    # @wraps(f)は、デコレータを作る際のお作法のようなもので、
-    # 元の関数(f)の名前などを引き継ぎ、デバッグしやすくするために付けます。
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if not current_user.is_authenticated or current_user.role != "admin":
-            flash("この操作には管理者権限が必要です。", "danger")
-            return redirect(url_for("index"))
-        return f(*args, **kwargs)
-
-    return decorated_function
-
-
-def has_permission_for_patient(user, patient_id):
-    """
-    指定された患者に対するアクセス権限をチェックする。
-    管理者であるか、担当患者であれば True を返す。
-    """
-    if not user.is_authenticated:
-        return False
-
-    # 管理者は常にアクセス可能
-    if user.role == "admin":
-        return True
-
-    # 担当患者リストを取得してチェック
-    assigned_patients = database.get_assigned_patients(user.id)
-    # 効率化のため、IDのセットを作成して存在確認
-    assigned_patient_ids = {p["patient_id"] for p in assigned_patients}
-
-    return patient_id in assigned_patient_ids
-
-
-def get_plan_checked(plan_id, user):
-    """
-    指定されたIDの計画書を取得し、存在確認とアクセス権限チェックを行う共通関数。
-
-    Returns:
-        plan_data: 計画書データ
-
-    Raises:
-        ValueError: 計画書が存在しない場合
-        PermissionError: アクセス権限がない場合
-    """
-    plan_data = database.get_plan_by_id(plan_id)
-    if not plan_data:
-        raise ValueError("Plan not found")
-
-    patient_id = plan_data["patient_id"]
-    if not has_permission_for_patient(user, patient_id):
-        raise PermissionError("Permission denied")
-
-    return plan_data
 
 
 # ・ログインユーザー情報を表現するためのクラス
@@ -823,14 +738,14 @@ def preview_plan():
     """計画書のプレビュー用HTMLを返すAPI (ExcelデータをBase64埋め込み)"""
     try:
         patient_id = int(request.form.get("patient_id"))
-        
+
         # 権限チェック
         if not has_permission_for_patient(current_user, patient_id):
             return Response("権限がありません。", status=403)
 
         # フォームデータを取得
         form_data = request.form.to_dict()
-        
+
         # 患者基本情報を取得
         patient_data = database.get_patient_data_for_plan(patient_id)
         if not patient_data:
@@ -839,13 +754,13 @@ def preview_plan():
         # フォームデータと患者データを結合
         plan_data = patient_data.copy()
         plan_data.update(form_data)
-        
+
         # Excelファイルのバイナリデータを生成
         excel_bytes = excel_writer.create_plan_sheet(plan_data, return_bytes=True)
-        
+
         # Base64エンコード
         b64_data = base64.b64encode(excel_bytes.read()).decode("utf-8")
-        
+
         return render_template("preview_viewer.html", excel_base64=b64_data)
 
     except Exception as e:
