@@ -29,4 +29,3 @@ rag_db_data
 *db
 ruff.toml
 create
-app/web/static/lib
