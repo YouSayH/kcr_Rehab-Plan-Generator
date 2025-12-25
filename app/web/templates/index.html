@@ -19,11 +19,11 @@
                 <a href="{{ url_for('edit_patient_info') }}" class="admin-link" style="color: #17a2b8;">患者情報マスタ編集</a>
 
                 {% if current_user.role == 'admin' %}
-                <a href="{{ url_for('signup') }}" class="admin-link">新規職員登録</a>
-                <a href="{{ url_for('manage_assignments') }}" class="admin-link">担当管理</a>
+                <a href="{{ url_for('admin.signup') }}" class="admin-link">新規職員登録</a>
+                <a href="{{ url_for('admin.manage_assignments') }}" class="admin-link">担当管理</a>
                 {% endif %}
 
-                <a href="{{ url_for('logout') }}" class="logout-link">ログアウト</a>
+                <a href="{{ url_for('auth.logout') }}" class="logout-link">ログアウト</a>
             </div>
             {% endif %}
             <p>担当患者を選択し、必要に応じて所感を記入して「計画書を作成」ボタンを押してください。</p>

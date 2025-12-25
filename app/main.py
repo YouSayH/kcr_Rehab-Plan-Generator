@@ -20,16 +20,11 @@ from flask import (
 )
 from flask_login import (
     LoginManager,
-    UserMixin,
     current_user,
     login_required,
-    login_user,
-    logout_user,
 )
 from flask_wtf.csrf import CSRFProtect
-from pymysql.err import IntegrityError
 from sqlalchemy import text
-from werkzeug.security import check_password_hash, generate_password_hash
 
 # 自作のPythonファイルをインポート
 import app.core.database as database
@@ -37,9 +32,11 @@ import app.services.excel_writer as excel_writer
 import app.services.llm.gemini_client as gemini_client
 import app.services.llm.ollama_client as ollama_client
 from app.constants import ITEM_KEY_TO_JAPANESE
+from app.models import Staff
+from app.routers.admin import admin_bp
+from app.routers.auth import auth_bp
 from app.services.llm.patient_info_parser import PatientInfoParser
 from app.services.rag_manager import get_rag_executor
-from app.utils.decorators import admin_required
 from app.utils.helpers import get_plan_checked, has_permission_for_patient
 
 load_dotenv()
@@ -104,8 +101,7 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 # 未ログインのユーザーがログイン必須ページにアクセスした際、
 # どのページにリダイレクト（転送）するかを指定します。'login'は下の@app.route('/login')を持つ関数名を指します。
-login_manager.login_view = "login"
-
+login_manager.login_view = "auth.login"
 
 
 
@@ -127,18 +123,6 @@ except Exception as e:
     print(f"FATAL: Failed to initialize Patient Info Parser: {e}")
     # 初期化に失敗した場合、アプリがクラッシュしないように None を設定
     patient_info_parser = None
-
-
-# ・ログインユーザー情報を表現するためのクラス
-# UserMixinは、Flask-Loginが必要とする基本的なメソッド（is_authenticatedなど）を
-# 自動的に追加してくれる便利なクラスです。
-class Staff(UserMixin):
-    # コンストラクタ。ログイン時にデータベースから取得した職員情報をここに格納します。
-    def __init__(self, staff_id, username, role, occupation):
-        self.id = staff_id
-        self.username = username
-        self.role = role
-        self.occupation = occupation
 
 
 # ・ユーザー情報をセッションから読み込むための関数
@@ -164,90 +148,9 @@ def load_user(staff_id):
         occupation=staff_info["occupation"],
     )
 
-
-# ルーティング↓
-# TODO Blueprints(関連機能ごとに分割)の利用を視野に入れる
-# ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
-
-
-# 管理者権限　必須
-@app.route("/signup", methods=["GET", "POST"])
-@login_required
-@admin_required
-def signup():
-    """アカウント登録ページ (管理者専用)"""
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        occupation = request.form.get("occupation")
-
-        # 同じユーザー名が既に存在しないかチェック
-        if database.get_staff_by_username(username):
-            flash("このユーザー名は既に使用されています。", "danger")
-        else:
-            # パスワードを安全なハッシュ値に変換
-            hashed_password = generate_password_hash(password)
-            # データベースに新しい職員を登録
-            database.create_staff(username, hashed_password, occupation)
-            flash(f"職員「{username}」さんのアカウントを作成しました。", "success")
-            # 処理が終わったら、再度同じ登録ページを表示（続けて登録できるように）
-        return redirect(url_for("signup"))
-
-    # ページを初めて表示する場合 (GETリクエスト)
-    return render_template("signup.html")
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    """ログインページ"""
-    if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
-        staff_info = database.get_staff_by_username(username)
-
-        # ユーザーが存在し、かつパスワードが正しいかチェック
-        # check_password_hashが、入力されたパスワードとDBのハッシュ値を比較してくれます。
-        if staff_info and check_password_hash(staff_info["password"], password):
-            # ログイン成功。ユーザー情報をStaffクラスに格納
-            staff = Staff(
-                staff_id=staff_info["id"],
-                username=staff_info["username"],
-                role=staff_info["role"],
-                occupation=staff_info["occupation"],
-            )
-
-            # セッショントークン生成
-            new_token = os.urandom(24).hex()  # 24バイトのランダムな文字列
-
-            # トークン保存
-            try:
-                db = database.SessionLocal()
-                db_staff = db.query(database.Staff).filter(database.Staff.id == staff.id).first()
-                if db_staff:
-                    db_staff.session_token = new_token
-                    db.commit()
-            finally:
-                db.close()
-
-            # トークンをセッションに保存
-            session["session_token"] = new_token  # Flaskのセッションに保存
-
-            # Flask-Loginのlogin_user関数で、ユーザーをログイン状態にする
-            login_user(staff)
-            # ログイン後のトップページにリダイレクト
-            return redirect(url_for("index"))
-        else:
-            flash("ユーザー名またはパスワードが正しくありません。", "danger")
-    return render_template("login.html")
-
-
-@app.route("/logout")
-@login_required
-def logout():
-    """ログアウト処理"""
-    logout_user()
-    flash("ログアウトしました。", "info")
-    return redirect(url_for("login"))
+# ブループリントでルーティング
+app.register_blueprint(auth_bp)
+app.register_blueprint(admin_bp)
 
 
 @app.route("/edit_patient_info", methods=["GET"])
@@ -985,88 +888,6 @@ def api_parse_patient_info():
     except Exception as e:
         app.logger.error(f"Error during parsing patient info: {e}")
         return jsonify({"error": "解析中にサーバーでエラーが発生しました。", "details": str(e)}), 500
-
-
-# 管理者専用ルート↓
-# ーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーーー
-
-
-# 管理者権限　必須
-@app.route("/manage_assignments", methods=["GET"])
-@login_required
-@admin_required
-def manage_assignments():
-    """担当割り当てと職員を管理するダッシュボード"""
-    try:
-        all_staff = database.get_all_staff()
-        all_patients = database.get_all_patients()
-
-        # 職員ごとの担当患者リストを格納するための辞書(dictionary)を作成
-        assignments = {}
-        for staff in all_staff:
-            # 職員のIDをキーとして、その職員が担当する患者のリストを値として格納
-            assignments[staff["id"]] = database.get_assigned_patients(staff["id"])
-
-        return render_template(
-            "manage_assignments.html",
-            all_staff=all_staff,
-            all_patients=all_patients,
-            assignments=assignments,
-        )
-    except Exception as e:
-        flash(f"管理ページの読み込み中にエラーが発生しました: {e}", "danger")
-        return redirect(url_for("index"))
-
-
-# 管理者権限　必須
-@app.route("/assign", methods=["POST"])
-@login_required
-@admin_required
-def assign():
-    """患者を担当に割り当てる"""
-    staff_id = request.form.get("staff_id")
-    patient_id = request.form.get("patient_id")
-    if staff_id and patient_id:
-        try:
-            database.assign_patient_to_staff(staff_id, patient_id)
-            flash("患者を割り当てました。", "success")
-        except IntegrityError:
-            # データベースの主キー制約（同じ組み合わせは登録できない）に違反した場合のエラー
-            flash("その担当者は既にその患者に割り当てられています。", "warning")
-        except Exception as e:
-            flash(f"割り当て中にエラーが発生しました: {e}", "danger")
-    return redirect(url_for("manage_assignments"))
-
-
-# 管理者権限　必須
-@app.route("/unassign/<int:staff_id>/<int:patient_id>")
-@login_required
-@admin_required
-def unassign(staff_id, patient_id):
-    """患者の担当を解除する"""
-    try:
-        database.unassign_patient_from_staff(staff_id, patient_id)
-        flash("担当を解除しました。", "success")
-    except Exception as e:
-        flash(f"解除中にエラーが発生しました: {e}", "danger")
-    return redirect(url_for("manage_assignments"))
-
-
-# 管理者権限　必須
-@app.route("/delete_staff/<int:staff_id>")
-@login_required
-@admin_required
-def delete_staff(staff_id):
-    """職員を削除する"""
-    if staff_id == current_user.id:
-        flash("自分自身のアカウントは削除できません。", "warning")
-        return redirect(url_for("manage_assignments"))
-    try:
-        database.delete_staff_by_id(staff_id)
-        flash("職員アカウントを削除しました。", "success")
-    except Exception as e:
-        flash(f"削除中にエラーが発生しました: {e}", "danger")
-    return redirect(url_for("manage_assignments"))
 
 
 if __name__ == "__main__":

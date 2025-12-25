@@ -94,7 +94,7 @@
                                 <li>
 
                                     <span>{{ patient.name }} (ID: {{ patient.patient_id }})</span>
-                                    <a href="{{ url_for('unassign', staff_id=staff.id, patient_id=patient.patient_id) }}"
+                                    <a href="{{ url_for('admin.unassign', staff_id=staff.id, patient_id=patient.patient_id) }}"
                                         class="action-link">解除</a>
                                 </li>
                                 {% endfor %}
@@ -105,7 +105,7 @@
                         </td>
                         <td>
                             {% if staff.id != current_user.id %}
-                            <a href="{{ url_for('delete_staff', staff_id=staff.id) }}" class="action-link"
+                            <a href="{{ url_for('admin.delete_staff', staff_id=staff.id) }}" class="action-link"
                                 onclick="return confirm('本当に {{ staff.username }} さんを削除しますか？');">職員を削除</a>
                             {% else %}
                             (自分)
@@ -119,7 +119,7 @@
 
         <section class="management-section">
             <h2>新規割り当て</h2>
-            <form action="{{ url_for('assign') }}" method="POST" class="assign-form">
+            <form action="{{ url_for('admin.assign') }}" method="POST" class="assign-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <select name="staff_id" class="form-control" required>
                     <option value="">職員を選択</option>
