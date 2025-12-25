@@ -559,6 +559,13 @@ def get_patient_data_for_plan(patient_id: int, db_session=None):
             # 計画データを辞書に変換してマージ
             plan_data = {c.name: getattr(latest_plan, c.name) for c in latest_plan.__table__.columns}
             patient_data.update(plan_data)
+        else:
+            # 計画書がない場合でも、テンプレートでエラーにならないように
+            # RehabilitationPlanの全カラムをキーとして持ち、値をNoneにしたデータをマージする
+            for c in RehabilitationPlan.__table__.columns:
+                # patient_id など既存のキーは上書きしない
+                if c.name not in patient_data:
+                    patient_data[c.name] = None
 
         # いいね情報を取得
         likes = db.query(SuggestionLike).filter(SuggestionLike.patient_id == patient_id).all()

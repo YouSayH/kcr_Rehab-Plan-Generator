@@ -18,6 +18,8 @@ import app.core.database as database
 from app.models import Staff
 from app.routers.admin import admin_bp
 from app.routers.auth import auth_bp
+from app.routers.patient import patient_bp
+from app.routers.plan import plan_bp
 from app.services.llm.patient_info_parser import PatientInfoParser
 
 load_dotenv()
@@ -132,7 +134,8 @@ def load_user(staff_id):
 # ブループリントでルーティング
 app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
-
+app.register_blueprint(plan_bp)
+app.register_blueprint(patient_bp)
 
 
 # 現在未使用
