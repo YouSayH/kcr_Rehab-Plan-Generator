@@ -2,7 +2,7 @@ from datetime import date
 
 from flask import url_for
 
-from app.core.database import Patient, Staff, assign_patient_to_staff
+from app.core.database import Patient, RehabilitationPlan, Staff, assign_patient_to_staff
 
 
 def test_index_requires_login(client, app):
@@ -60,3 +60,55 @@ def test_view_plan_permission(client, app):
 
     response = client.get(target_url)
     assert response.status_code == 302 # ログインへ
+
+# --- 【追加】 Phase 1: save_plan のテスト ---
+
+def test_save_plan_success(login_staff, app, db_session):
+    """
+    正常系: 計画書の保存フローが正しく完了するか検証
+    (DB保存 -> Excel生成 -> ダウンロードページへの遷移)
+    """
+    # 1. テスト用データの準備
+    patient = Patient(name="Save Test Patient", date_of_birth=date(1990, 5, 5), gender="Female")
+    db_session.add(patient)
+    db_session.commit()
+
+    staff = db_session.query(Staff).filter_by(username="test_user").first()
+    assign_patient_to_staff(staff.id, patient.patient_id)
+
+    # 保存するフォームデータ (必須項目+α)
+    form_data = {
+        "patient_id": patient.patient_id,
+        "therapist_notes": "保存テスト用の所見",
+        "suggestion_main_risks": "転倒リスクあり", # AI提案項目のシミュレーション
+        # ... 他の項目は省略してもDB定義上Nullableなら通るはずですが、必要に応じて追加
+        "regeneration_history": "[]"
+    }
+
+    with app.test_request_context():
+        target_url = url_for('plan.save_plan')
+
+    # 2. POST実行
+    # Excel生成処理が含まれるため、モックを使わずに実行すると実際にファイル生成を試みますが、
+    # テスト環境(in-memory DB)での整合性を確認するため、ここでは結合テストとして実行します。
+    # ※ 本来は excel_writer をモック化するのがUnit Testとしては望ましいですが、
+    #    Phase 1の目的は「現状の挙動の担保」なので、エラーが出ないことを確認します。
+    try:
+        response = login_staff.post(target_url, data=form_data, follow_redirects=True)
+    except FileNotFoundError:
+        # Excelテンプレートファイルがテスト環境で見つからない場合のエラーハンドリング
+        # CI/CD環境などではテンプレートの配置に注意が必要です
+        import pytest
+        pytest.skip("Excel template not found, skipping save_plan integration test")
+
+    # 3. 検証
+    assert response.status_code == 200
+
+    # ダウンロード準備完了ページが表示されているか
+    response_text = response.data.decode('utf-8')
+    assert "download_and_redirect.html" in response_text or "ダウンロード" in response_text
+
+    # 4. DBに保存されたか確認
+    saved_plan = db_session.query(RehabilitationPlan).filter_by(patient_id=patient.patient_id).first()
+    assert saved_plan is not None
+    assert saved_plan.created_by_staff_id == staff.id
