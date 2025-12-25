@@ -5,8 +5,10 @@ from werkzeug.security import generate_password_hash
 
 # アプリケーションのDB定義モジュールをインポート
 import app.core.database as database
+
+# ファクトリ関数をインポート
+from app import create_app
 from app.core.database import Base, Staff
-from app.main import app as flask_app
 
 
 # クラス定義にはデコレータをつけない
@@ -33,8 +35,9 @@ def app():
     database.engine = test_engine
     database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
 
-    # Flaskの設定更新
-    flask_app.config.update({
+    # 3. テスト用設定でアプリを作成 (Application Factory)
+    # create_app にテスト設定を渡すことで、configの更新もここで行われます
+    flask_app = create_app(test_config={
         "TESTING": True,
         "WTF_CSRF_ENABLED": False,
         "SECRET_KEY": "test_secret_key",
@@ -46,7 +49,7 @@ def app():
         yield flask_app
         Base.metadata.drop_all(bind=test_engine)
 
-    # 3. テスト終了後に元の設定に戻す (後始末)
+    # 4. テスト終了後に元の設定に戻す (後始末)
     database.engine = original_engine
     database.SessionLocal = original_session_local
 
