@@ -9,7 +9,7 @@ from flask_wtf.csrf import CSRFProtect
 
 # 自作モジュールのインポート
 import app.core.database as database
-from app.models import Staff
+from app.auth_models import Staff
 
 # ブループリントのインポート
 from app.routers.admin import admin_bp

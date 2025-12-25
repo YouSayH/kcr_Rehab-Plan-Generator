@@ -5,7 +5,7 @@ from flask_login import login_required, login_user, logout_user
 from werkzeug.security import check_password_hash
 
 import app.core.database as database
-from app.models import Staff
+from app.auth_models import Staff
 
 # Blueprintの作成
 auth_bp = Blueprint('auth', __name__)
@@ -22,6 +22,7 @@ def login():
         # check_password_hashが、入力されたパスワードとDBのハッシュ値を比較してくれます。
         if staff_info and check_password_hash(staff_info["password"], password):
             # ログイン成功。ユーザー情報をStaffクラスに格納
+            # ここで使用しているStaffクラスは app/auth_models.py のものです
             staff = Staff(
                 staff_id=staff_info["id"],
                 username=staff_info["username"],
@@ -35,6 +36,9 @@ def login():
             # トークン保存
             try:
                 db = database.SessionLocal()
+                # ここではDB操作なので database.Staff (SQLAlchemyモデル) を参照します
+                # ※ app/core/database.py の修正が進んでいれば、本来は app.models.Staff を使うべきですが
+                # database.py 内部で定義またはインポートされている Staff を使います。
                 db_staff = db.query(database.Staff).filter(database.Staff.id == staff.id).first()
                 if db_staff:
                     db_staff.session_token = new_token
