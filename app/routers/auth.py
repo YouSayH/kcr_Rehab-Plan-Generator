@@ -48,7 +48,7 @@ def login():
             # Flask-Loginのlogin_user関数で、ユーザーをログイン状態にする
             login_user(staff)
             # ログイン後のトップページにリダイレクト(indexはまだmain.pyにあるのでそのまま参照可)
-            return redirect(url_for("index"))
+            return redirect(url_for("plan.index"))
         else:
             flash("ユーザー名またはパスワードが正しくありません。", "danger")
     return render_template("login.html")

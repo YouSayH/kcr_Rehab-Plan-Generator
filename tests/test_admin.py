@@ -1,62 +1,64 @@
 from flask import url_for
+from werkzeug.security import generate_password_hash
+
+from app.core.database import Staff
 
 
-def test_admin_signup_access_denied_for_staff(client, app, mock_db, mocker):
+def test_admin_signup_access_denied_for_staff(client, app, db_session):
     """一般スタッフが管理者ページ(signup)にアクセスしようとすると拒否されるか"""
-    mock_user = {"id": 2, "username": "staff", "password": "pw", "role": "staff", "occupation": "PT", "session_token": "token"}
-    mock_db.get_staff_by_id.return_value = mock_user
+    # 一般スタッフを作成してログイン
+    staff = Staff(username="staff", password=generate_password_hash("pw"), role="staff", occupation="PT")
+    db_session.add(staff)
+    db_session.commit()
 
-    with client.session_transaction() as sess:
-        sess["session_token"] = "token"
-        sess["_user_id"] = "2"
+    client.post("/login", data={"username": "staff", "password": "pw"}, follow_redirects=True)
 
     with app.test_request_context():
         signup_url = url_for('admin.signup')
 
-    # 【重要】follow_redirects=True を指定
+    # アクセス試行 -> 権限エラーまたはトップへリダイレクトされるはず
+    # admin_requiredデコレータの実装によりますが、通常は403かフラッシュメッセージ付きリダイレクト
+    response = client.get(signup_url, follow_redirects=True)
+
+    # ページ内に「新規職員登録」が表示されていないことを確認
+    assert "新規職員登録" not in response.data.decode("utf-8")
+
+def test_admin_signup_access_allowed_for_admin(client, app, db_session):
+    """管理者が管理者ページにアクセスできるか"""
+    # 管理者を作成してログイン
+    admin = Staff(username="admin", password=generate_password_hash("pw"), role="admin", occupation="Dr")
+    db_session.add(admin)
+    db_session.commit()
+
+    client.post("/login", data={"username": "admin", "password": "pw"}, follow_redirects=True)
+
+    with app.test_request_context():
+        signup_url = url_for('admin.signup')
+
     response = client.get(signup_url, follow_redirects=True)
 
     assert response.status_code == 200
-
-def test_admin_signup_access_allowed_for_admin(client, app, mock_db, mocker):
-    """管理者が管理者ページにアクセスできるか"""
-    mock_admin = {"id": 1, "username": "admin", "password": "pw", "role": "admin", "occupation": "Dr", "session_token": "token_admin"}
-    mock_db.get_staff_by_id.return_value = mock_admin
-
-    with client.session_transaction() as sess:
-        sess["session_token"] = "token_admin"
-        sess["_user_id"] = "1"
-
-    with app.test_request_context():
-        signup_url = url_for('admin.signup')
-
-    response = client.get(signup_url)
-
-    assert response.status_code == 200
-    # 【重要】画面の実際のタイトル「新規職員登録」に合わせる
     assert "新規職員登録" in response.data.decode("utf-8")
 
-def test_create_staff(client, app, mock_db, mocker):
+def test_create_staff(client, app, db_session):
     """管理者が新規ユーザーを作成できるか"""
-    mock_admin = {"id": 1, "username": "admin", "password": "pw", "role": "admin", "occupation": "Dr", "session_token": "token_admin"}
-    mock_db.get_staff_by_id.return_value = mock_admin
-    with client.session_transaction() as sess:
-        sess["session_token"] = "token_admin"
-        sess["_user_id"] = "1"
-
-    mock_db.get_staff_by_username.return_value = None
-    mock_create = mock_db.create_staff
+    # 管理者でログイン
+    admin = Staff(username="admin", password=generate_password_hash("pw"), role="admin", occupation="Dr")
+    db_session.add(admin)
+    db_session.commit()
+    client.post("/login", data={"username": "admin", "password": "pw"}, follow_redirects=True)
 
     with app.test_request_context():
         signup_url = url_for('admin.signup')
 
+    # 新規スタッフ作成POST
     client.post(signup_url, data={
         "username": "new_staff",
         "password": "new_password",
         "occupation": "PT"
     }, follow_redirects=True)
 
-    args, _ = mock_create.call_args
-    assert args[0] == "new_staff"
-    assert args[2] == "PT"
-    assert mock_create.called
+    # DBに保存されたか確認
+    created_staff = db_session.query(Staff).filter_by(username="new_staff").first()
+    assert created_staff is not None
+    assert created_staff.occupation == "PT"

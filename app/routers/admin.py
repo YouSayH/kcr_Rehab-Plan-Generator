@@ -60,7 +60,7 @@ def manage_assignments():
         )
     except Exception as e:
         flash(f"管理ページの読み込み中にエラーが発生しました: {e}", "danger")
-        return redirect(url_for("index"))
+        return redirect(url_for("plan.index"))
 
 
 @admin_bp.route("/assign", methods=["POST"])

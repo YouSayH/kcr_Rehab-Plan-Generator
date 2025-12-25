@@ -1,49 +1,91 @@
-from unittest.mock import MagicMock
-
 import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from werkzeug.security import generate_password_hash
 
-# app.main をインポートする前に、必要なモジュール構造をモック化することも検討できますが、
-# ここでは明示的なパッチ適用で対応します。
+# アプリケーションのDB定義モジュールをインポート
+import app.core.database as database
+from app.core.database import Base, Staff
 from app.main import app as flask_app
 
 
-# ログインユーザーのモック用クラス
+# クラス定義にはデコレータをつけない
 class MockUser:
     def __init__(self, id, role="staff", username="test_user", is_authenticated=True):
         self.id = id
         self.role = role
         self.username = username
-        self.is_authenticated = is_authenticated # プロパティではなく値として持つ簡易実装
+        self.is_authenticated = is_authenticated
 
-@pytest.fixture
+@pytest.fixture(scope="function")
 def app():
-    """テスト用のFlaskアプリインスタンスを作成"""
-    # 【変更】既存のappインスタンスをテスト設定で上書き
+    """Flaskアプリケーションのフィクスチャ (テストごとに初期化)"""
+
+    # 1. テスト用のインメモリSQLiteエンジンを作成
+    test_engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+
+    # 2. databaseモジュールの engine と SessionLocal をテスト用に差し替える (モンキーパッチ)
+    # これにより、アプリ本体のコード(auth.pyなど)が SessionLocal() を呼んだ時も、
+    # このテスト用DBにつながるようになります。
+    original_engine = database.engine
+    original_session_local = database.SessionLocal
+
+    database.engine = test_engine
+    database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
+
+    # Flaskの設定更新
     flask_app.config.update({
         "TESTING": True,
         "WTF_CSRF_ENABLED": False,
-        "SECRET_KEY": "test_secret_key"
+        "SECRET_KEY": "test_secret_key",
     })
-    return flask_app
 
-@pytest.fixture
+    # テストごとにテーブルを作成
+    with flask_app.app_context():
+        Base.metadata.create_all(bind=test_engine)
+        yield flask_app
+        Base.metadata.drop_all(bind=test_engine)
+
+    # 3. テスト終了後に元の設定に戻す (後始末)
+    database.engine = original_engine
+    database.SessionLocal = original_session_local
+
+@pytest.fixture(scope="function")
 def client(app):
-    """テスト用クライアント"""
-    # redirectを追跡する場合でもcookieを保持するように設定
+    """テストクライアントのフィクスチャ"""
     return app.test_client()
 
-@pytest.fixture
-def mock_db(mocker):
-    """データベースアクセスのモック (全モジュール共通)"""
-    # 共通のモックオブジェクトを作成
-    mock_module = MagicMock()
+@pytest.fixture(scope="function")
+def db_session(app): # appフィクスチャに依存させることでパッチ適用後のSessionを使う
+    """データベースセッションのフィクスチャ"""
+    session = database.SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
 
-    # 【重要】アプリケーション内の各ファイルが参照している 'database' をすべて書き換える
-    # どこか一つでも漏れると、そこだけ本物が動いてバグになります
-    mocker.patch("app.core.database", mock_module)         # 基本
-    mocker.patch("app.main.database", mock_module)         # main.py
-    mocker.patch("app.routers.auth.database", mock_module) # auth.py
-    mocker.patch("app.routers.admin.database", mock_module)# admin.py
-    mocker.patch("app.utils.helpers.database", mock_module)# helpers.py (権限チェック等で使用)
+@pytest.fixture(scope="function")
+def login_staff(client, db_session):
+    """ログイン済みのクライアントを提供するヘルパーフィクスチャ"""
+    username = "test_user"
+    password = "password"
 
-    return mock_module
+    # ユーザー作成
+    staff = db_session.query(Staff).filter_by(username=username).first()
+    if not staff:
+        staff = Staff(
+            username=username,
+            password=generate_password_hash(password),
+            occupation="PT",
+            role="staff"
+        )
+        db_session.add(staff)
+        db_session.commit()
+
+    # ログイン
+    client.post("/login", data={
+        "username": username,
+        "password": password
+    }, follow_redirects=True)
+
+    return client
