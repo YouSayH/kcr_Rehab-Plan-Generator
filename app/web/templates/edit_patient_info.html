@@ -29,7 +29,7 @@
             <h1>患者情報マスタ 編集</h1>
             <p>患者の基本情報や評価結果など、計画書作成の基礎となる「情報」を登録・編集します。</p>
             <div class="user-info">
-                <a href="{{ url_for('index') }}">トップページに戻る</a>
+                <a href="{{ url_for('plan.index') }}">トップページに戻る</a>
             </div>
         </header>
 
@@ -45,7 +45,7 @@
 
         <div class="patient-selector">
             <label for="patient-select">対象患者:</label>
-            <form id="patient-select-form" method="get" action="{{ url_for('edit_patient_info') }}"
+            <form id="patient-select-form" method="get" action="{{ url_for('patient.edit_patient_info') }}"
                 style="display: contents;">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <select name="patient_id" id="patient-select" class="form-control" onchange="this.form.submit()"
@@ -63,7 +63,7 @@
                 <option value="">計画書履歴を閲覧</option>
                 {% for plan in plan_history %}
                 {% if plan.created_at %}
-                <option value="{{ url_for('view_plan', plan_id=plan.plan_id) }}">
+                <option value="{{ url_for('plan.view_plan', plan_id=plan.plan_id) }}">
                     {{ plan.created_at.strftime('%Y-%m-%d %H:%M') }}
                 </option>
                 {% endif %}
@@ -91,7 +91,7 @@
 
 
         <div class="form-container form-table-wrapper">
-            <form action="{{ url_for('save_patient_info') }}" method="post" id="patient-info-form">
+            <form action="{{ url_for('patient.save_patient_info') }}" method="post" id="patient-info-form">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
                 <input type="hidden" name="patient_id" value="{{ patient_data.patient_id or '' }}">
@@ -2445,7 +2445,7 @@
             statusDiv.style.color = 'blue';
 
             try {
-                const response = await fetch("{{ url_for('api_parse_patient_info') }}", {
+                const response = await fetch("{{ url_for('patient.api_parse_patient_info') }}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

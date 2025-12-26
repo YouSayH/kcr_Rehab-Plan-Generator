@@ -15,10 +15,10 @@
     <!-- <link rel="stylesheet" href="{{ url_for('static', filename='lib\bootstrap\bootstrap-icons.min.css') }}"> -->
     <!-- <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script> -->
      
-     <script src="{{ url_for('static', filename='lib\mermaid\mermaid.min.js') }}"></script>
+     <script src="{{ url_for('static', filename='lib/mermaid/mermaid.min.js') }}"></script>
 
     <!-- <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script> -->
-    <script src="{{ url_for('static', filename='lib\marked\marked.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='lib/marked/marked.min.js') }}"></script>
     <script>mermaid.initialize({ startOnLoad: false });</script>
 </head>
 
@@ -163,7 +163,7 @@
                             </div>
                             {% endmacro %}
 
-                            <form id="confirm-form" action="{{ url_for('save_plan') }}" method="post">
+                            <form id="confirm-form" action="{{ url_for('plan.save_plan') }}" method="post">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                                 {# plan_id は新しいレコードとして登録するので、フォームに含めないようにする #}
                                 <input type="hidden" name="patient_id" value="{{ patient_data.patient_id }}">
@@ -461,7 +461,7 @@
                         likedStatusInput.value = isLiked ? 'true' : 'false';
                     }
 
-                    fetch("{{ url_for('like_suggestion') }}", {
+                    fetch("{{ url_for('plan.like_suggestion') }}", {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -539,7 +539,7 @@
                     icon.classList.add('bi-hand-thumbs-up');
 
                     // DBからいいね情報を削除するAPIを呼び出す
-                    fetch("{{ url_for('like_suggestion') }}", {
+                    fetch("{{ url_for('plan.like_suggestion') }}", {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -932,7 +932,7 @@
 
             if (modelToGenerate === 'both' || modelToGenerate === 'general') {
                 // --- 1. Gemini単体（汎用モデル）のストリーム接続 ---
-                const generalApiUrl = "{{ url_for('generate_general_stream') }}" + queryParams;
+                const generalApiUrl = "{{ url_for('plan.generate_general_stream') }}" + queryParams;
                 const generalEventSource = new EventSource(generalApiUrl);
 
                 generalEventSource.addEventListener('update', function (event) {

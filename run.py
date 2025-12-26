@@ -4,8 +4,9 @@ import sys
 # appディレクトリをモジュール検索パスに追加
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from app.main import app
+from app import create_app
 
+app = create_app()
 if __name__ == "__main__":
     # app.py (main.py) 側の if __name__ == "__main__": ブロックの内容を意識
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
