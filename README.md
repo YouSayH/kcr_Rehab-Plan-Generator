@@ -1,7 +1,3 @@
-# TODOリスト https://docs.google.com/spreadsheets/d/1LUPwF4_KGJmqr2arcKsvYtvXsHZAtH2LK5qUAqHK1d0/edit?gid=1386834576#gid=1386834576
-終わったタスクはチェックボックスをtrueにし、実施者がだれか明記&コミット名を書いていただけると幸いです。 <br><br>
-
-
 # リハビリテーション総合実施計画書 自動作成システム
 
 ## 1. 概要 (Overview)
@@ -70,16 +66,16 @@ graph TD
     end
 
     subgraph "アプリケーションサーバー (Flask)"
-        App["<b>app.py</b><br/>Webリクエスト処理<br/>ユーザー認証・権限管理"]
-        Parser["<b>patient_info_parser.py</b><br/>リハビリメモ解析"]
-        Gemini["<b>gemini_client.py</b><br/>Gemini API ラッパー"]
-        Ollama["<b>ollama_client.py</b><br/>Ollama ラッパー"]
-        RAG["<b>rag_executor.py</b><br/>RAGパイプライン実行"]
-        Excel["<b>excel_writer.py</b><br/>Excelファイル生成"]
+        App["<b>app/</b><br/>Webリクエスト処理<br/>(routers, models)"]
+        Parser["<b>services/llm/patient_info_parser.py</b><br/>リハビリメモ解析"]
+        Gemini["<b>services/llm/gemini.py</b><br/>Gemini API ラッパー"]
+        Ollama["<b>services/llm/ollama.py</b><br/>Ollama ラッパー"]
+        RAG["<b>services/llm/rag_executor.py</b><br/>RAGパイプライン実行"]
+        Excel["<b>services/excel/writer.py</b><br/>Excelファイル生成"]
     end
 
     subgraph "データストア"
-        DB["<b>database.py (SQLAlchemy)</b><br/>データベース操作"]
+        DB["<b>core/database.py</b><br/>データベース操作"]
         MySQL[("<b>MySQL Database</b><br/>- patients<br/>- staff<br/>- rehabilitation_plans<br/>- suggestion_likes")]
     end
 
@@ -131,7 +127,6 @@ graph TD
 
     App -- "5. 結果表示 / ファイルダウンロード" --> U_Staff
 ```
-
 -----
 
 ## 4. 使用技術 (Technology Stack)
@@ -287,8 +282,17 @@ GOOGLE_API_KEY="your_google_api_key_here"
 # `ollama pull qwen3:8b` などで事前にダウンロードしたモデル名を指定
 OLLAMA_MODEL_NAME="qwen3:8b"
 # (DockerからローカルホストのOllamaに接続する場合、"host.docker.internal" を指定)
-# OLLAMA_HOST="http://host.docker.internal:11434"
+OLLAMA_HOST="http://host.docker.internal:11434"
+# JSONモードの使用 (true/false)
+OLLAMA_USE_STRUCTURED_OUTPUT="true"
+
+# --- Graph RAG (Neo4j) 設定 (オプション) ---
+# Graph RAGを使用する場合に設定してください
+NEO4J_URI="neo4j://neo4j:7687"
+NEO4J_USERNAME="neo4j"
+NEO4J_PASSWORD="your_neo4j_password"
 ```
+
 
 ### 5.3. 実行方法1: Docker Compose (推奨)
 
@@ -415,32 +419,40 @@ Gemini APIの代わりに、ローカルマシンで動作するOllamaを使用�
 ```
 /kcr_Rehab-Plan-Generator
 │
-│  app.py                 # Flaskアプリケーション本体
-│  database.py            # DB操作モジュール (SQLAlchemy)
-│  gemini_client.py       # Gemini API通信モジュール
-│  ollama_client.py       # Ollama通信モジュール
-│  patient_info_parser.py # カルテテキスト解析モジュール
-│  excel_writer.py        # Excel生成モジュール
-│  schema.sql             # DBスキーマ定義
-│  requirements.txt       # 依存ライブラリ
-│  Dockerfile             # Dockerイメージ定義
+│  run.py                 # アプリケーション起動スクリプト
 │  docker-compose.yml     # Docker Compose定義
-│  template.xlsx          # Excelテンプレート
+│  Dockerfile             # Dockerイメージ定義
+│  requirements.txt       # 依存ライブラリ
+│  schema.sql             # DBスキーマ定義
 │  .env                   # 【要手動作成】環境変数ファイル
+│  template.xlsx          # Excelテンプレート
 │
-├─/Rehab_RAG/             # RAG(検索拡張生成)の実験・評価用サブモジュール
-│  │  README.md           # RAGモジュールの詳細説明
-│  └─/source_documents/  # RAGが参照する知識源ドキュメントを格納
+├─/app/                   # アプリケーション本体
+│  │  __init__.py         # アプリケーションファクトリ
+│  │
+│  ├─/core/               # コア設定
+│  │      database.py     # DB接続設定
+│  │
+│  ├─/models/             # DBモデル定義 (SQLAlchemy)
+│  │
+│  ├─/routers/            # URLルーティング (Blueprint)
+│  │      plan/           # 計画書作成関連のルート
+│  │
+│  ├─/services/           # ビジネスロジック
+│  │  ├─/excel/           # Excel生成ロジック
+│  │  ├─/llm/             # LLM連携 (Gemini/Ollama)
+│  │  └─/extraction/      # テキスト解析
+│  │
+│  └─/web/                # フロントエンド
+│      ├─/static/         # 静的ファイル (CSS, JS)
+│      └─/templates/      # HTMLテンプレート
 │
-├─/static/
-│      style.css          # CSSスタイルシート
+├─/Rehab_RAG/             # RAG(検索拡張生成)サブモジュール
+│  │  README.md           # RAGの詳細説明
+│  │  rag_config.yaml     # RAG設定ファイル
+│  └─/experiments/        # 実験用パイプライン設定
 │
-└─/templates/
-       index.html         # トップページ
-       edit_patient_info.html # 患者情報マスタ編集ページ
-       confirm.html       # 計画書 確認・修正ページ
-       login.html         # ログインページ
-       ...                # その他HTMLファイル
+└─/nginx/                 # Nginx設定
 ```
 
 -----
