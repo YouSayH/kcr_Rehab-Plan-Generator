@@ -2,11 +2,9 @@ import json
 import logging
 import os
 
-import app.services.excel_writer as excel_writer
 from app.crud import patient as patient_crud
-
-# 【変更】databaseモジュールへの依存をCRUDモジュールへ置き換え
 from app.crud import plan as plan_crud
+from app.services.excel import writer as excel_writer
 
 logger = logging.getLogger(__name__)
 
