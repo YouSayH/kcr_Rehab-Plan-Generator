@@ -4,18 +4,17 @@ import logging
 from flask import Response, jsonify, request
 from flask_login import current_user, login_required
 
-# アプリケーション内モジュール
-import app.services.llm.gemini_client as gemini_client
-import app.services.llm.ollama_client as ollama_client
 from app.core.database import SessionLocal
 from app.crud import patient as patient_crud
 from app.crud import plan as plan_crud
 
 # 履歴取得用にモデルとセッションをインポート
 from app.models import RehabilitationPlan
+
+# 【修正】個別クライアントのインポートを廃止し、ファクトリ関数を使用
+from app.services.llm import get_llm_client
 from app.services.rag_manager import (
     DEFAULT_RAG_PIPELINE,
-    LLM_CLIENT_TYPE,
     get_rag_executor,
 )
 from app.utils.helpers import has_permission_for_patient
@@ -28,7 +27,7 @@ logger = logging.getLogger(__name__)
 @plan_bp.route("/api/generate/general")
 @login_required
 def generate_general_stream():
-    """Gemini単体モデルによる計画案をストリーミングで生成するAPI"""
+    """汎用モデル（Gemini/Ollama）による計画案をストリーミングで生成するAPI"""
     try:
         # URLのクエリパラメータから患者IDと所見を取得
         patient_id = int(request.args.get("patient_id"))
@@ -43,37 +42,29 @@ def generate_general_stream():
         if not patient_data:
             return Response("患者データが見つかりません。", status=404)
 
-        # 担当者の所見を患者データに含める（gemini_client側でここから読み取るため）
+        # 担当者の所見を患者データに含める
         patient_data["therapist_notes"] = therapist_notes
 
-        stream_generator = None
+        # 【修正】ファクトリからクライアントを取得して実行
+        llm_client = get_llm_client()
+        client_name = llm_client.__class__.__name__
 
-        if LLM_CLIENT_TYPE == "ollama":
-            print("--- Ollama (local) クライアントで汎用モデルを実行します ---")
-            logger.info(f"Calling Ollama general stream for patient_id: {patient_id}")
-            # Ollamaクライアントのインターフェースに合わせて呼び出し
-            # (liked_itemsやtherapist_notesを含めるかはOllamaClientの実装次第ですが、ここではpatient_dataに含めて渡す形を維持)
-            patient_data["therapist_notes"] = therapist_notes
-            stream_generator = ollama_client.generate_ollama_plan_stream(patient_data)
-        else:  # デフォルトは 'gemini'
-            print("--- Gemini (cloud) クライアントで汎用モデルを実行します ---")
-            logger.info(f"Calling Gemini general stream for patient_id: {patient_id}")
+        print(f"--- {client_name} で汎用モデルを実行します ---")
+        logger.info(f"Calling General Stream using {client_name} for patient_id: {patient_id}")
 
-            # 正しい関数名に変更し、引数を合わせる
-            stream_generator = gemini_client.generate_general_plan_stream(
-                patient_data=patient_data
-            )
+        # 統一されたインターフェースでメソッド呼び出し
+        stream_generator = llm_client.generate_plan_stream(patient_data)
 
         return Response(stream_generator, mimetype="text/event-stream")
 
     except ValueError:
         error_message = "無効な患者IDが指定されました。"
-        error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
+        error_event = f"event: error\ndata: {json.dumps({'error': error_message}, ensure_ascii=False)}\n\n"
         return Response(error_event, mimetype="text/event-stream")
     except Exception as e:
-        logger.error(f"汎用モデルのストリーム処理中にエラーが発生しました: {e}")
+        logger.error(f"汎用モデルのストリーム処理中にエラーが発生しました: {e}", exc_info=True)
         error_message = "サーバーエラーが発生しました。詳細は管理者にお問い合わせください。"
-        error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
+        error_event = f"event: error\ndata: {json.dumps({'error': error_message}, ensure_ascii=False)}\n\n"
         return Response(error_event, mimetype="text/event-stream")
 
 
@@ -103,36 +94,29 @@ def generate_rag_stream(pipeline_name):
         if not rag_executor:
             raise Exception(f"パイプライン '{pipeline_name}' の Executorを取得できませんでした。")
 
-        stream_generator = None
-        if LLM_CLIENT_TYPE == "ollama" and hasattr(ollama_client, "generate_rag_plan_stream"):
-            print("--- Ollama (local) クライアントでRAGモデルを実行します ---")
-            logger.info(f"Calling Ollama RAG stream for patient_id: {patient_id}")
-            patient_data["therapist_notes"] = therapist_notes
-            stream_generator = ollama_client.generate_rag_plan_stream(patient_data, rag_executor)
-        else:
-            if LLM_CLIENT_TYPE == "ollama":
-                print("--- [警告] OllamaクライアントにRAG初期生成(generate_rag_plan_stream)が実装されていません。Geminiクライアントでフォールバックします。---")
-                logger.warning("Ollama client missing 'generate_rag_plan_stream'. Falling back to Gemini.")
+        # 【修正】ファクトリからクライアントを取得して実行
+        llm_client = get_llm_client()
+        client_name = llm_client.__class__.__name__
 
-            print("--- Gemini (cloud) クライアントでRAGモデルを実行します ---")
-            logger.info(f"Calling Gemini RAG stream for patient_id: {patient_id}")
+        print(f"--- {client_name} でRAGモデルを実行します ---")
+        logger.info(f"Calling RAG Stream using {client_name} for patient_id: {patient_id}")
 
-            # 【修正】正しい関数名に変更し、引数を合わせる
-            stream_generator = gemini_client.generate_rag_plan_stream(
-                patient_data=patient_data,
-                rag_executor=rag_executor
-            )
+        # 統一されたインターフェースでメソッド呼び出し
+        stream_generator = llm_client.generate_rag_plan_stream(
+            patient_data=patient_data,
+            rag_executor=rag_executor
+        )
 
         return Response(stream_generator, mimetype="text/event-stream")
 
     except ValueError:
         error_message = "無効な患者IDが指定されました。"
-        error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
+        error_event = f"event: error\ndata: {json.dumps({'error': error_message}, ensure_ascii=False)}\n\n"
         return Response(error_event, mimetype="text/event-stream")
     except Exception as e:
-        logger.error(f"RAGモデル({pipeline_name})のストリーム処理中にエラーが発生しました: {e}")
+        logger.error(f"RAGモデル({pipeline_name})のストリーム処理中にエラーが発生しました: {e}", exc_info=True)
         error_message = "サーバーエラーが発生しました。詳細は管理者にお問い合わせください。"
-        error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
+        error_event = f"event: error\ndata: {json.dumps({'error': error_message}, ensure_ascii=False)}\n\n"
         return Response(error_event, mimetype="text/event-stream")
 
 
@@ -199,34 +183,28 @@ def regenerate_item():
             if not rag_executor:
                 raise Exception(f"パイプライン '{pipeline_name}' の Executorを取得できませんでした。")
 
-        stream_generator = None
-        if LLM_CLIENT_TYPE == "ollama":
-            print(f"--- Ollama (local) クライアントで再生成を実行します (RAG: {'あり' if rag_executor else 'なし'}) ---")
-            logger.info(f"Calling Ollama regeneration stream for item: {item_key} (RAG: {bool(rag_executor)})")
-            stream_generator = ollama_client.regenerate_ollama_plan_item_stream(
-                patient_data=patient_data,
-                item_key=item_key,
-                current_text=current_text,
-                instruction=instruction,
-                rag_executor=rag_executor,
-            )
-        else:  # デフォルトは 'gemini'
-            print(f"--- Gemini (cloud) クライアントで再生成を実行します (RAG: {'あり' if rag_executor else 'なし'}) ---")
-            logger.info(f"Calling Gemini regeneration stream for item: {item_key} (RAG: {bool(rag_executor)})")
-            stream_generator = gemini_client.regenerate_plan_item_stream(
-                patient_data=patient_data,
-                item_key=item_key,
-                current_text=current_text,
-                instruction=instruction,
-                rag_executor=rag_executor,
-            )
+        # 【修正】ファクトリからクライアントを取得して実行
+        llm_client = get_llm_client()
+        client_name = llm_client.__class__.__name__
+
+        print(f"--- {client_name} で再生成を実行します (RAG: {'あり' if rag_executor else 'なし'}) ---")
+        logger.info(f"Calling Regeneration Stream using {client_name} for item: {item_key}")
+
+        # 統一されたインターフェースでメソッド呼び出し
+        stream_generator = llm_client.regenerate_plan_item_stream(
+            patient_data=patient_data,
+            item_key=item_key,
+            current_text=current_text,
+            instruction=instruction,
+            rag_executor=rag_executor,
+        )
 
         return Response(stream_generator, mimetype="text/event-stream")
 
     except Exception as e:
-        logger.error(f"項目の再生成中にエラーが発生しました: {e}")
+        logger.error(f"項目の再生成中にエラーが発生しました: {e}", exc_info=True)
         error_message = "サーバーエラーが発生しました。"
-        error_event = f"event: error\ndata: {json.dumps({'error': error_message})}\n\n"
+        error_event = f"event: error\ndata: {json.dumps({'error': error_message}, ensure_ascii=False)}\n\n"
         return Response(error_event, mimetype="text/event-stream")
 
 

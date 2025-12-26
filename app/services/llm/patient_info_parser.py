@@ -5,34 +5,19 @@ import os
 import pprint  # デバッグ表示用に追加
 import time
 
-import ollama
 from dotenv import load_dotenv
-from google import genai
-from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable
-from google.genai import types
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from app.schemas.schemas import HYBRID_GENERATION_GROUPS, PATIENT_INFO_EXTRACTION_GROUPS
 from app.services.extraction.fast_extractor import FastExtractor
 
+# リファクタリング: ファクトリ関数のインポート
+from app.services.llm import get_llm_client
+
 load_dotenv()
 GENERATION_TIMEOUT_SEC = 240
 
-# ログ設定 (gemini_client.pyと同じファイルに出力)
-log_directory = "logs"
-if not os.path.exists(log_directory):
-    os.makedirs(log_directory)
-log_file_path = os.path.join(log_directory, "gemini_prompts.log")
-
-# ロガーの設定 (ファイル出力のみ、フォーマット指定)
-# すでにgemini_client.pyで設定されている場合は不要だが、念のため追加
-logger = logging.getLogger(__name__)  # 新しいロガーインスタンスを取得
-if not logger.hasHandlers():  # ハンドラが未設定の場合のみ設定
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+logger = logging.getLogger(__name__)
 
 def optimize_schema_for_prompt(schema_cls: type, target_fields_pattern: str = None) -> dict:
     """
@@ -80,37 +65,29 @@ def optimize_schema_for_prompt(schema_cls: type, target_fields_pattern: str = No
 
 class PatientInfoParser:
     """
-    Gemini APIまたはローカルLLMを使用して、非構造化テキストから構造化された患者情報を抽出するクラス。
+    LLMを使用して、非構造化テキストから構造化された患者情報を抽出するクラス。
+    Refactoring: 共通のLLMClientを使用し、Gemini/Ollamaの差異を吸収しています。
 
     モード:
     1. 通常モード (Gemini/Ollama): スキーマをグループに分割して段階的に抽出する（高精度・低スペック環境向け）。
     2. ハイブリッドモード (Local GPU): GLiNER2で事実を高速抽出し、LLMで考察のみを生成する（高速・高スペック環境向け）。
     """
 
-    def __init__(self, client_type: str = "gemini", use_hybrid_mode: bool = False):
-        # gemini_client.py と同様に、環境変数から自動でキーを読み込む方式に変更
-        self.client_type = client_type
+    def __init__(self, use_hybrid_mode: bool = False):
+        self.llm_client = get_llm_client()
+
+        # ログ出力用にクラス名から判定
+        client_class_name = self.llm_client.__class__.__name__
+        self.client_type = "gemini" if "Gemini" in client_class_name else "ollama"
+
         self.use_hybrid_mode = use_hybrid_mode
 
         # 設定がない場合は、メインのモデル(OLLAMA_MODEL_NAME)を使用する。
         default_ollama_model = os.getenv("OLLAMA_MODEL_NAME", "qwen3:8b")
         self.ollama_model_name = os.getenv("OLLAMA_EXTRACTION_MODEL_NAME", default_ollama_model)
 
-        # Geminiクライアント設定
-        if self.client_type == "gemini":
-            if not os.getenv("GOOGLE_API_KEY") and not os.getenv("GEMINI_API_KEY"):
-                raise ValueError(
-                    "APIキーが設定されていません。環境変数 'GOOGLE_API_KEY' または 'GEMINI_API_KEY' を設定してください。"
-                )
-            self.client = genai.Client()
-            self.model_name = "gemini-2.5-flash-lite"
-            print("PatientInfoParser: Geminiクライアントを使用します。")
-        else:
-            self.client = None  # Ollamaは `ollama.chat` を直接呼ぶため不要
-            self.model_name = self.ollama_model_name
-            print(f"PatientInfoParser: Ollamaクライアントを使用します (Model: {self.model_name})。")
+        print(f"PatientInfoParser: {client_class_name} を使用します。")
 
-        # ハイブリッドモード設定 (GLiNER2)
         self.fast_extractor = None
         if self.use_hybrid_mode:
             # GPU利用を前提としてFastExtractorを初期化
@@ -124,8 +101,7 @@ class PatientInfoParser:
 
     def _restore_checkboxes(self, data: dict) -> dict:
         """
-        LLMが生成した軽量データ(level文字列など)から、
-        DB保存用のチェックボックス(True/False)を復元する後処理
+        LLMが生成した軽量データからDB保存用のチェックボックスを復元する後処理
         """
         # 1. 基本動作の復元
         basic_move_map = {
@@ -266,7 +242,9 @@ class PatientInfoParser:
 
     # AI抽出済み事実 (GLiNER - キーワードのみ)
     ※ここにはFIM点数や具体的な目標文は含まれていません。これらは入力テキストから補完してください。
+    ```json
     {facts_json}
+    ```
 
     {context_str}
 
@@ -384,7 +362,8 @@ class PatientInfoParser:
             return max(0.1, GENERATION_TIMEOUT_SEC - elapsed)
 
 
-        # --- ハイブリッドモード (高速・高スペック環境) ---
+        # --- ハイブリッドモード ---
+        target_groups = []
         if self.use_hybrid_mode and self.fast_extractor:
             print("--- [Step 1] GLiNER2 Extraction (Facts) ---")
 
@@ -400,304 +379,89 @@ class PatientInfoParser:
             print(f"--- [Step 1-3] Multi-stage Generation ({self.client_type}) ---")
             print("\n>>> [DEBUG] GLiNER2 Extracted Facts:")
             pprint.pprint(facts)
-            print("-" * 40)
-
-            # 2. LLMによる3段階生成 (HYBRID_GENERATION_GROUPSを使用)
-            # 生成専用のプロンプトを作成
-
-            # 2. LLMによる3段階生成 (HYBRID_GENERATION_GROUPSを使用)
-            max_retries = 5  # 最大リトライ回数を設定
-
-            for i, group_schema in enumerate(HYBRID_GENERATION_GROUPS):
-                # 全体タイムアウトチェック
-                if get_remaining_time() <= 1.0:
-                    print(f"--- Time Limit Exceeded. Stopping before Step {i+1}. ---")
-                    break
-
-                print(f"--- Processing Hybrid Step {i+1}: {group_schema.__name__} ---")
-
-                # プロンプト作成 (これまでの結果 final_result を渡す)
-                prompt = self._build_hybrid_prompt(text, facts, group_schema, final_result)
-
-                logger.info(f"\n{'='*20} [Step {i+1}] Prompt ({group_schema.__name__}) {'='*20}\n{prompt}\n{'='*60}")
-
-                # --- [DEBUG] プロンプトの表示 ---
-                # print(f"\n>>> [DEBUG] Step {i+1} Prompt ({group_schema.__name__}):")
-                # print(prompt)
-                # print("-" * 40)
-                # ------------------------------
-
-                step_success = False  # このステップが成功したかどうかのフラグ
-
-                # リトライループ (最大5回)
-                for attempt in range(max_retries):
-                    current_remaining = get_remaining_time()
-                    if current_remaining <= 1.0:
-                        print("--- Time Limit Exceeded during retry. Stopping. ---")
-                        break
-
-                    try:
-                        if self.client_type == "gemini":
-                            generation_config = types.GenerateContentConfig(
-                                response_mime_type="application/json",
-                                response_schema=group_schema
-                            )
-                            with concurrent.futures.ThreadPoolExecutor() as executor:
-                                future = executor.submit(
-                                    self.client.models.generate_content,
-                                    model=self.model_name,
-                                    contents=prompt,
-                                    config=generation_config
-                                )
-                                # response = future.result(timeout=current_remaining)
-                                response = future.result(timeout=120)
-                            if response and response.parsed:
-                                step_data = response.parsed.model_dump(mode="json")
-                                final_result.update(step_data)
-
-                                # --- [DEBUG] 出力結果の表示 ---
-                                # print(f"\n>>> [DEBUG] Step {i+1} Generated Data ({group_schema.__name__}):")
-                                # pprint.pprint(step_data)
-                                # print("-" * 40)
-                                # ----------------------------
-                                log_output = json.dumps(step_data, indent=2, ensure_ascii=False) # または generated_data
-                                logger.info(f"\n>>> [Step {i+1}] Generated Data ({group_schema.__name__}):\n{log_output}\n{'-'*40}")
-
-                                step_success = True
-                                break  # 成功したらリトライループを抜ける
-
-                        else: # Ollama (Local)
-                            # 1. 毎回新しいExecutorを作成 (タイムアウト時に即座に中断するため)
-                            executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-                            try:
-                                future = executor.submit(
-                                    ollama.chat,
-                                    model=self.model_name,
-                                    messages=[{"role": "user", "content": prompt}],
-                                    format="json",
-                                    options={"temperature": 0.2, "num_ctx": 8192}
-                                )
-
-                                # 2. 設定した制限時間で結果を待つ
-                                # response = future.result(timeout=current_remaining)
-                                response = future.result(timeout=120)
-                                raw_json = response["message"]["content"]
-                                generated_data = json.loads(raw_json)
-
-                                # =====================================================
-                                # 【追加】即時構造チェック (Self-Correction Logic)
-                                # =====================================================
-
-                                # A. ネスト（階層化）の禁止チェック
-                                for key, value in generated_data.items():
-                                    if isinstance(value, dict):
-                                        raise ValueError(f"不正なネスト構造を検出しました (Key: {key})。フラットなJSONが必要です。")
-
-                                # B. Pydanticスキーマによる厳密なバリデーション
-                                try:
-                                    # バリデーションのみ実行
-                                    group_schema.model_validate(generated_data)
-                                except ValidationError as ve:
-                                    raise ValueError(f"スキーマ検証エラー: {ve}")
-
-                                # =====================================================
-
-                                final_result.update(generated_data)
-
-                                log_output = json.dumps(generated_data, indent=2, ensure_ascii=False)
-                                logger.info(f"\n>>> [Step {i+1}] Generated Data ({group_schema.__name__}):\n{log_output}\n{'-'*40}")
-
-                                step_success = True
-                                executor.shutdown(wait=False)
-                                break  # 成功したらリトライループを抜ける
-
-                            except Exception as e:
-                                error_msg = f"LLM Generation Error (Step {i+1}, Attempt {attempt+1}/{max_retries}): {e}"
-                                logger.error(error_msg)
-                                print(error_msg)
-
-                                # 失敗時、即座にスレッドを破棄してリトライへ
-                                executor.shutdown(wait=False)
-
-                                if attempt < max_retries - 1:
-                                    print(f"--- Retrying Step {i+1}... ---")
-                                    time.sleep(1)
-                                else:
-                                    print(f"--- Failed Step {i+1} after {max_retries} attempts. ---")
-
-                    except Exception as e:
-                        error_msg = f"LLM Generation Error (Step {i+1}, Attempt {attempt+1}/{max_retries}): {e}"
-                        logger.error(error_msg)
-                        print(error_msg)
-
-                        # リトライ上限に達していない場合は少し待機して次へ
-                        if attempt < max_retries - 1:
-                            time.sleep(1)
-                        else:
-                            print(f"--- Failed Step {i+1} after {max_retries} attempts. ---")
-
-                # 5回失敗した場合、このステップでの生成を諦め、処理全体を中断する（「やめる」）
-                if not step_success:
-                    print(f"--- Aborting generation process due to repeated errors in Step {i+1} ---")
-                    break
-            if self.use_hybrid_mode:
-                final_result = self._restore_checkboxes(final_result)
-            return final_result
-
-
+            target_groups = HYBRID_GENERATION_GROUPS
         else:
             print("--- Multi-Step Extraction Mode (Standard) ---")
-            for i, group_schema in enumerate(PATIENT_INFO_EXTRACTION_GROUPS):
-                if get_remaining_time() <= 1.0:
-                    print(f"--- Time Limit Exceeded ({GENERATION_TIMEOUT_SEC}s). Stopping extraction. ---")
-                    break
+            target_groups = PATIENT_INFO_EXTRACTION_GROUPS
 
-                print(f"--- Processing group {i+1}: {group_schema.__name__} ---")
+        # ----------------------------------------------------
+        # 共通の生成ループ (Gemini/Ollamaの違いはLLMClientで吸収)
+        # ----------------------------------------------------
+        max_retries = 5
 
+        for i, group_schema in enumerate(target_groups):
+            # 全体タイムアウトチェック
+            if get_remaining_time() <= 1.0:
+                print(f"--- Time Limit Exceeded. Stopping before Step {i+1}. ---")
+                break
+
+            print(f"--- Processing Step {i+1}: {group_schema.__name__} ---")
+
+            # プロンプト作成
+            if self.use_hybrid_mode and self.fast_extractor:
+                prompt = self._build_hybrid_prompt(text, final_result, group_schema, final_result)
+            else:
                 prompt = self._build_prompt(text, group_schema, final_result)
 
-                # logger.info(f"--- Parsing Group: {group_schema.__name__} --- (Client: {self.client_type})")
-                logger.info(f"\n{'#'*30} PROMPT START ({group_schema.__name__}) {'#'*30}\n{prompt}\n{'#'*30} PROMPT END {'#'*30}")
+            logger.info(f"\n{'='*20} [Step {i+1}] Prompt ({group_schema.__name__}) {'='*20}\n{prompt}\n{'='*60}")
+
+            step_success = False
+
+            # リトライループ
+            for attempt in range(max_retries):
+                current_remaining = get_remaining_time()
+                if current_remaining <= 1.0:
+                    print("--- Time Limit Exceeded during retry. Stopping. ---")
+                    break
 
                 try:
-                    group_result = {}
-
-                    if self.client_type == "gemini":
-                        generation_config = types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            response_schema=group_schema,
+                    # リファクタリング: llm_client.generate_json を呼び出す
+                    # タイムアウト制御のためにThreadPoolExecutorでラップする
+                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                        future = executor.submit(
+                            self.llm_client.generate_json,
+                            prompt=prompt,
+                            schema=group_schema
                         )
-                        # リトライ処理
-                        max_retries = 3
-                        backoff_factor = 2
-                        response = None
-                        for attempt in range(max_retries):
-                            # 【修正】試行ごとに残り時間を再計算
-                            current_timeout = get_remaining_time()
-                            if current_timeout <= 1.0:
-                                break
+                        # API呼び出し自体のタイムアウトを全体残り時間に合わせる
+                        step_data = future.result(timeout=min(120, current_remaining))
 
-                            try:
-                                with concurrent.futures.ThreadPoolExecutor() as executor:
-                                    future = executor.submit(
-                                        self.client.models.generate_content,
-                                        model=self.model_name,
-                                        contents=prompt,
-                                        config=generation_config
-                                    )
-                                    # 【修正】残り時間をタイムアウトに設定
-                                    response = future.result(timeout=current_timeout)
-                                break
-                            except (ResourceExhausted, ServiceUnavailable, concurrent.futures.TimeoutError) as e:
-                                if attempt < max_retries - 1:
-                                    wait_time = backoff_factor * (2**attempt)
-                                    time.sleep(min(wait_time, get_remaining_time())) # 待機時間も残り時間以内にする
-                                else:
-                                    raise e
+                    final_result.update(step_data)
 
-                        if response:
-                            raw_text = response.text if hasattr(response, 'text') else str(response)
-                            logger.info(f"\n{'!'*30} RAW RESPONSE START ({group_schema.__name__}) {'!'*30}\n{raw_text}\n{'!'*30} RAW RESPONSE END {'!'*30}")
-                        else:
-                            logger.warning(f"Response object is None for {group_schema.__name__}")
+                    log_output = json.dumps(step_data, indent=2, ensure_ascii=False)
+                    logger.info(f"\n>>> [Step {i+1}] Generated Data ({group_schema.__name__}):\n{log_output}\n{'-'*40}")
 
-                        if response and response.parsed:
-                            group_result = response.parsed.model_dump(mode="json")
-                            logger.info(f"\n{'*'*30} PARSED JSON ({group_schema.__name__}) {'*'*30}\n{json.dumps(group_result, indent=2, ensure_ascii=False)}\n{'*'*30}")
+                    step_success = True
+                    break  # 成功したらリトライループを抜ける
 
-                        elif response and response.text:
-                            print(f"Warning: SDK parse failed for {group_schema.__name__}. Trying manual parse.")
-                            clean_text = response.text.strip()
-                            if clean_text.startswith("```json"):
-                                clean_text = clean_text[7:]
-                            elif clean_text.startswith("```"):
-                                clean_text = clean_text[3:]
-                            if clean_text.endswith("```"):
-                                clean_text = clean_text[:-3]
-
-                            try:
-                                group_result = json.loads(clean_text.strip())
-                                logger.info(f"\n{'*'*30} MANUAL PARSED JSON ({group_schema.__name__}) {'*'*30}\n{json.dumps(group_result, indent=2, ensure_ascii=False)}\n{'*'*30}")
-                            except Exception as e:
-                                logger.error(f"Manual JSON Parse Error: {e}\nRaw Text: {response.text}")
-                                print(f"手動パースも失敗しました: {e}")
-
-                    else:
-                        # Ollama (Local)
-                        max_retries = 3
-                        ollama_response = None
-
-                        for attempt in range(max_retries):
-                            current_timeout = get_remaining_time()
-                            if current_timeout <= 1.0:
-                                break
-
-                            try:
-                                with concurrent.futures.ThreadPoolExecutor() as executor:
-                                    future = executor.submit(
-                                        ollama.chat,
-                                        model=self.model_name,
-                                        messages=[{"role": "user", "content": prompt}],
-                                        format="json",
-                                    )
-                                    # 【修正】残り時間をタイムアウトに設定
-                                    ollama_response = future.result(timeout=current_timeout)
-                                break
-
-                            except (concurrent.futures.TimeoutError, Exception) as e:
-                                if attempt < max_retries - 1:
-                                    time.sleep(1)
-                                else:
-                                    logger.warning(f"Ollama failed after retries: {e}")
-                                    ollama_response = None
-
-                        if ollama_response:
-                            raw_json_str = ollama_response["message"]["content"]
-                            try:
-                                raw_response_dict = json.loads(raw_json_str)
-                                # (以下、バリデーションロジックは既存と同じなので省略可だが記述しておく)
-                                data_to_validate = raw_response_dict
-                                if isinstance(raw_response_dict, dict):
-                                    schema_fields = set(group_schema.model_fields.keys())
-                                    if not schema_fields.issubset(raw_response_dict.keys()):
-                                        for v in raw_response_dict.values():
-                                            if isinstance(v, dict) and schema_fields.intersection(v.keys()):
-                                                data_to_validate = v
-                                                break
-                                group_result_obj = group_schema.model_validate(data_to_validate)
-                                group_result = group_result_obj.model_dump(mode="json")
-                            except Exception as e:
-                                logger.warning(f"Ollama JSON Error: {e}")
-                                group_result = {}
-
-                            # 性別の正規化
-                            if "gender" in group_result and group_result["gender"]:
-                                if "男性" in group_result["gender"]:
-                                    group_result["gender"] = "男"
-                                elif "女性" in group_result["gender"]:
-                                    group_result["gender"] = "女"
-
-                    final_result.update(group_result)
                 except concurrent.futures.TimeoutError:
-                    current_remaining = get_remaining_time()
-                    error_msg = f"Group {i+1} Timed Out (Remaining: {current_remaining:.1f}s)"
+                    error_msg = f"Step {i+1} Timed Out (Remaining: {current_remaining:.1f}s)"
                     logger.error(error_msg)
-                    print(f"LLM生成エラー(Group {i+1}): {error_msg}")
-                    continue
+                    print(error_msg)
+                    break
 
                 except Exception as e:
-                    print(f"グループ {group_schema.__name__} の解析中にエラーが発生しました: {e}")
-                    logger.error(f"Parser Error (Group: {group_schema.__name__}): {e}", exc_info=True)
-                    continue
+                    error_msg = f"LLM Generation Error (Step {i+1}, Attempt {attempt+1}/{max_retries}): {e}"
+                    logger.error(error_msg)
+                    print(error_msg)
 
-                # レート制限対策 (残り時間がある場合のみ)
-                if get_remaining_time() > 1.0:
-                    time.sleep(0.5)
+                    if attempt < max_retries - 1:
+                        time.sleep(1)
+                    else:
+                        print(f"--- Failed Step {i+1} after {max_retries} attempts. ---")
 
-            if not final_result:
-                return {
-                    "error": "患者情報の解析に失敗しました。",
-                    "details": "どのグループからも有効な情報を抽出できませんでした。",
-                }
+            if not step_success and get_remaining_time() <= 1.0:
+                print(f"--- Aborting generation process due to timeout in Step {i+1} ---")
+                break
 
-            return final_result
+        # 後処理
+        if self.use_hybrid_mode:
+            final_result = self._restore_checkboxes(final_result)
+
+        if not final_result:
+            return {
+                "error": "患者情報の解析に失敗しました。",
+                "details": "どのグループからも有効な情報を抽出できませんでした。",
+            }
+
+        return final_result

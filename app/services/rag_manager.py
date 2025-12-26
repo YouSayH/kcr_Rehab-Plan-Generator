@@ -42,7 +42,6 @@ patient_info_parser = None
 print("Initializing Patient Info Parser in rag_manager...")
 try:
     patient_info_parser = PatientInfoParser(
-        client_type=LLM_CLIENT_TYPE,
         use_hybrid_mode=USE_HYBRID_MODE
     )
     mode_name = "Hybrid Mode (GLiNER2 + LLM)" if USE_HYBRID_MODE else "Standard Mode (Multi-step LLM)"
