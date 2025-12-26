@@ -8,8 +8,8 @@ from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
 
 # 自作モジュールのインポート
-import app.core.database as database
 from app.auth_models import Staff
+from app.crud import staff as staff_crud
 
 # ブループリントのインポート
 from app.routers.admin import admin_bp
@@ -94,7 +94,7 @@ def load_user(staff_id):
     Flask-Login用ユーザーローダー
     セッション内のIDからユーザーオブジェクトを復元します。
     """
-    staff_info = database.get_staff_by_id(int(staff_id))
+    staff_info = staff_crud.get_staff_by_id(int(staff_id))
     if not staff_info:
         return None
 

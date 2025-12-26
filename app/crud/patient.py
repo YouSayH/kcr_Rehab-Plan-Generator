@@ -1,13 +1,13 @@
 from collections import defaultdict
 from datetime import date
 
-from app.core.database import SessionLocal
+import app.core.database as database
 from app.models import Patient, RehabilitationPlan, SuggestionLike
 
 
 def get_all_patients():
     """全患者のIDと名前のリストを取得"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         patient_list = db.query(Patient.patient_id, Patient.name).order_by(Patient.patient_id).all()
         return [{"patient_id": p.patient_id, "name": p.name} for p in patient_list]
@@ -16,7 +16,7 @@ def get_all_patients():
 # データ操作関数
 def get_patient_data_for_plan(patient_id: int, db_session=None):
     """患者の基本情報と最新の計画書データ、いいね評価を取得する"""
-    db = db_session if db_session else SessionLocal()
+    db = db_session if db_session else database.SessionLocal()
     try:
         patient = db.query(Patient).filter(Patient.patient_id == patient_id).one_or_none()
         if not patient:
@@ -70,7 +70,7 @@ def save_patient_master_data(form_data: dict):
 
     from sqlalchemy import DECIMAL, Boolean, Date, Integer
 
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         # --- 1. 患者情報の保存 (Patientテーブル) ---
         patient_id_str = form_data.get("patient_id")

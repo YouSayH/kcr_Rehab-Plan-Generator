@@ -2,7 +2,11 @@ from datetime import date
 
 from flask import url_for
 
-from app.core.database import Patient, RehabilitationPlan, Staff, assign_patient_to_staff
+# 操作関数(assign_patient_to_staff)を app.crud.staff からインポート
+from app.crud.staff import assign_patient_to_staff
+
+# モデル定義を app.models からインポート
+from app.models import Patient, RehabilitationPlan, Staff
 
 
 def test_index_requires_login(client, app):

@@ -1,7 +1,7 @@
 from flask import url_for
 from werkzeug.security import generate_password_hash
 
-from app.core.database import Staff
+from app.models import Staff
 
 
 def test_admin_signup_access_denied_for_staff(client, app, db_session):

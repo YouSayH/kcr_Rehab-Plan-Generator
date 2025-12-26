@@ -4,10 +4,13 @@ from flask import Blueprint, flash, redirect, render_template, request, session,
 from flask_login import login_required, login_user, logout_user
 from werkzeug.security import check_password_hash
 
-import app.core.database as database
-from app.auth_models import Staff
+from app.auth_models import Staff  # Flask-Login用
+from app.core.database import SessionLocal
 
-# Blueprintの作成
+# CRUDと、トークン保存用にDBセッションとDBモデルを直接インポート
+from app.crud import staff as staff_crud
+from app.models import Staff as DBStaff  # auth_models.Staffと区別するため別名にする
+
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -16,7 +19,7 @@ def login():
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
-        staff_info = database.get_staff_by_username(username)
+        staff_info = staff_crud.get_staff_by_username(username)
 
         # ユーザーが存在し、かつパスワードが正しいかチェック
         # check_password_hashが、入力されたパスワードとDBのハッシュ値を比較してくれます。
@@ -33,13 +36,11 @@ def login():
             # セッショントークン生成
             new_token = os.urandom(24).hex()  # 24バイトのランダムな文字列
 
-            # トークン保存
+            # トークン保存 (ここはCRUD関数がないため直接DB操作)
             try:
-                db = database.SessionLocal()
-                # ここではDB操作なので database.Staff (SQLAlchemyモデル) を参照します
-                # ※ app/core/database.py の修正が進んでいれば、本来は app.models.Staff を使うべきですが
-                # database.py 内部で定義またはインポートされている Staff を使います。
-                db_staff = db.query(database.Staff).filter(database.Staff.id == staff.id).first()
+                db = SessionLocal()
+                # app.models.Staff (DBStaff) を使用
+                db_staff = db.query(DBStaff).filter(DBStaff.id == staff.id).first()
                 if db_staff:
                     db_staff.session_token = new_token
                     db.commit()

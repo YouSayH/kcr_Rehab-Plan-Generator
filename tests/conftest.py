@@ -8,7 +8,7 @@ import app.core.database as database
 
 # ファクトリ関数をインポート
 from app import create_app
-from app.core.database import Base, Staff
+from app.models import Base, Staff
 
 
 # クラス定義にはデコレータをつけない
@@ -44,6 +44,7 @@ def app():
     })
 
     # テストごとにテーブルを作成
+    # 【注意】Baseは app.models からインポートしたものを使用
     with flask_app.app_context():
         Base.metadata.create_all(bind=test_engine)
         yield flask_app

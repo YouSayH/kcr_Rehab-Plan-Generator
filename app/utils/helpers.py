@@ -1,5 +1,6 @@
 
-import app.core.database as database
+from app.crud import plan as plan_crud
+from app.crud import staff as staff_crud
 
 
 def has_permission_for_patient(user, patient_id):
@@ -15,7 +16,7 @@ def has_permission_for_patient(user, patient_id):
         return True
 
     # 担当患者リストを取得してチェック
-    assigned_patients = database.get_assigned_patients(user.id)
+    assigned_patients = staff_crud.get_assigned_patients(user.id)
     # 効率化のため、IDのセットを作成して存在確認
     assigned_patient_ids = {p["patient_id"] for p in assigned_patients}
 
@@ -33,7 +34,7 @@ def get_plan_checked(plan_id, user):
         ValueError: 計画書が存在しない場合
         PermissionError: アクセス権限がない場合
     """
-    plan_data = database.get_plan_by_id(plan_id)
+    plan_data = plan_crud.get_plan_by_id(plan_id)
     if not plan_data:
         raise ValueError("Plan not found")
 

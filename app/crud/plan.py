@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import DECIMAL, Boolean, Date, Integer, func
 from sqlalchemy.dialects.mysql import insert as mysql_insert
 
-from app.core.database import SessionLocal
+import app.core.database as database
 from app.models import LikedItemDetail, RegenerationHistory, RehabilitationPlan, SuggestionLike
 
 
@@ -15,7 +15,7 @@ def save_new_plan(patient_id: int, staff_id: int, form_data: dict, liked_items: 
     plan_idを無視し、各値を正しい型に変換して堅牢に保存する。
     いいね情報のスナップショットも一緒に保存する。
     """
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         # 新しい計画書オブジェクトを作成
         new_plan = RehabilitationPlan(
@@ -79,7 +79,7 @@ def save_new_plan(patient_id: int, staff_id: int, form_data: dict, liked_items: 
 
 def get_plan_by_id(plan_id: int):
     """plan_idを使って単一の計画書データを取得する"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         plan = db.query(RehabilitationPlan).filter(RehabilitationPlan.plan_id == plan_id).first()
         if not plan:
@@ -119,7 +119,7 @@ def save_suggestion_like(patient_id: int, item_key: str, liked_model: str, staff
     - liked_modelがnullでなければ、その評価を保存（UPSERT）。
     - liked_modelがnullであれば、その評価を削除。
     """
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         # いいねを追加または更新 (UPSERT)
         stmt = mysql_insert(SuggestionLike).values(
@@ -141,7 +141,7 @@ def save_suggestion_like(patient_id: int, item_key: str, liked_model: str, staff
 
 def delete_suggestion_like(patient_id: int, item_key: str, liked_model: str):
     # いいね評価の削除
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         db.query(SuggestionLike).filter_by(patient_id=patient_id, item_key=item_key, liked_model=liked_model).delete(
             synchronize_session=False
@@ -156,7 +156,7 @@ def delete_suggestion_like(patient_id: int, item_key: str, liked_model: str):
 
 def delete_all_likes_for_patient(patient_id: int):
     """特定の患者に紐づく全ての一時的な「いいね」情報を削除する"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         db.query(SuggestionLike).filter(SuggestionLike.patient_id == patient_id).delete(synchronize_session=False)
         db.commit()
@@ -169,7 +169,7 @@ def delete_all_likes_for_patient(patient_id: int):
 
 def get_likes_by_patient_id(patient_id: int) -> dict:
     """特定の患者に紐づく全ての「いいね」情報を取得する"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         likes = db.query(SuggestionLike).filter(SuggestionLike.patient_id == patient_id).all()
         if not likes:
@@ -190,7 +190,7 @@ def get_likes_by_patient_id(patient_id: int) -> dict:
 
 def save_all_suggestion_details(rehabilitation_plan_id: int, staff_id: int, suggestions: dict, therapist_notes: str, patient_info: dict, liked_items: dict, editable_keys: list):
     """全てのAI提案といいね情報を liked_item_details テーブルに保存する"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         details_to_save = []
         patient_info_json = json.dumps(patient_info, ensure_ascii=False, default=str)
@@ -235,7 +235,7 @@ def save_all_suggestion_details(rehabilitation_plan_id: int, staff_id: int, sugg
 
 def get_all_liked_item_details():
     """すべてのいいね詳細情報を取得する (集計用)"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         details = db.query(LikedItemDetail).all()
         return [{c.name: getattr(d, c.name) for c in d.__table__.columns} for d in details]
@@ -244,7 +244,7 @@ def get_all_liked_item_details():
 
 def get_plans_with_liked_details_for_patient(patient_id: int):
     """指定された患者の、いいね詳細情報が含まれる計画書のリストを取得する"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         plans = (
             db.query(RehabilitationPlan.plan_id, RehabilitationPlan.created_at)
@@ -261,7 +261,7 @@ def get_plans_with_liked_details_for_patient(patient_id: int):
 
 def get_liked_item_details_by_plan_id(plan_id: int):
     """指定されたplan_idに紐づく、すべてのいいね詳細情報を取得する"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         details = db.query(LikedItemDetail).filter(LikedItemDetail.rehabilitation_plan_id == plan_id).all()
         # SQLAlchemyオブジェクトを辞書のリストに変換して返す
@@ -276,7 +276,7 @@ def save_regeneration_history(rehabilitation_plan_id: int, history_data: list):
     if not history_data:
         return
 
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         history_records = []
         for item in history_data:
@@ -302,7 +302,7 @@ def save_regeneration_history(rehabilitation_plan_id: int, history_data: list):
 
 def get_all_regeneration_history():
     """すべての再生成履歴を取得する"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         results = db.query(RegenerationHistory.item_key, RegenerationHistory.model_type).all()
         # SQLAlchemyの結果オブジェクトを辞書のリストに変換して返す
@@ -314,7 +314,7 @@ def save_liked_item_details(
     rehabilitation_plan_id: int, staff_id: int, liked_items: dict, suggestions: dict, therapist_notes: str, patient_info: dict
 ):
     """【旧関数・削除予定】いいねされた項目の詳細情報を liked_item_details テーブルに保存する"""
-    db = SessionLocal()
+    db = database.SessionLocal()
     try:
         details_to_save = []
         patient_info_json = json.dumps(patient_info, ensure_ascii=False, default=str)

@@ -5,9 +5,14 @@ from flask import Response, jsonify, request
 from flask_login import current_user, login_required
 
 # アプリケーション内モジュール
-import app.core.database as database
 import app.services.llm.gemini_client as gemini_client
 import app.services.llm.ollama_client as ollama_client
+from app.core.database import SessionLocal
+from app.crud import patient as patient_crud
+from app.crud import plan as plan_crud
+
+# 履歴取得用にモデルとセッションをインポート
+from app.models import RehabilitationPlan
 from app.services.rag_manager import (
     DEFAULT_RAG_PIPELINE,
     LLM_CLIENT_TYPE,
@@ -34,11 +39,11 @@ def generate_general_stream():
             return Response("権限がありません。", status=403)
 
         # データベースから患者データを取得
-        patient_data = database.get_patient_data_for_plan(patient_id)
+        patient_data = patient_crud.get_patient_data_for_plan(patient_id)
         if not patient_data:
             return Response("患者データが見つかりません。", status=404)
 
-        # 担当者の所見を患者データに含める
+        # 担当者の所見を患者データに含める（gemini_client側でここから読み取るため）
         patient_data["therapist_notes"] = therapist_notes
 
         stream_generator = None
@@ -46,13 +51,19 @@ def generate_general_stream():
         if LLM_CLIENT_TYPE == "ollama":
             print("--- Ollama (local) クライアントで汎用モデルを実行します ---")
             logger.info(f"Calling Ollama general stream for patient_id: {patient_id}")
+            # Ollamaクライアントのインターフェースに合わせて呼び出し
+            # (liked_itemsやtherapist_notesを含めるかはOllamaClientの実装次第ですが、ここではpatient_dataに含めて渡す形を維持)
+            patient_data["therapist_notes"] = therapist_notes
             stream_generator = ollama_client.generate_ollama_plan_stream(patient_data)
         else:  # デフォルトは 'gemini'
             print("--- Gemini (cloud) クライアントで汎用モデルを実行します ---")
             logger.info(f"Calling Gemini general stream for patient_id: {patient_id}")
-            stream_generator = gemini_client.generate_general_plan_stream(patient_data)
 
-        # 結果をストリーミングでフロントエンドに返す
+            # 正しい関数名に変更し、引数を合わせる
+            stream_generator = gemini_client.generate_general_plan_stream(
+                patient_data=patient_data
+            )
+
         return Response(stream_generator, mimetype="text/event-stream")
 
     except ValueError:
@@ -80,7 +91,7 @@ def generate_rag_stream(pipeline_name):
             return Response("権限がありません。", status=403)
 
         # データベースから患者データを取得
-        patient_data = database.get_patient_data_for_plan(patient_id)
+        patient_data = patient_crud.get_patient_data_for_plan(patient_id)
         if not patient_data:
             return Response("患者データが見つかりません。", status=404)
 
@@ -96,17 +107,21 @@ def generate_rag_stream(pipeline_name):
         if LLM_CLIENT_TYPE == "ollama" and hasattr(ollama_client, "generate_rag_plan_stream"):
             print("--- Ollama (local) クライアントでRAGモデルを実行します ---")
             logger.info(f"Calling Ollama RAG stream for patient_id: {patient_id}")
+            patient_data["therapist_notes"] = therapist_notes
             stream_generator = ollama_client.generate_rag_plan_stream(patient_data, rag_executor)
         else:
             if LLM_CLIENT_TYPE == "ollama":
-                print(
-                    "--- [警告] OllamaクライアントにRAG初期生成(generate_rag_plan_stream)が実装されていません。Geminiクライアントでフォールバックします。---"
-                )
+                print("--- [警告] OllamaクライアントにRAG初期生成(generate_rag_plan_stream)が実装されていません。Geminiクライアントでフォールバックします。---")
                 logger.warning("Ollama client missing 'generate_rag_plan_stream'. Falling back to Gemini.")
 
             print("--- Gemini (cloud) クライアントでRAGモデルを実行します ---")
             logger.info(f"Calling Gemini RAG stream for patient_id: {patient_id}")
-            stream_generator = gemini_client.generate_rag_plan_stream(patient_data, rag_executor)
+
+            # 【修正】正しい関数名に変更し、引数を合わせる
+            stream_generator = gemini_client.generate_rag_plan_stream(
+                patient_data=patient_data,
+                rag_executor=rag_executor
+            )
 
         return Response(stream_generator, mimetype="text/event-stream")
 
@@ -136,14 +151,15 @@ def like_suggestion():
     try:
         # どのユーザーが評価したかを記録するために current_user.id も渡します
         if liked_model:
-            database.save_suggestion_like(
+            plan_crud.save_suggestion_like(
                 patient_id=patient_id, item_key=item_key, liked_model=liked_model, staff_id=current_user.id
             )
         else:
             # いいね削除
             model_to_delete = data.get("model_to_delete")
             if model_to_delete:
-                database.delete_suggestion_like(patient_id=patient_id, item_key=item_key, liked_model=model_to_delete)
+                plan_crud.delete_suggestion_like(patient_id=patient_id, item_key=item_key, liked_model=model_to_delete)
+
         return jsonify({"status": "success", "message": f"項目「{item_key}」の評価を保存しました。"})
     except Exception as e:
         logger.error(f"Error saving suggestion like: {e}")
@@ -160,7 +176,7 @@ def regenerate_item():
         item_key = data.get("item_key")
         current_text = data.get("current_text", "")
         instruction = data.get("instruction", "")
-        therapist_notes = data.get("therapist_notes", "")
+        # therapist_notes = data.get("therapist_notes", "") # 必要であれば取得
         model_type = data.get("model_type")  # 'general' or 'specialized'
         pipeline_name = data.get("pipeline_name", DEFAULT_RAG_PIPELINE)
 
@@ -172,11 +188,9 @@ def regenerate_item():
             return Response("権限がありません。", status=403)
 
         # 患者データを取得
-        patient_data = database.get_patient_data_for_plan(patient_id)
+        patient_data = patient_crud.get_patient_data_for_plan(patient_id)
         if not patient_data:
             return Response("患者データが見つかりません。", status=404)
-
-        patient_data["therapist_notes"] = therapist_notes
 
         # モデルタイプに応じてRAG Executorを準備
         rag_executor = None
@@ -224,11 +238,25 @@ def get_plan_history(patient_id):
     if not has_permission_for_patient(current_user, patient_id):
         return jsonify({"error": "権限がありません。"}), 403
 
+    # 【修正】履歴リストの取得 (CRUDにはないためSessionLocalを使用)
+    session = SessionLocal()
     try:
-        history = database.get_plan_history_for_patient(patient_id)
-        # 日付を読みやすいフォーマットに変換
-        for item in history:
-            item["created_at"] = item["created_at"].strftime("%Y-%m-%d %H:%M:%S")
+        plans = (
+            session.query(RehabilitationPlan.plan_id, RehabilitationPlan.created_at)
+            .filter(RehabilitationPlan.patient_id == patient_id)
+            .order_by(RehabilitationPlan.created_at.desc())
+            .all()
+        )
+        history = [
+            {
+                "plan_id": p.plan_id,
+                "created_at": p.created_at.strftime("%Y-%m-%d %H:%M:%S") if p.created_at else "不明"
+            }
+            for p in plans
+        ]
         return jsonify(history)
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error fetching plan history: {e}")
+        return jsonify({"error": "履歴の取得中にエラーが発生しました。"}), 500
+    finally:
+        session.close()

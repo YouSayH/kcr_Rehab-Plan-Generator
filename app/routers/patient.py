@@ -3,10 +3,11 @@ import logging
 
 from flask import Blueprint, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import login_required
-from sqlalchemy import text
 
 # 自作のPythonファイルをインポート
-import app.core.database as database
+from app.core.database import SessionLocal
+from app.crud import patient as patient_crud
+from app.models import Patient, RehabilitationPlan
 from app.services.rag_manager import patient_info_parser
 
 # Blueprint作成
@@ -23,20 +24,22 @@ def edit_patient_info():
     all_patients = []
     current_patient_id = request.args.get("patient_id", type=int)
 
-    session = database.SessionLocal()
+    session = SessionLocal()
 
     try:
-        # プルダウン用に全患者のリストを取得
-        all_patients_result = session.execute(text("SELECT patient_id, name FROM patients ORDER BY name"))
-        all_patients = all_patients_result.mappings().all()
+        # # プルダウン用に全患者のリストを取得
+        # all_patients = session.execute(text("SELECT patient_id, name FROM patients ORDER BY name")).mappings().all()
+        all_patients = patient_crud.get_all_patients()
 
         if current_patient_id:
-            # --- データ取得ロジックをORMに統一 ---
+            # --- グラフ・履歴表示用のデータ取得ロジック ---
+            # ※この特定用途のロジックはCRUD化していないため、モデルを直接操作します
+
             # 1. 最新7件の計画書データをORMオブジェクトとして取得
             latest_plans = (
-                session.query(database.RehabilitationPlan)
-                .filter(database.RehabilitationPlan.patient_id == current_patient_id)
-                .order_by(database.RehabilitationPlan.created_at.desc())
+                session.query(RehabilitationPlan)  # app.models.RehabilitationPlanを使用
+                .filter(RehabilitationPlan.patient_id == current_patient_id)
+                .order_by(RehabilitationPlan.created_at.desc())
                 .limit(7)
                 .all()
             )
@@ -62,23 +65,25 @@ def edit_patient_info():
 
                 # 履歴ドロップダウン用に、全計画書のIDと作成日時を準備
                 all_plans_query = (
-                    session.query(database.RehabilitationPlan.plan_id, database.RehabilitationPlan.created_at)
-                    .filter(database.RehabilitationPlan.patient_id == current_patient_id)
-                    .order_by(database.RehabilitationPlan.created_at.desc())
+                    session.query(RehabilitationPlan.plan_id, RehabilitationPlan.created_at)
+                    .filter(RehabilitationPlan.patient_id == current_patient_id)
+                    .order_by(RehabilitationPlan.created_at.desc())
                     .all()
                 )
                 plan_history = [{"plan_id": p.plan_id, "created_at": p.created_at} for p in all_plans_query if p.created_at]
 
             else:
                 # 計画書が1件もない場合 (新規患者など)
-                patient_obj = session.query(database.Patient).filter(database.Patient.patient_id == current_patient_id).first()
+                # app.models.Patient を使用
+                patient_obj = session.query(Patient).filter(Patient.patient_id == current_patient_id).first()
                 if patient_obj:
                     patient_data = {c.name: getattr(patient_obj, c.name) for c in patient_obj.__table__.columns}
                     patient_data["age"] = patient_obj.age
                 else:
                     flash(f"ID:{current_patient_id}の患者データが見つかりません。", "warning")
 
-    except Exception:
+    except Exception as e:
+        logger.error(f"edit_patient_info error: {e}")
         flash("無効な患者IDです。", "danger")
     finally:
         session.close()
@@ -165,7 +170,7 @@ def save_patient_info():
         form_data.update(additional_data)
 
         # データベースに保存処理を実行
-        saved_patient_id = database.save_patient_master_data(form_data)
+        saved_patient_id = patient_crud.save_patient_master_data(form_data)
 
         flash("患者情報を正常に保存しました。", "success")
         # 保存後、今編集していた患者が選択された状態で同ページにリダイレクト

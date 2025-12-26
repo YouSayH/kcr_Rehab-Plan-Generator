@@ -31,9 +31,6 @@ def test_login_success(client, app, db_session):
 
     with app.test_request_context():
         login_url = url_for('auth.login')
-        # indexはplanブループリント配下
-        # テンプレート側がまだ修正されていない場合でも、URL生成自体は成功するはず
-        # もしテンプレートエラーが出るなら、まずはログイン成功後のリダイレクト(302)を確認するだけでも良い
 
     # 2. ログイン試行
     response = client.post(login_url, data={
@@ -99,31 +96,25 @@ def test_user_loader(app, db_session):
         password="pw",
         occupation="OT",
         role="staff",
-        session_token=token  # トークンを予め設定しておく
+        session_token=token
     )
     db_session.add(staff)
     db_session.commit()
 
     # 2. テストリクエストコンテキスト内で load_user を実行
     with app.test_request_context():
-        # セッションにトークンがある状態をシミュレート
         session["session_token"] = token
 
-        # アプリに登録されている user_loader コールバック関数を取得
-        # (app/__init__.py で @login_manager.user_loader デコレータをつけた関数)
         loader = app.login_manager._user_callback
-
-        # 実行 (ここで app/__init__.py の load_user が走る)
         loaded_user = loader(str(staff.id))
 
         # 検証
         assert loaded_user is not None
-        # 正しいクラス(AuthStaff)のインスタンスかチェック
         assert isinstance(loaded_user, AuthStaff)
         # 型の違い(int vs str)を吸収して比較、またはint同士で比較
         assert int(loaded_user.id) == staff.id
         assert loaded_user.username == "loader_test"
 
-        # セッショントークンが一致しない場合は None が返るべき（セキュリティチェック）
+        # セッショントークン不一致のテスト
         session["session_token"] = "invalid_token"
         assert loader(str(staff.id)) is None

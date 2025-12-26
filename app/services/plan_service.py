@@ -2,8 +2,11 @@ import json
 import logging
 import os
 
-import app.core.database as database
 import app.services.excel_writer as excel_writer
+from app.crud import patient as patient_crud
+
+# 【変更】databaseモジュールへの依存をCRUDモジュールへ置き換え
+from app.crud import plan as plan_crud
 
 logger = logging.getLogger(__name__)
 
@@ -59,16 +62,16 @@ def execute_save_workflow(staff_id, patient_id, form_data):
     regeneration_history_json = form_data.get("regeneration_history", "[]")
 
     # この患者の現在の「いいね」情報を取得（計画書のスナップショット用）
-    liked_items = database.get_likes_by_patient_id(patient_id)
+    liked_items = plan_crud.get_likes_by_patient_id(patient_id)
 
     # データベースに新しい計画として保存し、そのIDを取得
-    new_plan_id = database.save_new_plan(patient_id, staff_id, form_data, liked_items)
+    new_plan_id = plan_crud.save_new_plan(patient_id, staff_id, form_data, liked_items)
 
     # 全てのAI提案詳細情報を保存
     # 患者情報スナップショット用に、再度患者データを取得
-    patient_info_snapshot = database.get_patient_data_for_plan(patient_id)
+    patient_info_snapshot = patient_crud.get_patient_data_for_plan(patient_id)
 
-    database.save_all_suggestion_details(
+    plan_crud.save_all_suggestion_details(
         rehabilitation_plan_id=new_plan_id,
         staff_id=staff_id,
         suggestions=suggestions,
@@ -81,12 +84,12 @@ def execute_save_workflow(staff_id, patient_id, form_data):
     # 再生成履歴を保存
     try:
         regeneration_history = json.loads(regeneration_history_json)
-        database.save_regeneration_history(new_plan_id, regeneration_history)
+        plan_crud.save_regeneration_history(new_plan_id, regeneration_history)
     except (json.JSONDecodeError, TypeError) as e:
         logger.warning(f"再生成履歴の処理中にエラーが発生しました: {e}")
 
     # Excel出力用に、DBに保存されたばかりの計画データをIDで再取得
-    plan_data_for_excel = database.get_plan_by_id(new_plan_id)
+    plan_data_for_excel = plan_crud.get_plan_by_id(new_plan_id)
     if not plan_data_for_excel:
         # このエラーは通常発生しないはず
         raise ValueError("保存した計画データの再取得に失敗しました。")
@@ -97,6 +100,6 @@ def execute_save_workflow(staff_id, patient_id, form_data):
     output_filename = os.path.basename(output_filepath)
 
     # 一時的ないいね情報を削除
-    database.delete_all_likes_for_patient(patient_id)
+    plan_crud.delete_all_likes_for_patient(patient_id)
 
     return output_filename

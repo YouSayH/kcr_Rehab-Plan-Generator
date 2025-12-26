@@ -6,12 +6,16 @@ from flask import Response, flash, jsonify, redirect, render_template, request, 
 from flask_login import current_user, login_required
 
 # アプリケーション内モジュール
-import app.core.database as database
 import app.services.excel_writer as excel_writer
 import app.services.plan_service as plan_service
 from app.constants import ITEM_KEY_TO_JAPANESE
+from app.core.database import SessionLocal  # 履歴取得クエリ用
+from app.crud import patient as patient_crud
+from app.crud import plan as plan_crud
+from app.crud import staff as staff_crud
+from app.models import RehabilitationPlan  # 履歴取得クエリ用
 from app.services.rag_manager import DEFAULT_RAG_PIPELINE
-from app.utils.helpers import get_plan_checked, has_permission_for_patient
+from app.utils.helpers import has_permission_for_patient
 
 # Blueprintのインポート
 from . import plan_bp
@@ -23,7 +27,7 @@ logger = logging.getLogger(__name__)
 def index():
     """トップページ。担当患者のみ表示"""
     try:
-        assigned_patients = database.get_assigned_patients(current_user.id)
+        assigned_patients = staff_crud.get_assigned_patients(current_user.id)
         return render_template("index.html", patients=assigned_patients)
     except Exception as e:
         flash(f"データベース接続エラー: {e}", "danger")
@@ -45,7 +49,7 @@ def generate_plan():
             return redirect(url_for("plan.index"))
 
         # 患者の基本情報と「最新の」計画書データを取得
-        patient_data = database.get_patient_data_for_plan(patient_id)
+        patient_data = patient_crud.get_patient_data_for_plan(patient_id)
         if not patient_data:
             flash(f"ID:{patient_id}の患者データが見つかりません。", "warning")
             return redirect(url_for("plan.index"))
@@ -63,12 +67,13 @@ def generate_plan():
             specialized_plan[key] = ""
 
         # 履歴ドロップダウン用に、全計画書のIDと作成日時を準備
-        session = database.SessionLocal()
+        # ここはCRUD化せず、SessionLocalとモデルを使って直接クエリを実行
+        session = SessionLocal()
         try:
             all_plans_query = (
-                session.query(database.RehabilitationPlan.plan_id, database.RehabilitationPlan.created_at)
-                .filter(database.RehabilitationPlan.patient_id == patient_id)
-                .order_by(database.RehabilitationPlan.created_at.desc())
+                session.query(RehabilitationPlan.plan_id, RehabilitationPlan.created_at)
+                .filter(RehabilitationPlan.patient_id == patient_id)
+                .order_by(RehabilitationPlan.created_at.desc())
                 .all()
             )
             plan_history = [{"plan_id": p.plan_id, "created_at": p.created_at} for p in all_plans_query if p.created_at]
@@ -102,13 +107,13 @@ def generate_plan():
 @login_required
 def save_plan():
     """計画の保存とダウンロードページへのリダイレクト"""
-    patient_id = int(request.form.get("patient_id"))
-
-    if not has_permission_for_patient(current_user, patient_id):
-        flash("権限がありません。", "danger")
-        return redirect(url_for("plan.index"))
-
     try:
+        patient_id = int(request.form.get("patient_id"))
+
+        if not has_permission_for_patient(current_user, patient_id):
+            flash("権限がありません。", "danger")
+            return redirect(url_for("plan.index"))
+
         form_data = request.form.to_dict()
 
         # Service層へ委譲：保存ワークフローを実行し、生成されたファイル名を取得
@@ -142,7 +147,8 @@ def preview_plan():
             return Response("権限がありません。", status=403)
 
         form_data = request.form.to_dict()
-        patient_data = database.get_patient_data_for_plan(patient_id)
+
+        patient_data = patient_crud.get_patient_data_for_plan(patient_id)
         if not patient_data:
             return Response("患者データが見つかりません。", status=404)
 
@@ -164,11 +170,12 @@ def preview_plan():
 def render_plan_history(plan_id):
     """計画書の履歴表示用HTMLを返すAPI (サーバーサイドレンダリング)"""
     try:
-        try:
-            plan_data = get_plan_checked(plan_id, current_user)
-        except ValueError:
+        plan_data = plan_crud.get_plan_by_id(plan_id)
+        if not plan_data:
              return jsonify({"error": "Plan not found"}), 404
-        except PermissionError:
+
+        # 権限チェック
+        if not has_permission_for_patient(current_user, plan_data["patient_id"]):
              return jsonify({"error": "Permission denied"}), 403
 
         response_format = request.args.get('format', 'html')
@@ -190,7 +197,7 @@ def render_plan_history(plan_id):
 def view_plan(plan_id):
     """特定の計画書を閲覧するページ"""
     try:
-        plan_data = database.get_plan_by_id(plan_id)
+        plan_data = plan_crud.get_plan_by_id(plan_id)
         if not plan_data:
             flash("指定された計画書が見つかりません。", "danger")
             return redirect(url_for("plan.index"))
