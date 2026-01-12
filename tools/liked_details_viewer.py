@@ -14,7 +14,7 @@ app = Flask(__name__)
 def index():
     """
     いいね詳細閲覧システムのトップページ。
-    【修正】いいねの有無にかかわらず、すべての職員リストを表示する。
+    いいねの有無にかかわらず、すべての職員リストを表示する。
     """
     # いいねをしたことがある職員ではなく、全ての職員を取得するように変更
     # staff_list = database.get_staff_with_liked_items()
@@ -22,7 +22,7 @@ def index():
     return render_template('liked_details_viewer.html', staff_list=staff_list)
 
 
-# --- 以下、JavaScriptからの動的なデータ取得リクエストに応答するAPI ---
+# 以下、JavaScriptからの動的なデータ取得リクエストに応答するAPI
 
 @app.route('/api/get_patients_for_staff/<int:staff_id>')
 def get_patients_for_staff(staff_id):
@@ -38,7 +38,7 @@ def get_plans_for_patient(patient_id):
     """
     指定された患者の、いいねが含まれる計画書のリストを返すAPI。
     """
-    # 【修正】新しいいいねテーブルを参照する関数を呼び出す
+    # 新しいいいねテーブルを参照する関数を呼び出す
     plans = database.get_plans_with_liked_details_for_patient(patient_id)
     # 日付をフォーマットして返す
     formatted_plans = [
@@ -57,7 +57,7 @@ def regeneration_summary_page():
 
 @app.route("/api/regeneration_summary")
 def get_regeneration_summary():
-    """【修正】再生成回数の集計結果をリスト形式のJSONで返すAPI"""
+    """再生成回数の集計結果をリスト形式のJSONで返すAPI"""
     try:
         # データベースから全ての再生成履歴を取得
         history = database.get_all_regeneration_history()
@@ -71,7 +71,7 @@ def get_regeneration_summary():
                 if model_type in summary[item_key]:
                     summary[item_key][model_type] += 1
 
-        # 【修正】confirm.htmlの表示順にソートするためのリストを作成
+        # confirm.htmlの表示順にソートするためのリストを作成
         summary_list = []
         # ITEM_KEY_TO_JAPANESE のキーの順序を基準にループする
         for item_key, japanese_name in ITEM_KEY_TO_JAPANESE.items():
