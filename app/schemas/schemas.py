@@ -1011,129 +1011,168 @@ class PatientInfo_Nutrition_Prompt(BaseModel):
     nutrition_status_assessment_slct: Optional[Literal['no_problem', 'malnutrition', 'malnutrition_risk', 'overnutrition', 'other']] = Field(None, description="栄養状態評価")
 
 
-class HybridStep1A_1_FIM_Motor_SelfCare_ADL(BaseModel):
-    """Step 1-A1: FIM 運動項目 (セルフケア: 食事〜トイレ動作)"""
-    # 6項目 (Eating, Grooming, Bathing, Dressing U/L, Toileting)
-    adl_eating_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_eating_fim_start_val'))
-    adl_eating_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_eating_fim_current_val'))
-    adl_grooming_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_fim_start_val'))
-    adl_grooming_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_fim_current_val'))
-    adl_bathing_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_fim_start_val'))
-    adl_bathing_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_fim_current_val'))
-    adl_dressing_upper_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_upper_fim_start_val'))
-    adl_dressing_upper_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_upper_fim_current_val'))
-    adl_dressing_lower_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_lower_fim_start_val'))
-    adl_dressing_lower_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_lower_fim_current_val'))
-    adl_toileting_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_fim_start_val'))
-    adl_toileting_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_fim_current_val'))
+# class HybridStep1A_1_FIM_Motor_SelfCare_ADL(BaseModel):
+#     """Step 1-A1: FIM 運動項目 (セルフケア: 食事〜トイレ動作)"""
+#     # 6項目 (Eating, Grooming, Bathing, Dressing U/L, Toileting)
+#     adl_eating_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_eating_fim_start_val'))
+#     adl_eating_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_eating_fim_current_val'))
+#     adl_grooming_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_fim_start_val'))
+#     adl_grooming_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_grooming_fim_current_val'))
+#     adl_bathing_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_fim_start_val'))
+#     adl_bathing_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bathing_fim_current_val'))
+#     adl_dressing_upper_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_upper_fim_start_val'))
+#     adl_dressing_upper_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_upper_fim_current_val'))
+#     adl_dressing_lower_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_lower_fim_start_val'))
+#     adl_dressing_lower_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_dressing_lower_fim_current_val'))
+#     adl_toileting_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_fim_start_val'))
+#     adl_toileting_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_toileting_fim_current_val'))
 
-class HybridStep1A_2_FIM_Motor_Mobility_ADL(BaseModel):
-    """Step 1-A2: FIM 運動項目 (排泄管理・移乗・移動)"""
-    # 7項目 (Bladder, Bowel, Transfer x3, Locomotion x2)
-    adl_bladder_management_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_fim_start_val'))
-    adl_bladder_management_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_fim_current_val'))
-    adl_bowel_management_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_fim_start_val'))
-    adl_bowel_management_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_fim_current_val'))
-    adl_transfer_bed_chair_wc_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bed_chair_wc_fim_start_val'))
-    adl_transfer_bed_chair_wc_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bed_chair_wc_fim_current_val'))
-    adl_transfer_toilet_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_toilet_fim_start_val'))
-    adl_transfer_toilet_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_toilet_fim_current_val'))
-    adl_transfer_tub_shower_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_tub_shower_fim_start_val'))
-    adl_transfer_tub_shower_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_tub_shower_fim_current_val'))
-    adl_locomotion_walk_walkingAids_wc_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_fim_start_val'))
-    adl_locomotion_walk_walkingAids_wc_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_fim_current_val'))
-    adl_locomotion_stairs_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_fim_start_val'))
-    adl_locomotion_stairs_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_fim_current_val'))
+# class HybridStep1A_2_FIM_Motor_Mobility_ADL(BaseModel):
+#     """Step 1-A2: FIM 運動項目 (排泄管理・移乗・移動)"""
+#     # 7項目 (Bladder, Bowel, Transfer x3, Locomotion x2)
+#     adl_bladder_management_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_fim_start_val'))
+#     adl_bladder_management_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bladder_management_fim_current_val'))
+#     adl_bowel_management_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_fim_start_val'))
+#     adl_bowel_management_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_bowel_management_fim_current_val'))
+#     adl_transfer_bed_chair_wc_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bed_chair_wc_fim_start_val'))
+#     adl_transfer_bed_chair_wc_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_bed_chair_wc_fim_current_val'))
+#     adl_transfer_toilet_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_toilet_fim_start_val'))
+#     adl_transfer_toilet_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_toilet_fim_current_val'))
+#     adl_transfer_tub_shower_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_tub_shower_fim_start_val'))
+#     adl_transfer_tub_shower_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_transfer_tub_shower_fim_current_val'))
+#     adl_locomotion_walk_walkingAids_wc_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_fim_start_val'))
+#     adl_locomotion_walk_walkingAids_wc_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_walk_walkingAids_wc_fim_current_val'))
+#     adl_locomotion_stairs_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_fim_start_val'))
+#     adl_locomotion_stairs_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_locomotion_stairs_fim_current_val'))
 
-class HybridStep1A_3_FIM_Cognitive_ADL(BaseModel):
-    """Step 1-A3: FIM 認知項目 (5項目)"""
-    # 前回と同じ (Cognitive Items)
-    adl_comprehension_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_comprehension_fim_start_val'))
-    adl_comprehension_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_comprehension_fim_current_val'))
-    adl_expression_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_expression_fim_start_val'))
-    adl_expression_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_expression_fim_current_val'))
-    adl_social_interaction_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_social_interaction_fim_start_val'))
-    adl_social_interaction_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_social_interaction_fim_current_val'))
-    adl_problem_solving_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_problem_solving_fim_start_val'))
-    adl_problem_solving_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_problem_solving_fim_current_val'))
-    adl_memory_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_memory_fim_start_val'))
-    adl_memory_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_memory_fim_current_val'))
-
-
-# --- Step 1-B: 基本情報・リスク・機能抽出 (記述・選択肢のみ) ---
-class HybridStep1B_Assessment(
-    PatientInfo_BasicMovements_Prompt, # 軽量版
-    PatientInfo_Nutrition_Prompt,      # 軽量版
-    PatientInfo_Social_Prompt,         # 軽量版
-    RisksAndPrecautions,               # 記述
-    FunctionalLimitations,             # 記述
-    BaseModel
-):
-    """Step 1-B: 基本動作・栄養・社会背景・リスク評価"""
-    # GLiNERの補完用
-    main_comorbidities_txt: str = Field(..., description="抽出された事実に基づき、併存疾患・合併症を列挙")
+# class HybridStep1A_3_FIM_Cognitive_ADL(BaseModel):
+#     """Step 1-A3: FIM 認知項目 (5項目)"""
+#     # 前回と同じ (Cognitive Items)
+#     adl_comprehension_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_comprehension_fim_start_val'))
+#     adl_comprehension_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_comprehension_fim_current_val'))
+#     adl_expression_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_expression_fim_start_val'))
+#     adl_expression_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_expression_fim_current_val'))
+#     adl_social_interaction_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_social_interaction_fim_start_val'))
+#     adl_social_interaction_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_social_interaction_fim_current_val'))
+#     adl_problem_solving_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_problem_solving_fim_start_val'))
+#     adl_problem_solving_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_problem_solving_fim_current_val'))
+#     adl_memory_fim_start_val: Optional[int] = Field(None, description=_get_desc('adl_memory_fim_start_val'))
+#     adl_memory_fim_current_val: Optional[int] = Field(None, description=_get_desc('adl_memory_fim_current_val'))
 
 
-# class HybridStep2_Goals(
-#     PatientInfo_Goals,              # 参加目標・目標文章 (既存)
-#     PatientInfo_Goal_Activity,      # ★追加: 活動目標 (goal_a_...)
-#     PatientInfo_Goal_Psychological, # ★追加: 心理的目標 (goal_s_psychological...)
-#     PatientInfo_Goal_Environment,   # ★追加: 環境因子 (goal_s_env...)
-#     PatientInfo_Goal_HumanFactors,  # ★追加: 人的因子 (goal_s_3rd_party...)
-#     Goals,                          # 目標文章 (短期・長期)
+# # --- Step 1-B: 基本情報・リスク・機能抽出 (記述・選択肢のみ) ---
+# class HybridStep1B_Assessment(
+#     PatientInfo_BasicMovements_Prompt, # 軽量版
+#     PatientInfo_Nutrition_Prompt,      # 軽量版
+#     PatientInfo_Social_Prompt,         # 軽量版
+#     RisksAndPrecautions,               # 記述
+#     FunctionalLimitations,             # 記述
 #     BaseModel
 # ):
-#     """Step 2: 目標設定（予後予測・ゴール）"""
-#     pass
+#     """Step 1-B: 基本動作・栄養・社会背景・リスク評価"""
+#     # GLiNERの補完用
+#     main_comorbidities_txt: str = Field(..., description="抽出された事実に基づき、併存疾患・合併症を列挙")
 
-class HybridStep2A_Goal_Social_Env(
-    PatientInfo_Goal_Environment,   # 環境因子
-    PatientInfo_Goal_HumanFactors,  # 人的因子
-    PatientInfo_Goal_Psychological, # 心理的目標
-    BaseModel
-):
-    """Step 2-A: 環境・心理・人的因子の目標設定"""
-    pass
 
-class HybridStep2B_Goal_Activity(
-    PatientInfo_Goal_Activity,      # 活動目標 (項目数が多いので独立)
-    BaseModel
-):
-    """Step 2-B: 活動項目の目標設定"""
-    pass
+# # class HybridStep2_Goals(
+# #     PatientInfo_Goals,              # 参加目標・目標文章 (既存)
+# #     PatientInfo_Goal_Activity,      # ★追加: 活動目標 (goal_a_...)
+# #     PatientInfo_Goal_Psychological, # ★追加: 心理的目標 (goal_s_psychological...)
+# #     PatientInfo_Goal_Environment,   # ★追加: 環境因子 (goal_s_env...)
+# #     PatientInfo_Goal_HumanFactors,  # ★追加: 人的因子 (goal_s_3rd_party...)
+# #     Goals,                          # 目標文章 (短期・長期)
+# #     BaseModel
+# # ):
+# #     """Step 2: 目標設定（予後予測・ゴール）"""
+# #     pass
 
-# class HybridStep3_Plan(
-#     TreatmentPolicy,              # 治療方針・プログラム
-#     ActionPlans,                  # アクションプラン
+# class HybridStep2A_Goal_Social_Env(
+#     PatientInfo_Goal_Environment,   # 環境因子
+#     PatientInfo_Goal_HumanFactors,  # 人的因子
+#     PatientInfo_Goal_Psychological, # 心理的目標
 #     BaseModel
 # ):
-#     """Step 3: 治療計画（具体的アプローチ）"""
+#     """Step 2-A: 環境・心理・人的因子の目標設定"""
 #     pass
 
-class HybridStep3_GoalTexts(
-    PatientInfo_Goals,              # 参加目標・退院先など (goal_p_..., goals_discharge...)
-    Goals,                          # 短期・長期目標文章 (goals_1_month_txt, goals_at_discharge_txt)
-    BaseModel
-):
-    """Step 3: 短期・長期目標の記述と社会参加目標"""
-    pass
+# class HybridStep2B_Goal_Activity(
+#     PatientInfo_Goal_Activity,      # 活動目標 (項目数が多いので独立)
+#     BaseModel
+# ):
+#     """Step 2-B: 活動項目の目標設定"""
+#     pass
+
+# # class HybridStep3_Plan(
+# #     TreatmentPolicy,              # 治療方針・プログラム
+# #     ActionPlans,                  # アクションプラン
+# #     BaseModel
+# # ):
+# #     """Step 3: 治療計画（具体的アプローチ）"""
+# #     pass
+
+# class HybridStep3_GoalTexts(
+#     PatientInfo_Goals,              # 参加目標・退院先など (goal_p_..., goals_discharge...)
+#     Goals,                          # 短期・長期目標文章 (goals_1_month_txt, goals_at_discharge_txt)
+#     BaseModel
+# ):
+#     """Step 3: 短期・長期目標の記述と社会参加目標"""
+#     pass
 
 
-# --- 【変更】Step 4: 治療計画 (旧 Step 3) ---
-class HybridStep4_Plan(
-    TreatmentPolicy,
-    ActionPlans,
+# # --- 【変更】Step 4: 治療計画 (旧 Step 3) ---
+# class HybridStep4_Plan(
+#     TreatmentPolicy,
+#     ActionPlans,
+#     BaseModel
+# ):
+#     """Step 4: 治療計画（具体的アプローチ）"""
+#     pass
+# HYBRID_GENERATION_GROUPS = [
+#     HybridStep1A_1_FIM_Motor_SelfCare_ADL,  # ① 運動:セルフケア
+#     HybridStep1A_2_FIM_Motor_Mobility_ADL,  # ② 運動:移乗・移動
+#     HybridStep1A_3_FIM_Cognitive_ADL,       # ③ 認知
+#     HybridStep1B_Assessment,                # ④ リスク・記述
+#     HybridStep2A_Goal_Social_Env,           # ⑤ 環境・心理 (Goal S)
+#     HybridStep2B_Goal_Activity,             # ⑥ 活動目標 (Goal A)
+#     HybridStep3_GoalTexts,                  # ⑦ 目標文章
+#     HybridStep4_Plan,                       # ⑧ 治療計画
+# ]
+
+
+# 統合スキーマ1: 抽出 (Extraction)
+# FIM数値、基本動作レベル、リスク記述、目標レベルなどを一括で抽出
+class HybridCombined_Extraction(
+    PatientInfo_ADL,                   # FIM数値 (18項目)
+    PatientInfo_BasicMovements_Prompt, # 基本動作レベル
+    PatientInfo_Nutrition_Prompt,      # 栄養
+    PatientInfo_Social_Prompt,         # 社会背景
+    RisksAndPrecautions,               # リスク記述
+    FunctionalLimitations,             # 機能障害記述
+    PatientInfo_Goal_Activity,         # 活動目標レベル
+    PatientInfo_Goal_Environment,      # 環境目標記述
+    PatientInfo_Goal_HumanFactors,     # 人的因子記述
+    PatientInfo_Goal_Psychological,    # 心理目標記述
     BaseModel
 ):
-    """Step 4: 治療計画（具体的アプローチ）"""
+    """統合Step 1: 全項目の数値・レベル・詳細記述を一括抽出"""
+    # GLiNER補完用
+    main_comorbidities_txt: str = Field(..., description="抽出された事実に基づき、併存疾患・合併症を要約")
+
+
+# 統合スキーマ2: 計画 (Plan)
+# 目標文章と治療プログラムを一括で生成
+class HybridCombined_Plan(
+    PatientInfo_Goals, # 参加目標など
+    Goals,             # 短期・長期目標文章
+    TreatmentPolicy,   # 治療方針
+    ActionPlans,       # 具体策
+    BaseModel
+):
+    """統合Step 2: 目標文章と治療計画の策定"""
     pass
-HYBRID_GENERATION_GROUPS = [
-    HybridStep1A_1_FIM_Motor_SelfCare_ADL,  # ① 運動:セルフケア
-    HybridStep1A_2_FIM_Motor_Mobility_ADL,  # ② 運動:移乗・移動
-    HybridStep1A_3_FIM_Cognitive_ADL,       # ③ 認知
-    HybridStep1B_Assessment,                # ④ リスク・記述
-    HybridStep2A_Goal_Social_Env,           # ⑤ 環境・心理 (Goal S)
-    HybridStep2B_Goal_Activity,             # ⑥ 活動目標 (Goal A)
-    HybridStep3_GoalTexts,                  # ⑦ 目標文章
-    HybridStep4_Plan,                       # ⑧ 治療計画
+
+# 新しいグループ定義
+HYBRID_COMBINED_GROUPS = [
+    HybridCombined_Extraction,
+    HybridCombined_Plan
 ]

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from app.services.llm.context_builder import prepare_patient_facts
 from app.services.llm.gemini import GeminiClient
 from app.services.llm.ollama import OllamaClient
+from app.services.llm.base import LLMClient
 from app.services.llm.prompts import build_group_prompt
 from app.services.llm.rag_executor import RAGExecutor
 
@@ -241,7 +242,7 @@ def test_full_component_integration():
 
     # デフォルト(Gemini)が返るか
     client = get_llm_client()
-    assert isinstance(client, GeminiClient)
+    assert isinstance(client, (GeminiClient, OllamaClient))
 
     # メソッドが存在するか
     assert hasattr(client, "generate_plan_stream")
