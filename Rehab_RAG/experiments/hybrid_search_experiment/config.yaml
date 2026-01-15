@@ -117,17 +117,17 @@ build_components:
   # [エンベッダー] テキストをどうベクトル化するか (GraphBuilder以外で必須)
   embedder:
     # ローカルモデル (デフォルト)→今後のデフォルトはgeminiで使う
-    # module: rag_components.embedders.sentence_transformer_embedder
-    # class: SentenceTransformerEmbedder
-    # params:
-    #   model_name: "cl-nagoya/ruri-v3-310m"
-    #   device: "auto"
+    module: rag_components.embedders.sentence_transformer_embedder
+    class: SentenceTransformerEmbedder
+    params:
+      model_name: "cl-nagoya/ruri-v3-310m"
+      device: "auto"
 
     # Gemini API
-    module: rag_components.embedders.gemini_embedder
-    class: GeminiEmbedder
-    params:
-      model_name: "gemini-embedding-001"
+    # module: rag_components.embedders.gemini_embedder
+    # class: GeminiEmbedder
+    # params:
+    #   model_name: "gemini-embedding-001"
 
 
 
@@ -164,33 +164,33 @@ build_components:
 query_components:
   # [LLM] (必須) 最終的な回答生成や、各種コンポーネント内で使用
   llm:
-    module: rag_components.llms.gemini_llm
-    class: GeminiLLM
-    params:
-      model_name: "gemini-2.5-flash-lite"
-      safety_block_none: true
-
-    # module: rag_components.llms.ollama_llm
-    # class: OllamaLLM
+    # module: rag_components.llms.gemini_llm
+    # class: GeminiLLM
     # params:
-    #   model_name: "hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M"
+    #   model_name: "gemini-2.5-flash-lite"
+    #   safety_block_none: true
+
+    module: rag_components.llms.ollama_llm
+    class: OllamaLLM
+    params:
+      model_name: "hf.co/unsloth/Qwen3-8B-GGUF:Q4_K_M"
 
 
   # [エンベッダー] (GraphRetriever以外で必須) ユーザーの質問をベクトル化
   # (注意) DB構築時(build_components)と必ず同じEmbedderを使用してください。
   embedder:
     # 例1: ローカルモデル (デフォルト)ー＞今後のデフォルトはgemini
-    # module: rag_components.embedders.sentence_transformer_embedder
-    # class: SentenceTransformerEmbedder
-    # params:
-    #   model_name: "cl-nagoya/ruri-v3-310m"
-    #   device: "auto"
+    module: rag_components.embedders.sentence_transformer_embedder
+    class: SentenceTransformerEmbedder
+    params:
+      model_name: "cl-nagoya/ruri-v3-310m"
+      device: "auto"
 
     # 例2: Gemini API
-    module: rag_components.embedders.gemini_embedder
-    class: GeminiEmbedder
-    params:
-      model_name: "gemini-embedding-001"
+    # module: rag_components.embedders.gemini_embedder
+    # class: GeminiEmbedder
+    # params:
+    #   model_name: "gemini-embedding-001"
 
 
 

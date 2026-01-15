@@ -35,6 +35,21 @@ class OllamaClient(LLMClient):
     Ollamaを使用したLLMクライアントの実装
     """
 
+    def __init__(self):
+        """
+        初期化処理: 環境変数からモデル名を設定する
+        """
+        # メインの生成用モデル
+        self.model_name = os.getenv("OLLAMA_MODEL_NAME", "qwen3:8b")
+        
+        # 抽出・標準化用のモデル（指定がなければメインと同じ）
+        self.extraction_model_name = os.getenv("OLLAMA_EXTRACTION_MODEL_NAME", self.model_name)
+        
+        # OllamaサーバーのURL（必要に応じて使用）
+        self.base_url = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+        
+        logger.info(f"OllamaClient initialized. Model: {self.model_name}, Extraction: {self.extraction_model_name}")
+
     def generate_plan_stream(self, patient_data: Dict[str, Any]) -> Generator[str, None, None]:
         if USE_DUMMY_DATA:
              yield self._create_event("error", {"error": "ダミーデータモードは現在サポートされていません。"})
@@ -81,7 +96,7 @@ class OllamaClient(LLMClient):
 
                         # API呼び出し (ストリーミング)
                         stream = ollama.chat(
-                            model=OLLAMA_MODEL_NAME,
+                            model=self.model_name,
                             messages=[{"role": "user", "content": prompt}],
                             format=format_param,
                             stream=True
@@ -194,7 +209,7 @@ class OllamaClient(LLMClient):
                     logger.info(f"--- Regenerating Item: {item_key} (Attempt: {attempt+1}) ---")
 
                     stream = ollama.chat(
-                        model=OLLAMA_MODEL_NAME,
+                        model=self.model_name,
                         messages=[{"role": "user", "content": prompt}],
                         format=format_param,
                         stream=True
@@ -322,7 +337,7 @@ class OllamaClient(LLMClient):
         # 呼び出し (ストリーミングなし)
         # optionsでtemperature等を調整
         response = ollama.chat(
-            model=OLLAMA_MODEL_NAME,
+            model=self.extraction_model_name,
             messages=[{"role": "user", "content": prompt}],
             format=format_param,
             stream=False,
@@ -353,7 +368,21 @@ class OllamaClient(LLMClient):
             # エラー時も呼び出し元で再試行させるため例外を投げる
             raise ValueError(f"Ollama failed to generate valid JSON: {e}")
 
-    # --- Helper Methods ---
+
+    def generate_text(self, prompt: str) -> str:
+        """
+        プレーンテキストを生成 (同期) - 標準化(HyDE)で使用
+        """
+        try:
+            response = ollama.chat(
+                model=self.extraction_model_name,
+                messages=[{'role': 'user', 'content': prompt}],
+                options={'temperature': 0.0}
+            )
+            return response.get('message', {}).get('content', '').strip()
+        except Exception as e:
+            logger.error(f"Ollama generate_text failed: {e}")
+            return ""
 
     def _extract_and_parse_json(self, text: str) -> dict:
         """

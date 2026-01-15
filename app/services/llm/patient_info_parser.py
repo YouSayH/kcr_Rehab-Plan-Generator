@@ -8,18 +8,22 @@ import time
 from dotenv import load_dotenv
 from pydantic import BaseModel
 
-from app.schemas.schemas import HYBRID_GENERATION_GROUPS, PATIENT_INFO_EXTRACTION_GROUPS
+# from app.schemas.schemas import HYBRID_GENERATION_GROUPS, PATIENT_INFO_EXTRACTION_GROUPS
+from app.schemas.schemas import (
+    PATIENT_INFO_EXTRACTION_GROUPS,
+    HYBRID_COMBINED_GROUPS  # <--- 新しく作った統合グループのみインポート
+)
 from app.services.extraction.fast_extractor import FastExtractor
 
 # リファクタリング: ファクトリ関数のインポート
 from app.services.llm import get_llm_client
 
 load_dotenv()
-GENERATION_TIMEOUT_SEC = 240
+GENERATION_TIMEOUT_SEC = 300
 
 logger = logging.getLogger(__name__)
 
-def optimize_schema_for_prompt(schema_cls: type, target_fields_pattern: str = None) -> dict:
+def optimize_schema_for_prompt(schema_cls: type, target_fields_pattern: str = None, filter_mode: bool = False) -> dict:
     """
     LLMプロンプト用にJSONスキーマを最適化する。
     1. Optional (anyOf: [type, null]) を削除し、シンプルな型定義にする。
@@ -32,12 +36,15 @@ def optimize_schema_for_prompt(schema_cls: type, target_fields_pattern: str = No
     required_fields = []
 
     for key, prop in properties.items():
-        # A. 不要なフィールドの除外 (例: GLiNERが抽出済みの _chk は除外する)
-        # Step 1では '_val' (数値) と '_txt' (記述) と '_level' だけ生成させたい場合など
-        if target_fields_pattern:
-             # 例: "_chk" を除外したい場合など。
-             # ここでは簡易的に「全てのプロパティを処理する」が、必要に応じてフィルタリングしてください。
-             pass
+        # A. フィルタリング (Hybridモード用)
+        if filter_mode:
+            # 除外対象: _chk
+            if key.endswith('_chk'):
+                continue
+            
+            # 許可対象: _txt (文章) と _val (数値) のみ
+            if not (key.endswith('_txt') or key.endswith('_val')):
+                continue
 
         # B. 型定義の簡略化 (anyOf -> type)
         if "anyOf" in prop:
@@ -62,6 +69,41 @@ def optimize_schema_for_prompt(schema_cls: type, target_fields_pattern: str = No
         "required": required_fields, # ここで強力に指定
         "description": raw_schema.get("description", "")
     }
+
+
+def get_standardization_prompt(text: str) -> str:
+    return f"""
+あなたは熟練した診療情報管理士です。
+以下の「カルテテキスト（自然言語）」を読み、そこに含まれる医学的情報を**「標準的な医学用語」と「明確なステータス」に変換して箇条書き**にしてください。
+
+# 目的
+この出力は、後段のシステムでキーワード検索に使用されます。
+曖昧な表現（例：「足がおぼつかない」）は、必ず明確な医学用語（例：「歩行障害」「運動失調」）に書き換えてください。
+
+# 変換ルール（必ず守ること）
+1. **疾患・既往歴**: 「高め」「疑い」などの表現も、医学的な病名（高血圧症、糖尿病、脂質異常症など）として記載する。
+2. **症状**: 「むせる」→「嚥下障害」、「言葉が出ない」→「失語症」、「しびれ」→「感覚鈍麻」のように変換する。
+3. **ADL（日常生活動作）**:
+   - 「自分でできる」 → 「自立」
+   - 「手助けが必要」「見守り」 → 「介助」
+   - 「できない」 → 「全介助」または「不可」
+   と明記する。
+4. **否定**: 「なし」「見られない」という情報は、「麻痺なし」「疼痛なし」のように明確に否定語をつけて記載する。
+
+# 出力フォーマット
+- 診断名: [病名]
+- 既往歴: [疾患名リスト]
+- 身体機能: [麻痺、筋力、痛み、関節可動域などの用語]
+- 精神・認知: [認知症、高次脳機能障害などの用語]
+- ADL状態: [食事・排泄・入浴・移動などの動作名] + [自立/介助]
+- 社会背景: [介護保険、キーパーソンなど]
+
+# 入力テキスト
+{text}
+
+# 標準化された要約（箇条書きのみ出力）
+"""
+
 
 class PatientInfoParser:
     """
@@ -93,9 +135,9 @@ class PatientInfoParser:
             # GPU利用を前提としてFastExtractorを初期化
             try:
                 self.fast_extractor = FastExtractor(use_gpu=True)
-                print(f"PatientInfoParser: Hybrid Mode Enabled (GLiNER2 + {self.client_type}).")
+                print(f"PatientInfoParser: Hybrid Mode Enabled (Standardization + Regex + {self.client_type}).")
             except Exception as e:
-                print(f"PatientInfoParser: GLiNER2の初期化に失敗しました。通常モードで動作します。Error: {e}")
+                print(f"PatientInfoParser: FastExtractorの初期化に失敗しました。通常モードで動作します。Error: {e}")
                 self.use_hybrid_mode = False
 
 
@@ -146,117 +188,46 @@ class PatientInfoParser:
 
         return data
 
-    def _build_hybrid_prompt(self, text: str, facts: dict, schema: type, previous_steps_data: dict) -> str:
-
-        """ハイブリッドモード用: 段階的生成プロンプト"""
+    def _build_hybrid_prompt(self, text: str, facts: dict, schema_json: str) -> str:        
+        """ハイブリッドモード用: 統合スキーマ生成プロンプト"""
         facts_json = json.dumps(facts, indent=2, ensure_ascii=False)
-        if "Assessment" in schema.__name__:
-            optimized_schema = optimize_schema_for_prompt(schema)
-
-            # _chk フィールドをプロパティと必須リストから削除する
-            props = optimized_schema.get("properties", {})
-            required = optimized_schema.get("required", [])
-
-            # 削除対象のキーを特定
-            keys_to_remove = [k for k in props.keys() if k.endswith("_chk")]
-
-            for k in keys_to_remove:
-                del props[k]
-                if k in required:
-                    required.remove(k)
-
-            schema_json = json.dumps(optimized_schema, indent=2, ensure_ascii=False)
-
-        else:
-            # その他のステップ: 通常の最適化（Optional削除・全必須化）のみ適用
-            optimized_schema = optimize_schema_for_prompt(schema)
-            schema_json = json.dumps(optimized_schema, indent=2, ensure_ascii=False)
-        # ------------------------------------
-
-        # 過去のステップで生成された情報をコンテキストとして渡す
-        context_str = ""
-        if previous_steps_data:
-            context_str = f"""
-    # これまでの検討結果（決定事項として扱うこと）
-    以下の情報は既に確定しています。これと矛盾しないようにしてください。
-    ```json
-    {json.dumps(previous_steps_data, indent=2, ensure_ascii=False)}
-    ```
-            """
-
-        step_instruction = ""
-        detailed_rules = ""
-
-        # クラス名による分岐 (部分一致で判定)
-
-        if "ADL" in schema.__name__: # 【追加】Step 1-A: 数値抽出
-            step_instruction = "カルテテキストから、FIM/BIの各項目スコア（数値）を読み取って補完してください。"
-            detailed_rules = """
-    - **FIM/BIスコア**: テキストに記載されている数値を正確に抽出してください。
-    - **時系列**: 日付が複数ある場合、最新の値を `_current_val`、その前を `_start_val` に入れます。
-    - **記述の解釈**: 「自立」=7点、「見守り」=5点、「全介助」=1点のように、テキストの記述を適切な点数に変換して入力してください。
-            """
-
-        elif "Assessment" in schema.__name__: # 【変更】Step 1-B: 記述・レベル判定
-            step_instruction = "GLiNERが抽出した事実を基に、基本動作レベルの判定、リスクの洗い出し、機能障害の詳細記述を行ってください。"
-            detailed_rules = """
-    - **基本動作**: `func_basic_` 系のレベル（自立/介助など）をテキストから判定し、最も適切な `level` (independent等) を選択してください。
-    - **リスク・機能**: `_txt` 項目には、具体的な症状や程度を日本語で記述してください。
-            """
-        elif "Goal" in schema.__name__ and "Texts" not in schema.__name__: # Step 2 (Goal A & S)
-            # "Goal_Social_Env" や "Goal_Activity" にマッチさせる
-            step_instruction = "現状評価に基づき、具体的な到達目標レベルや環境因子の設定を行ってください。"
-            detailed_rules = """
-    - **最重要: JSON構造について**:
-      - 出力JSONは**絶対にネスト（階層化）させないでください**。すべてのキーをトップレベル（ルート）に配置してください。
-      - ❌ 悪い例: `{"goal_a": {"bed_mobility": ...}}`
-      - ✅ 良い例: `{"goal_a_bed_mobility_chk": true, ...}`
-    - **目標設定**: 現状のADL能力よりも「少し高い」または「維持」となる現実的な目標を設定してください。
-    - **チェックボックス**: 該当する項目を積極的に `True` にしてください。
-            """
-
-        elif "GoalTexts" in schema.__name__: # Step 3 (新設)
-            step_instruction = "これまでの評価と詳細目標に基づき、退院時の状態像（長期目標）と1ヶ月後の目標（短期目標）を文章で記述してください。"
-            detailed_rules = """
-    - **整合性**: Step 1のADL評価、Step 2の活動目標と矛盾しない目標文を作成してください。
-    - **参加目標 (`goal_p_`)**: 復職や復学、家庭内役割などの目標があれば選択してください。不明な場合は予測で埋めず `null` でも構いませんが、テキストに記述がある場合は必ず反映してください。
-            """
-
-        elif "Plan" in schema.__name__: # Step 4
-            step_instruction = "目標と現状のギャップを埋めるための具体的な治療プログラムとアプローチを立案してください。"
-            detailed_rules = """
-    - **具体性**: 「歩行訓練」だけでなく、「屋外歩行訓練」「階段昇降訓練」など具体的に記述してください。
-    - **Action Plan**: 目標達成のために、患者本人、家族、環境に対してどのような働きかけを行うか記述してください。
-            """
-
+        
         return f"""
-あなたは日本のリハビリテーション専門医です。
+    あなたは日本のリハビリテーション専門医です。
     **必ず日本語で出力してください。** (Output MUST be in Japanese.)
 
     臨床推論プロセスに基づき、以下のステップを実行してください。
 
-    **現在のステップ: {step_instruction}**
-
     # 入力テキスト (ここから数値や詳細情報を読み取ってください)
     {text}
 
-    # AI抽出済み事実 (GLiNER - キーワードのみ)
-    ※ここにはFIM点数や具体的な目標文は含まれていません。これらは入力テキストから補完してください。
+    # これまでに抽出された事実情報
+    ※ここにはFIM点数や詳細なレベル判定が含まれていない場合があります。不足情報は入力テキストから補完してください。
     ```json
     {facts_json}
     ```
 
-    {context_str}
-
     # 重要事項 (Strict Rules)
-    1. **出力言語**: JSONの値(value)は**すべて日本語**で記述してください。英語は禁止です。
-    2. **スキーマ遵守**: 以下の「出力スキーマ」で定義されている**キー名のみ**を絶対に使用してください。
-       - `func_balance_txt` や `adl_ambulation_...` のような**勝手なキーを作成することは厳禁**です。
-       - JSONスキーマにない情報は無視してください。
-    3. **値の補完**: テキストに明記がない項目は無理に埋めず `null` にしてください。
-
-    # ステップ固有のルール
-    {detailed_rules}
+    1. **出力言語**: JSONの値(value)は**すべて日本語**で記述してください。
+    2. **FIM採点基準**: テキストの記述を以下の基準で数値（1-7）に変換してください。
+       - **7点 (完全自立)**: 補助具なし、時間内、安全。
+       - **6点 (修正自立)**: 補助具使用、時間がかかる、投薬など。
+       - **5点 (監視・準備)**: 監視、指示、準備が必要。触れてはいない。
+       - **4点 (最小介助)**: 75%以上自分でできる。軽く触れる程度。
+       - **3点 (中等度介助)**: 50%〜75%自分でできる。
+       - **2点 (最大介助)**: 25%〜50%自分でできる。引き上げなど強い介助。
+       - **1点 (全介助)**: 25%未満しかできない。2人介助。
+       - **不明な場合**: テキストに記述がなく、推測も不可能な場合は `null` を入力してください。(0は入力しない)
+       
+    3. **FIM値の推測ルール（重要）**:
+       - テキストに「介助」とだけあり、程度が不明確な場合は **4点（最小介助）** とみなしてください。
+       - 整形外科疾患（骨折、変形性関節症、五十肩など）で、下肢や認知機能に関する記述が全くない項目は、基本的に **7点（完全自立）** と推測して入力してください。
+       - それでも判断がつかない場合のみ `null` にしてください。
+    
+    4. **ハルシネーションの防止**:
+       - テキストに記載されていない具体的な数値（血液データ、ROM角度、MMT段階など）は **絶対に入力しないでください**。
+       - 「脂質異常症」などの診断名も、テキストに明記がない限り追加しないでください。
+       - 不明な項目は `null` にしてください。
 
     # 出力スキーマ (この構造を守ること)
     ```json
@@ -349,119 +320,295 @@ class PatientInfoParser:
     {text}
     """
 
+    def _standardize_text(self, text: str) -> str:
+        """
+        LLMを使って、生テキストを「FastExtractorが抽出しやすい標準用語」に変換する。
+        """
+        prompt = f"""
+あなたは熟練した診療情報管理士です。
+以下の「カルテテキスト」を読み、含まれる情報を**「標準的な医学用語」に変換して箇条書き**にしてください。
+JSONではなく、プレーンテキストで出力してください。
+
+# 重要: ハルシネーション防止
+- **原文にない情報は絶対に追加しないこと**。
+- 推測で病名（例：糖尿病、高血圧）を追加しないこと。
+- 否定されている症状（「なし」）は「〜なし」と明記すること。
+
+# 変換の指針
+- **病名**: 「血圧高め」→「既往歴に高血圧症あり」、「糖尿の気がある」→「糖尿病あり」
+- **症状**: 「むせる」→「嚥下障害あり」、「呂律が回らない」→「構音障害あり」、「言葉が出にくい」→「失語症あり」
+- **ADL**: 「一人でできる」→「自立」、「手伝い」→「介助」
+- **否定**: 「特に問題なし」→「障害なし」
+
+# 入力テキスト
+{text}
+
+# 標準化された要約
+"""
+        try:
+            # generate_textメソッドを使用 (JSONモードではない)
+            # ※ llm_clientに generate_text が実装されている前提
+            # もし generate_json しかない場合は、単一キーのJSONを作らせるか、generate_contentを呼ぶ
+            if hasattr(self.llm_client, 'generate_text'):
+                return self.llm_client.generate_text(prompt)
+            elif hasattr(self.llm_client, 'generate_content'):
+                return self.llm_client.generate_content(prompt)
+            else:
+                # フォールバック: 単純なテキスト生成がなければそのまま返す（または実装する）
+                return text
+        except Exception as e:
+            logger.error(f"Standardization failed: {e}")
+            return text
+
+
+    # def parse_text(self, text: str) -> dict:
+    #     """
+    #     与えられたテキストを解析し、複数のスキーマグループに基づいて段階的に情報を抽出し、結果をマージして返す。
+    #     ハイブリッドモードが有効な場合はGLiNER2+LLMを使用し、
+    #     そうでない場合は従来の段階的抽出を行う。
+    #     """
+    #     final_result = {}
+    #     total_start_time = time.time()
+    #     def get_remaining_time():
+    #         elapsed = time.time() - total_start_time
+    #         return max(0.1, GENERATION_TIMEOUT_SEC - elapsed)
+
+
+    #     # --- ハイブリッドモード ---
+    #     target_groups = []
+    #     is_hybrid = False
+    #     if self.use_hybrid_mode and self.fast_extractor:
+    #         print("--- [Step 1] GLiNER2 Extraction (Facts) ---")
+
+    #         standardized_text = self._standardize_text(text)
+    #         print(f">>> Standardized Text Preview:\n{standardized_text[:200]}...")
+            
+    #         # 2. 原文と撒き餌を結合
+    #         # 区切り線を入れておくことで、NegExが文脈を混同するのを防ぐ（改行重要）
+    #         combined_text = text + "\n\n" + ("="*20) + "\n[AI補完情報]\n" + standardized_text
+            
+    #         print("--- [Step 1] FastExtractor (Regex+NegEx) ---")
+
+    #         # 1. 事実情報の高速抽出 (GLiNER2)
+    #         try:
+    #             facts = self.fast_extractor.extract_facts(text)
+    #             final_result.update(facts)
+    #             # print(f"Extracted Facts ({len(facts)} items) in {time.time() - start_time:.2f}s")
+    #         except Exception as e:
+    #             logger.error(f"GLiNER2 Extraction Error: {e}")
+    #             print(f"事実抽出エラー: {e}")
+
+    #         print(f"--- [Step 1-3] Multi-stage Generation ({self.client_type}) ---")
+    #         print("\n>>> [DEBUG] GLiNER2 Extracted Facts:")
+    #         pprint.pprint(facts)
+    #         target_groups = HYBRID_GENERATION_GROUPS
+    #         is_hybrid = True
+    #     else:
+    #         print("--- Multi-Step Extraction Mode (Standard) ---")
+    #         target_groups = PATIENT_INFO_EXTRACTION_GROUPS
+
+    #     # ----------------------------------------------------
+    #     # 共通の生成ループ (Gemini/Ollamaの違いはLLMClientで吸収)
+    #     # ----------------------------------------------------
+    #     max_retries = 5
+
+    #     for i, group_schema in enumerate(target_groups):
+    #         # 全体タイムアウトチェック
+    #         if get_remaining_time() <= 1.0:
+    #             print(f"--- Time Limit Exceeded. Stopping before Step {i+1}. ---")
+    #             break
+
+    #         # --- スキーマ最適化 & フィルタリング ---
+    #         # ハイブリッドモードなら _chk, _level, _slct を除外
+    #         optimized_schema = optimize_schema_for_prompt(group_schema, filter_mode=is_hybrid)
+            
+    #         # プロパティが空（生成すべき項目がない）場合はスキップ
+    #         if not optimized_schema["properties"]:
+    #             print(f"--- Skipping Step {i+1}: {group_schema.__name__} (All fields handled by GLiNER) ---")
+    #             continue
+
+    #         print(f"--- Processing Step {i+1}: {group_schema.__name__} ---")
+    #         schema_json = json.dumps(optimized_schema, indent=2, ensure_ascii=False)
+
+    #         # プロンプト作成
+    #         if is_hybrid:
+    #             prompt = self._build_hybrid_prompt(text, final_result, schema_json)
+    #         else:
+    #             prompt = self._build_prompt(text, group_schema, final_result)
+
+
+    #         logger.info(f"\n{'='*20} [Step {i+1}] Prompt ({group_schema.__name__}) {'='*20}\n{prompt}\n{'='*60}")
+
+    #         step_success = False
+
+    #         # リトライループ
+    #         for attempt in range(max_retries):
+    #             current_remaining = get_remaining_time()
+    #             if current_remaining <= 1.0:
+    #                 print("--- Time Limit Exceeded during retry. Stopping. ---")
+    #                 break
+
+    #             try:
+    #                 # リファクタリング: llm_client.generate_json を呼び出す
+    #                 # タイムアウト制御のためにThreadPoolExecutorでラップする
+    #                 with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+    #                     future = executor.submit(
+    #                         self.llm_client.generate_json,
+    #                         prompt=prompt,
+    #                         schema=group_schema
+    #                     )
+    #                     # API呼び出し自体のタイムアウトを全体残り時間に合わせる
+    #                     step_data = future.result(timeout=min(120, current_remaining))
+
+    #                 final_result.update(step_data)
+
+    #                 log_output = json.dumps(step_data, indent=2, ensure_ascii=False)
+    #                 logger.info(f"\n>>> [Step {i+1}] Generated Data ({group_schema.__name__}):\n{log_output}\n{'-'*40}")
+
+    #                 step_success = True
+    #                 break  # 成功したらリトライループを抜ける
+
+    #             except concurrent.futures.TimeoutError:
+    #                 error_msg = f"Step {i+1} Timed Out (Remaining: {current_remaining:.1f}s)"
+    #                 logger.error(error_msg)
+    #                 print(error_msg)
+    #                 break
+
+    #             except Exception as e:
+    #                 error_msg = f"LLM Generation Error (Step {i+1}, Attempt {attempt+1}/{max_retries}): {e}"
+    #                 logger.error(error_msg)
+    #                 print(error_msg)
+
+    #                 if attempt < max_retries - 1:
+    #                     time.sleep(1)
+    #                 else:
+    #                     print(f"--- Failed Step {i+1} after {max_retries} attempts. ---")
+
+    #         if not step_success and get_remaining_time() <= 1.0:
+    #             print(f"--- Aborting generation process due to timeout in Step {i+1} ---")
+    #             break
+
+    #     # 後処理
+    #     if self.use_hybrid_mode:
+    #         final_result = self._restore_checkboxes(final_result)
+
+    #     if not final_result:
+    #         return {
+    #             "error": "患者情報の解析に失敗しました。",
+    #             "details": "どのグループからも有効な情報を抽出できませんでした。",
+    #         }
+
+    #     return final_result
+
+
     def parse_text(self, text: str) -> dict:
         """
-        与えられたテキストを解析し、複数のスキーマグループに基づいて段階的に情報を抽出し、結果をマージして返す。
-        ハイブリッドモードが有効な場合はGLiNER2+LLMを使用し、
-        そうでない場合は従来の段階的抽出を行う。
+        ハイブリッドモード: 標準化 -> Regex -> LLM(統合スキーマで2回実行)
+        通常モード: 順次抽出
         """
         final_result = {}
         total_start_time = time.time()
+        
         def get_remaining_time():
             elapsed = time.time() - total_start_time
             return max(0.1, GENERATION_TIMEOUT_SEC - elapsed)
 
-
-        # --- ハイブリッドモード ---
-        target_groups = []
+        # --- Step 1 & 2: Standardization & Fast Extraction ---
         if self.use_hybrid_mode and self.fast_extractor:
-            print("--- [Step 1] GLiNER2 Extraction (Facts) ---")
-
-            # 1. 事実情報の高速抽出 (GLiNER2)
+            print("--- [Step 1] Standardizing Text (LLM) ---")
+            standardized_text = self._standardize_text(text)
+            print(f">>> Standardized Text Preview:\n{standardized_text[:100]}...")
+            
+            # 原文と標準化テキストを結合
+            combined_text = text + "\n\n" + ("="*20) + "\n[AI補完情報]\n" + standardized_text
+            
+            print("--- [Step 2] FastExtractor (Regex+NegEx) ---")
             try:
-                facts = self.fast_extractor.extract_facts(text)
+                facts = self.fast_extractor.extract_facts(combined_text)
                 final_result.update(facts)
-                # print(f"Extracted Facts ({len(facts)} items) in {time.time() - start_time:.2f}s")
+                pprint.pprint(facts)
             except Exception as e:
-                logger.error(f"GLiNER2 Extraction Error: {e}")
-                print(f"事実抽出エラー: {e}")
+                logger.error(f"FastExtractor Error: {e}")
 
-            print(f"--- [Step 1-3] Multi-stage Generation ({self.client_type}) ---")
-            print("\n>>> [DEBUG] GLiNER2 Extracted Facts:")
-            pprint.pprint(facts)
-            target_groups = HYBRID_GENERATION_GROUPS
+        # --- Step 3: LLM Detailed Extraction (Batched) ---
+        print(f"--- [Step 3] Detailed Extraction (LLM: {self.client_type}) ---")
+
+        # バッチ定義: 統合スキーマを使用することで呼び出し回数を削減 (実質2回)
+        extraction_batches = []
+        if self.use_hybrid_mode:
+            # HYBRID_COMBINED_GROUPS = [HybridCombined_Extraction, HybridCombined_Plan]
+            # 各要素を1つのリストに入れることで、依存関係(Extraction -> Plan)を順次処理として表現
+            extraction_batches = [[group] for group in HYBRID_COMBINED_GROUPS]
         else:
-            print("--- Multi-Step Extraction Mode (Standard) ---")
-            target_groups = PATIENT_INFO_EXTRACTION_GROUPS
+            # 通常モードは順次実行
+            extraction_batches = [[g] for g in PATIENT_INFO_EXTRACTION_GROUPS]
 
-        # ----------------------------------------------------
-        # 共通の生成ループ (Gemini/Ollamaの違いはLLMClientで吸収)
-        # ----------------------------------------------------
-        max_retries = 5
-
-        for i, group_schema in enumerate(target_groups):
+        # バッチ実行ループ
+        for batch_index, batch in enumerate(extraction_batches):
+            print(f"--- Processing Batch {batch_index + 1}/{len(extraction_batches)} ---")
+            
             # 全体タイムアウトチェック
             if get_remaining_time() <= 1.0:
-                print(f"--- Time Limit Exceeded. Stopping before Step {i+1}. ---")
+                print("--- Time Limit Exceeded. Stopping. ---")
                 break
 
-            print(f"--- Processing Step {i+1}: {group_schema.__name__} ---")
+            batch_results = {}
 
-            # プロンプト作成
-            if self.use_hybrid_mode and self.fast_extractor:
-                prompt = self._build_hybrid_prompt(text, final_result, group_schema, final_result)
-            else:
-                prompt = self._build_prompt(text, group_schema, final_result)
-
-            logger.info(f"\n{'='*20} [Step {i+1}] Prompt ({group_schema.__name__}) {'='*20}\n{prompt}\n{'='*60}")
-
-            step_success = False
-
-            # リトライループ
-            for attempt in range(max_retries):
-                current_remaining = get_remaining_time()
-                if current_remaining <= 1.0:
-                    print("--- Time Limit Exceeded during retry. Stopping. ---")
-                    break
-
-                try:
-                    # リファクタリング: llm_client.generate_json を呼び出す
-                    # タイムアウト制御のためにThreadPoolExecutorでラップする
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                        future = executor.submit(
-                            self.llm_client.generate_json,
-                            prompt=prompt,
-                            schema=group_schema
+            # ThreadPoolExecutorによる並列実行
+            # (現在は1バッチ1アイテムだが、将来的に分割した場合に対応可能な構造)
+            with concurrent.futures.ThreadPoolExecutor(max_workers=len(batch)) as executor:
+                future_to_schema = {}
+                for schema in batch:
+                    # プロンプト作成
+                    if self.use_hybrid_mode:
+                        # フィルタリング有効化 (True: _chk除外, _val/_level/_txtなどは残す)
+                        opt_schema = optimize_schema_for_prompt(schema, filter_mode=True)
+                        if not opt_schema["properties"]: continue
+                        
+                        prompt = self._build_hybrid_prompt(
+                            text, # 数値抽出のために原文を渡す
+                            final_result, # 直前のバッチまでの結果をコンテキストとして渡す
+                            json.dumps(opt_schema, indent=2, ensure_ascii=False)
                         )
-                        # API呼び出し自体のタイムアウトを全体残り時間に合わせる
-                        step_data = future.result(timeout=min(120, current_remaining))
-
-                    final_result.update(step_data)
-
-                    log_output = json.dumps(step_data, indent=2, ensure_ascii=False)
-                    logger.info(f"\n>>> [Step {i+1}] Generated Data ({group_schema.__name__}):\n{log_output}\n{'-'*40}")
-
-                    step_success = True
-                    break  # 成功したらリトライループを抜ける
-
-                except concurrent.futures.TimeoutError:
-                    error_msg = f"Step {i+1} Timed Out (Remaining: {current_remaining:.1f}s)"
-                    logger.error(error_msg)
-                    print(error_msg)
-                    break
-
-                except Exception as e:
-                    error_msg = f"LLM Generation Error (Step {i+1}, Attempt {attempt+1}/{max_retries}): {e}"
-                    logger.error(error_msg)
-                    print(error_msg)
-
-                    if attempt < max_retries - 1:
-                        time.sleep(1)
                     else:
-                        print(f"--- Failed Step {i+1} after {max_retries} attempts. ---")
+                        prompt = self._build_prompt(text, schema, final_result)
 
-            if not step_success and get_remaining_time() <= 1.0:
-                print(f"--- Aborting generation process due to timeout in Step {i+1} ---")
-                break
+                    future = executor.submit(
+                        self.llm_client.generate_json,
+                        prompt=prompt,
+                        schema=schema
+                    )
+                    future_to_schema[future] = schema
+
+                # 結果収集
+                for future in concurrent.futures.as_completed(future_to_schema):
+                    schema = future_to_schema[future]
+                    try:
+                        # 統合スキーマは生成量が多いのでタイムアウトを長めに設定(180秒)
+                        data = future.result(timeout=180)
+                        if data:
+                            batch_results.update(data)
+                            logger.info(f"Finished: {schema.__name__}")
+                    except Exception as e:
+                        logger.error(f"Error in {schema.__name__}: {e}")
+
+            # バッチ完了後に結果を統合
+            final_result.update(batch_results)
 
         # 後処理
         if self.use_hybrid_mode:
             final_result = self._restore_checkboxes(final_result)
 
         if not final_result:
-            return {
-                "error": "患者情報の解析に失敗しました。",
-                "details": "どのグループからも有効な情報を抽出できませんでした。",
-            }
+            return {"error": "抽出に失敗しました。"}
+
+
+        print("\n" + "="*30 + " FINAL EXTRACTION RESULT " + "="*30)
+        try:
+            # pprintで整形して表示（日本語も崩れにくい設定）
+            pprint.pprint(final_result, width=120, sort_dicts=True)
+        except Exception as e:
+            print(f"Result printing failed: {e}")
+        print("="*85 + "\n")
 
         return final_result
