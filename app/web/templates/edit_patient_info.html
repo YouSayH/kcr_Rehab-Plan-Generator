@@ -2559,7 +2559,7 @@
 
             for (const key in data) {
                 const value = data[key];
-                if (value === null || value === undefined || value === '') {
+                if (value === null || value === undefined || value === '' || value === 'null' || value === 'None') {
                     continue;
                 }
 

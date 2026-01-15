@@ -135,9 +135,9 @@ class PatientInfoParser:
             # GPU利用を前提としてFastExtractorを初期化
             try:
                 self.fast_extractor = FastExtractor(use_gpu=True)
-                print(f"PatientInfoParser: Hybrid Mode Enabled (GLiNER2 + {self.client_type}).")
+                print(f"PatientInfoParser: Hybrid Mode Enabled (Standardization + Regex + {self.client_type}).")
             except Exception as e:
-                print(f"PatientInfoParser: GLiNER2の初期化に失敗しました。通常モードで動作します。Error: {e}")
+                print(f"PatientInfoParser: FastExtractorの初期化に失敗しました。通常モードで動作します。Error: {e}")
                 self.use_hybrid_mode = False
 
 
@@ -189,7 +189,7 @@ class PatientInfoParser:
         return data
 
     def _build_hybrid_prompt(self, text: str, facts: dict, schema_json: str) -> str:        
-        """ハイブリッドモード用: 段階的生成プロンプト"""
+        """ハイブリッドモード用: 統合スキーマ生成プロンプト"""
         facts_json = json.dumps(facts, indent=2, ensure_ascii=False)
         
         return f"""
@@ -201,8 +201,8 @@ class PatientInfoParser:
     # 入力テキスト (ここから数値や詳細情報を読み取ってください)
     {text}
 
-    # AI抽出済み事実 (GLiNER - キーワードのみ)
-    ※ここにはFIM点数や具体的な目標文は含まれていません。これらは入力テキストから補完してください。
+    # これまでに抽出された事実情報
+    ※ここにはFIM点数や詳細なレベル判定が含まれていない場合があります。不足情報は入力テキストから補完してください。
     ```json
     {facts_json}
     ```
@@ -217,7 +217,18 @@ class PatientInfoParser:
        - **3点 (中等度介助)**: 50%〜75%自分でできる。
        - **2点 (最大介助)**: 25%〜50%自分でできる。引き上げなど強い介助。
        - **1点 (全介助)**: 25%未満しかできない。2人介助。
-    3. **値の補完**: テキストに明記がない項目は無理に埋めず `null` にしてください。
+       - **不明な場合**: テキストに記述がなく、推測も不可能な場合は `null` を入力してください。(0は入力しない)
+       
+    3. **FIM値の推測ルール（重要）**:
+       - テキストに「介助」とだけあり、程度が不明確な場合は **4点（最小介助）** とみなしてください。
+       - 整形外科疾患（骨折、変形性関節症、五十肩など）で、下肢や認知機能に関する記述が全くない項目は、基本的に **7点（完全自立）** と推測して入力してください。
+       - それでも判断がつかない場合のみ `null` にしてください。
+    
+    4. **ハルシネーションの防止**:
+       - テキストに記載されていない具体的な数値（血液データ、ROM角度、MMT段階など）は **絶対に入力しないでください**。
+       - 「脂質異常症」などの診断名も、テキストに明記がない限り追加しないでください。
+       - 不明な項目は `null` にしてください。
+
     # 出力スキーマ (この構造を守ること)
     ```json
     {schema_json}
@@ -317,6 +328,11 @@ class PatientInfoParser:
 あなたは熟練した診療情報管理士です。
 以下の「カルテテキスト」を読み、含まれる情報を**「標準的な医学用語」に変換して箇条書き**にしてください。
 JSONではなく、プレーンテキストで出力してください。
+
+# 重要: ハルシネーション防止
+- **原文にない情報は絶対に追加しないこと**。
+- 推測で病名（例：糖尿病、高血圧）を追加しないこと。
+- 否定されている症状（「なし」）は「〜なし」と明記すること。
 
 # 変換の指針
 - **病名**: 「血圧高め」→「既往歴に高血圧症あり」、「糖尿の気がある」→「糖尿病あり」
@@ -493,6 +509,10 @@ JSONではなく、プレーンテキストで出力してください。
         final_result = {}
         total_start_time = time.time()
         
+        def get_remaining_time():
+            elapsed = time.time() - total_start_time
+            return max(0.1, GENERATION_TIMEOUT_SEC - elapsed)
+
         # --- Step 1 & 2: Standardization & Fast Extraction ---
         if self.use_hybrid_mode and self.fast_extractor:
             print("--- [Step 1] Standardizing Text (LLM) ---")
@@ -526,6 +546,12 @@ JSONではなく、プレーンテキストで出力してください。
         # バッチ実行ループ
         for batch_index, batch in enumerate(extraction_batches):
             print(f"--- Processing Batch {batch_index + 1}/{len(extraction_batches)} ---")
+            
+            # 全体タイムアウトチェック
+            if get_remaining_time() <= 1.0:
+                print("--- Time Limit Exceeded. Stopping. ---")
+                break
+
             batch_results = {}
 
             # ThreadPoolExecutorによる並列実行
