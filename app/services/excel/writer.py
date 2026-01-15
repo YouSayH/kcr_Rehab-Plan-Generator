@@ -112,7 +112,11 @@ def create_plan_sheet(plan_data, return_bytes=False):
             try:
                 # ブール値または `_chk` キーはチェックマークに変換
                 if isinstance(value, bool) or db_col_name.endswith("_chk"):
-                    target_cell.value = "☑" if value else "☐"
+                    is_checked = value
+                    if isinstance(value, str):
+                        # 文字列 "False" 等が True 判定されてしまうのを防ぐため明示的に変換
+                        is_checked = value.lower() == "true"
+                    target_cell.value = "☑" if is_checked else "☐"
                 else:
                     target_cell.value = value
             except Exception as e:
