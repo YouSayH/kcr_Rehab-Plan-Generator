@@ -76,3 +76,10 @@ class LLMClient(ABC):
         PatientInfoParserなどの解析処理で使用。
         """
         pass
+
+    def generate_text(self, prompt: str) -> str:
+        """
+        プレーンテキストを生成する。
+        サブクラスで実装されていない場合はNotImplementedErrorを発生させる。
+        """
+        raise NotImplementedError("generate_text method is not implemented in this client.")
