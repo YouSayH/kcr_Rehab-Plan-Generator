@@ -41,9 +41,19 @@
         </header>
 
         <div class="content-area">
+            <div class="d-md-none mb-2 px-2">
+                <div class="btn-group w-100" role="group" aria-label="Mobile View Switcher">
+                    <button type="button" class="btn btn-outline-primary active" id="btn-show-edit">
+                        <i class="bi bi-pencil-square"></i> 計画書編集(AI提案)
+                    </button>
+                    <button type="button" class="btn btn-outline-primary" id="btn-show-info">
+                        <i class="bi bi-person-lines-fill"></i> 患者情報・履歴
+                    </button>
+                </div>
+            </div>
             <div class="row full-height">
                 <!-- Left Column: Patient Info & History -->
-                <div class="col-md-6 full-height-col">
+                <div class="col-md-6 full-height-col d-none d-md-flex" id="col-patient-info">
                     <ul class="nav nav-tabs" id="infoTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="patient-info-tab" data-bs-toggle="tab"
@@ -81,7 +91,7 @@
                 </div>
 
                 <!-- Right Column: Plan Editing Form -->
-                <div class="col-md-6 full-height-col">
+                <div class="col-md-6 full-height-col d-flex" id="col-plan-edit">
                     <ul class="nav nav-tabs" id="editTabs" role="tablist">
                         <li class="nav-item" role="presentation">
                             <button class="nav-link active" id="plan-edit-tab" data-bs-toggle="tab"
@@ -384,6 +394,47 @@
         const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
         document.addEventListener('DOMContentLoaded', function () {
+
+            const btnShowEdit = document.getElementById('btn-show-edit');
+            const btnShowInfo = document.getElementById('btn-show-info');
+            const colLeft = document.getElementById('col-patient-info');
+            const colRight = document.getElementById('col-plan-edit');
+
+            if (btnShowEdit && btnShowInfo && colLeft && colRight) {
+                // 編集画面（右）を表示
+                btnShowEdit.addEventListener('click', function() {
+                    colRight.classList.remove('d-none');
+                    colRight.classList.add('d-flex');
+                    colLeft.classList.add('d-none');
+                    colLeft.classList.remove('d-flex');
+                    
+                    this.classList.add('active');
+                    btnShowInfo.classList.remove('active');
+                });
+
+                // 情報画面（左）を表示
+                btnShowInfo.addEventListener('click', function() {
+                    colLeft.classList.remove('d-none');
+                    colLeft.classList.add('d-flex');
+                    colRight.classList.add('d-none');
+                    colRight.classList.remove('d-flex');
+
+                    this.classList.add('active');
+                    btnShowEdit.classList.remove('active');
+                    
+                    // タブ内の高さ調整（隠れていた要素が表示されるため）
+                    if (typeof autoResizeTextareas === 'function') {
+                        autoResizeTextareas();
+                    }
+                });
+            }
+
+
+
+
+
+
+
             const modelToGenerate = "{{ model_to_generate|safe }}";
             const suggestionContainers = document.querySelectorAll('.suggestion-container');
             const modelNames = ["通常モデル", "特化モデル(RAG)"];
