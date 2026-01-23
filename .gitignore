@@ -30,4 +30,5 @@ rag_db_data
 ruff.toml
 create
 .history
-/app/web/static/lib/
+app/web/static/lib/*
+!app/web/static/lib/.gitkeep
