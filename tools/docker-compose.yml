@@ -26,6 +26,8 @@ services:
     restart: always
     expose:            # Docker内部でのみ8080番を開放
       - "8080"
+
+    command: gunicorn --bind :8080 --workers 1 --threads 8 --timeout 300 run:app
     # ports:
     #   # [ローカルPCのポート]:[コンテナ内のポート]
     #   - "5000:8080" # http://localhost:5000 でアクセス可能に
