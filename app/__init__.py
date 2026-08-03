@@ -37,7 +37,23 @@ def create_app(test_config=None):
     # 基本設定
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     # 9時間後(労働時間8時間+1時間)にタイムアウトする設定
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=540)
+    session_lifetime = timedelta(minutes=540)
+    app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime
+
+    # CSRFトークンの有効期限をセッションと揃える。
+    # Flask-WTF の既定は1時間で、セッションより先にトークンだけが切れる。
+    # 計画書の編集は所見の記入やAI生成の確認で1時間を超えることがあり、
+    # 保存ボタンを押した瞬間に400になって入力内容が全て失われる。
+    app.config["WTF_CSRF_TIME_LIMIT"] = int(session_lifetime.total_seconds())
+
+    # セッションCookieの保護。HTTPONLY は既定でTrueだが、意図を明示しておく。
+    # SECURE は HTTPS 化(add-03)の際に True にする。HTTP運用のまま True にすると
+    # Cookieが送信されずログインできなくなるため、環境変数で切り替える。
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() in (
+        "1", "true", "yes"
+    )
 
     # テスト設定の適用 (テスト時はこれで上書きされます)
     if test_config:

@@ -42,10 +42,21 @@
             font-size: 12px;
             color: var(--danger-color);
             text-decoration: none;
+            /* CSRF対策で <a> から <button> に変更したため、見た目をリンクに揃える */
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+            font-family: inherit;
         }
 
         .action-link:hover {
             text-decoration: underline;
+        }
+
+        /* 破壊的操作はPOSTで送るが、表示上はこれまでどおり行内に収める */
+        .inline-action-form {
+            display: inline;
         }
 
         .assign-form {
@@ -94,8 +105,12 @@
                                 <li>
 
                                     <span>{{ patient.name }} (ID: {{ patient.patient_id }})</span>
-                                    <a href="{{ url_for('admin.unassign', staff_id=staff.id, patient_id=patient.patient_id) }}"
-                                        class="action-link">解除</a>
+                                    <form method="POST"
+                                        action="{{ url_for('admin.unassign', staff_id=staff.id, patient_id=patient.patient_id) }}"
+                                        class="inline-action-form">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                        <button type="submit" class="action-link">解除</button>
+                                    </form>
                                 </li>
                                 {% endfor %}
                             </ul>
@@ -105,8 +120,15 @@
                         </td>
                         <td>
                             {% if staff.id != current_user.id %}
-                            <a href="{{ url_for('admin.delete_staff', staff_id=staff.id) }}" class="action-link"
-                                onclick="return confirm('本当に {{ staff.username }} さんを削除しますか？');">職員を削除</a>
+                            {# 職員名は onclick 属性内のJS文字列に埋め込まない。
+                               Jinja のエスケープが生成する &#39; は属性値の確定時に ' へ戻るため、
+                               ユーザー名に '); を含めるとJSとして脱出できてしまう。
+                               data属性はテキストとして読み出されるだけで評価されない。 #}
+                            <form method="POST" action="{{ url_for('admin.delete_staff', staff_id=staff.id) }}"
+                                class="inline-action-form js-confirm-delete" data-username="{{ staff.username }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+                                <button type="submit" class="action-link">職員を削除</button>
+                            </form>
                             {% else %}
                             (自分)
                             {% endif %}
@@ -138,6 +160,19 @@
         </section>
 
     </div>
+
+    <script>
+        // 削除確認。職員名は data 属性から取得する（テキストとして読み出されるため
+        // ユーザー名に何が入っていてもJSとして評価されない）。
+        document.querySelectorAll('.js-confirm-delete').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                var username = form.dataset.username || '';
+                if (!window.confirm('本当に ' + username + ' さんを削除しますか？')) {
+                    event.preventDefault();
+                }
+            });
+        });
+    </script>
 </body>
 
 </html>

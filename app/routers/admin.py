@@ -83,7 +83,9 @@ def assign():
     return redirect(url_for("admin.manage_assignments"))
 
 
-@admin_bp.route("/unassign/<int:staff_id>/<int:patient_id>")
+# POST に限定する。Flask-WTF の CSRF 検証は既定で GET を対象外にするため、
+# GET のままだと管理者がリンクや画像を踏むだけで担当解除が発火する。
+@admin_bp.route("/unassign/<int:staff_id>/<int:patient_id>", methods=["POST"])
 @login_required
 @admin_required
 def unassign(staff_id, patient_id):
@@ -96,7 +98,10 @@ def unassign(staff_id, patient_id):
     return redirect(url_for("admin.manage_assignments"))
 
 
-@admin_bp.route("/delete_staff/<int:staff_id>")
+# 職員削除は staff_patients の ON DELETE CASCADE で担当割当が連鎖削除され、
+# 計画書の作成者(fk_plan_staff_id)も ON DELETE SET NULL で失われる。
+# GET のままだと CSRF 検証を経ずに実行できてしまうため POST に限定する。
+@admin_bp.route("/delete_staff/<int:staff_id>", methods=["POST"])
 @login_required
 @admin_required
 def delete_staff(staff_id):
