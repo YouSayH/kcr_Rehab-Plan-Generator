@@ -62,11 +62,54 @@ def create_app(test_config=None):
     app.register_blueprint(plan_bp)
     app.register_blueprint(patient_bp)
 
+    # パスワード変更が必要な職員を、変更画面以外へ進ませないためのガード
+    register_password_change_guard(app)
+
+    # 初期管理者の作成 (職員が0件のときのみ)。テスト時は実行しません。
+    if not app.config.get("TESTING"):
+        bootstrap_initial_admin(app)
+
     # 起動時の情報をログ出力
     llm_client_type = os.getenv("LLM_CLIENT_TYPE", "gemini")
     app.logger.info(f"App initialized with LLM Client: {llm_client_type}")
 
     return app
+
+
+def bootstrap_initial_admin(app):
+    """職員が0件のとき、環境変数から初期管理者を作成する。"""
+    # 遅延インポート: DB接続を伴うため、テスト用の設定適用より後に読み込む
+    import app.core.database as database
+    from app.core.bootstrap import ensure_initial_admin
+
+    try:
+        ensure_initial_admin()
+    except Exception:
+        # DB未起動などで失敗してもアプリ自体は起動させる
+        app.logger.exception("初期管理者の作成処理でエラーが発生しました。")
+    finally:
+        # gunicorn は --preload で起動するため、ここで張った接続が fork 後の
+        # 全ワーカーに共有されてしまう。プールを破棄して各ワーカーに張り直させる。
+        database.engine.dispose()
+
+
+def register_password_change_guard(app):
+    """must_change_password が立っている間、パスワード変更画面以外を遮断する。"""
+    from flask import redirect, request, url_for
+    from flask_login import current_user
+
+    # 変更前でもアクセスを許可するエンドポイント
+    allowed_endpoints = {"auth.change_password", "auth.logout", "auth.login", "static"}
+
+    @app.before_request
+    def require_password_change():
+        if not current_user.is_authenticated:
+            return None
+        if not getattr(current_user, "must_change_password", False):
+            return None
+        if request.endpoint in allowed_endpoints:
+            return None
+        return redirect(url_for("auth.change_password"))
 
 
 def configure_logging(app):
@@ -109,4 +152,5 @@ def load_user(staff_id):
         username=staff_info["username"],
         role=staff_info["role"],
         occupation=staff_info["occupation"],
+        must_change_password=bool(staff_info.get("must_change_password")),
     )

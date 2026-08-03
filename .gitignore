@@ -1,7 +1,19 @@
 venv_rehab
+venv/
+# .env だけでなく .env.bak / .env.local なども無視する。
+# `.env` は完全一致パターンのため、バックアップを作ると秘密情報がコミット候補に残る。
 .env
+.env.*
+!.env.example
+*.bak
 __pycache__
 output
+logs/
+# MySQLのデータディレクトリ。誤ってコミットすると患者データがGitHubへ流出する。
+mysql_data/
+# curl などの検証で生成される一時ファイル
+cj.txt
+.incident-mcp-diagnostics.json
 AWS.md
 sp_tree.ps1
 PTガイドライン&Excel版書式(リハビリテーション総合実施計画書)
@@ -32,3 +44,6 @@ create
 .history
 app/web/static/lib/*
 !app/web/static/lib/.gitkeep
+
+# incident-copilot（pytrace の実行記録。ローカル専用）
+.py-trace/

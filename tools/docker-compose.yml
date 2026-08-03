@@ -27,7 +27,7 @@ services:
     expose:            # Docker内部でのみ8080番を開放
       - "8080"
 
-    command: gunicorn --bind :8080 --workers 1 --threads 8 --timeout 300 run:app
+    # 起動コマンドは Dockerfile の CMD に一本化している (ここで上書きしない)
     # ports:
     #   # [ローカルPCのポート]:[コンテナ内のポート]
     #   - "5000:8080" # http://localhost:5000 でアクセス可能に
@@ -54,9 +54,9 @@ services:
     container_name: rehab_app_db
     restart: always
     ports:
-      # ローカルPCの3307番ポートをコンテナの3306番ポートに接続
-      # (ローカルPCでMySQLが動いている場合、3306以外のポートに変更)
-      - "3307:3306"
+      # ローカルPCの3307番ポートをコンテナの3306番ポートに接続。
+      # 患者DBを他端末から見えないよう、必ずループバックに限定する。
+      - "127.0.0.1:3307:3306"
     env_file:
       - .env # .envからMYSQL_ROOT_PASSWORDなどを読み込む
     environment:
