@@ -166,7 +166,7 @@ def regenerate_item():
         item_key = data.get("item_key")
         current_text = data.get("current_text", "")
         instruction = data.get("instruction", "")
-        # therapist_notes = data.get("therapist_notes", "") # 必要であれば取得
+        therapist_notes = data.get("therapist_notes", "")
         model_type = data.get("model_type")  # 'general' or 'specialized'
         pipeline_name = data.get("pipeline_name", DEFAULT_RAG_PIPELINE)
 
@@ -181,6 +181,11 @@ def regenerate_item():
         patient_data = patient_crud.get_patient_data_for_plan(patient_id)
         if not patient_data:
             return Response("患者データが見つかりません。", status=404)
+
+        # 所見を引き継ぐ。渡さないと prepare_patient_facts が既定値の「特になし」を
+        # 入れてしまい、「独居のため屋内歩行自立が必須」といった初回生成の前提が
+        # 失われたまま書き直され、UI上は「具体化しただけ」に見えてしまう。
+        patient_data["therapist_notes"] = therapist_notes
 
         # モデルタイプに応じてRAG Executorを準備
         rag_executor = None

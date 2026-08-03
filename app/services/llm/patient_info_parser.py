@@ -526,7 +526,9 @@ JSONではなく、プレーンテキストで出力してください。
             try:
                 facts = self.fast_extractor.extract_facts(combined_text)
                 final_result.update(facts)
-                pprint.pprint(facts)
+                # 抽出結果はカルテ由来の臨床情報そのもの。標準出力は docker logs に
+                # 残り閲覧に権限チェックが掛からないため、件数のみを出す。
+                logger.debug(f"FastExtractor: {len(facts)}項目を抽出しました")
             except Exception as e:
                 logger.error(f"FastExtractor Error: {e}")
 

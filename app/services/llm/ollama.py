@@ -14,6 +14,7 @@ from app.services.llm.base import LLMClient
 from app.services.llm.context_builder import (
     CHECK_TO_TEXT_MAP,
     USER_INPUT_FIELDS,
+    filter_generated_plan,
     prepare_patient_facts,
 )
 from app.services.llm.prompts import build_group_prompt, build_regeneration_prompt
@@ -164,9 +165,9 @@ class OllamaClient(LLMClient):
             patient_facts = prepare_patient_facts(patient_data)
             patient_facts_str = json.dumps(patient_facts, indent=2, ensure_ascii=False, default=str)
 
-            generated_plan_so_far = patient_data.copy()
-            if item_key in generated_plan_so_far:
-                del generated_plan_so_far[item_key]
+            # patient_data をそのまま渡すと、prepare_patient_facts が匿名化のために
+            # 除外している氏名・生年月日まで外部LLMへ送信されてしまう。
+            generated_plan_so_far = filter_generated_plan(patient_data, exclude_key=item_key)
 
             # RAG検索
             rag_context_str = None

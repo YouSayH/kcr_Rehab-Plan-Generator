@@ -371,11 +371,56 @@ def format_value(value: Any) -> Optional[str]:
     return str(value)
 
 
+#: RehabPlanSchema には含まれないが、生成の文脈として渡したい計画書項目。
+#: 患者を特定しうる情報は入れないこと（このリストは prepare_patient_facts の
+#: CELL_NAME_MAPPING でも拾われないため、ここに書かないとモデルに一切届かない）。
+EXTRA_CONTEXT_KEYS = {
+    # 退院先と入院期間。長期目標の前提になる（施設退院か自宅復帰かで内容が変わる）
+    "goals_discharge_destination_chk",
+    "goals_discharge_destination_txt",
+    "goals_planned_hospitalization_period_chk",
+    "goals_planned_hospitalization_period_txt",
+    "goals_long_term_care_needed_chk",
+}
+
+
+def filter_generated_plan(patient_data: Dict[str, Any], exclude_key: str = None) -> Dict[str, Any]:
+    """「これまでの生成結果」としてプロンプトに渡してよい項目だけを抜き出す。
+
+    患者データの辞書をそのまま渡してはいけません。氏名・生年月日・患者IDなど、
+    prepare_patient_facts() が匿名化のために意図的に除外している情報まで
+    外部LLMへ送信されてしまいます（年齢も「70代後半」への丸めが失われます）。
+
+    ここでは AI が生成する項目 (RehabPlanSchema) だけを通します。
+
+    Args:
+        patient_data: 患者データと計画書データが混在した辞書
+        exclude_key: 再生成の対象項目。自分自身は渡さない
+    """
+    # 遅延インポート: schemas は context_builder を参照しないが、循環を避ける
+    from app.schemas.schemas import RehabPlanSchema
+
+    allowed = set(RehabPlanSchema.model_fields.keys()) | EXTRA_CONTEXT_KEYS
+    if exclude_key:
+        allowed.discard(exclude_key)
+
+    filtered = {k: v for k, v in patient_data.items() if k in allowed}
+
+    # 匿名化の回帰を早期に検知する。ここに引っかかるのは
+    # RehabPlanSchema に個人情報のフィールドが混入した場合。
+    leaked = {"name", "date_of_birth", "patient_id"} & set(filtered)
+    if leaked:
+        raise ValueError(f"個人情報が生成結果に混入しています: {sorted(leaked)}")
+
+    return filtered
+
+
 def prepare_patient_facts(patient_data: Dict[str, Any]) -> Dict[str, Any]:
     """プロンプトに渡すための患者の事実情報を整形する"""
     logger.debug(f"therapist_notes received = '{str(patient_data.get('therapist_notes'))[:100]}...'")
 
-    therapist_notes = patient_data.get("therapist_notes", "").strip()
+    # None が入ることがあるため or "" で受ける (.strip() が AttributeError になる)
+    therapist_notes = (patient_data.get("therapist_notes") or "").strip()
 
     facts = {
         "基本情報": {},
