@@ -34,7 +34,7 @@ def edit_patient_info():
         patient_data=data.get("patient_data", {}),
         plan_history=data.get("plan_history", []),
         current_patient_id=current_patient_id,
-        fim_history_json=data.get("fim_history_json"),
+        fim_history=data.get("fim_history"),
     )
 
 

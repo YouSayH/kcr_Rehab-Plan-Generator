@@ -92,7 +92,7 @@ def prepare_edit_page_data(patient_id: int = None, user=None) -> dict:
     result = {
         "patient_data": {},
         "plan_history": [],
-        "fim_history_json": None,
+        "fim_history": None,
         "all_patients": [],
         "error_message": None
     }
@@ -134,7 +134,14 @@ def prepare_edit_page_data(patient_id: int = None, user=None) -> dict:
                     {c.name: getattr(p, c.name) for c in p.__table__.columns}
                     for p in reversed(latest_plans)  # 古い順に並べ替え
                 ]
-                result["fim_history_json"] = json.dumps(fim_history_for_chart, default=str)
+                # JSON文字列ではなく素のオブジェクトを渡し、テンプレート側で
+                # | tojson を使う。json.dumps は </script> をエスケープしないため、
+                # 併存疾患欄などの自由記述に </script><script> を保存されると
+                # <script> 内に生出力した時点で格納型XSSになる。
+                # 日付は従来と同じ文字列表現に正規化しておく (JS側が new Date() で読む)。
+                result["fim_history"] = json.loads(
+                    json.dumps(fim_history_for_chart, default=str)
+                )
 
                 # 履歴ドロップダウン用に、全計画書のIDと作成日時を準備
                 all_plans_query = (

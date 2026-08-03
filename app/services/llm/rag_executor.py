@@ -18,20 +18,10 @@ if os.path.exists(REHAB_RAG_PATH) and REHAB_RAG_PATH not in sys.path:
 elif not os.path.exists(REHAB_RAG_PATH):
     print(f"WARNING: Rehab_RAG path not found at: {REHAB_RAG_PATH}")
 
-log_directory = "logs"
-if not os.path.exists(log_directory):
-    os.makedirs(log_directory)
-log_file_path = os.path.join(log_directory, "gemini_prompts.log")
-
-# ロガーの設定 (ファイル出力のみ、フォーマット指定)
-# すでにgemini_client.pyで設定されている場合は不要だが、念のため追加
-logger = logging.getLogger(__name__)  # 新しいロガーインスタンスを取得
-if not logger.hasHandlers():  # ハンドラが未設定の場合のみ設定
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+# ハンドラは持たせず、app.core.logging_config が "app" ロガーに設定した
+# ローテーション付きハンドラへ伝播させる。個別に FileHandler を足すと
+# 同じファイルを複数のハンドラが開き、ローテーションが壊れる。
+logger = logging.getLogger(__name__)
 
 
 def get_instance(module_name, class_name, params={}):

@@ -1,25 +1,15 @@
 import logging
-import os
 
 from flask import Blueprint
 
 # Blueprint作成
 plan_bp = Blueprint('plan', __name__)
 
-# ロガーの設定
-# app/routers/plan パッケージ全体で共通のロガー設定を行う
-log_directory = "logs"
-if not os.path.exists(log_directory):
-    os.makedirs(log_directory)
-log_file_path = os.path.join(log_directory, "gemini_prompts.log")
-
+# ロガーはハンドラを持たせず、app.core.logging_config が "app" ロガーに
+# 設定したローテーション付きハンドラへ伝播させる。
+# ここで個別に FileHandler を足すと、同じファイルを複数のハンドラが開き
+# ローテーションが壊れる。
 logger = logging.getLogger("app.routers.plan")
-if not logger.hasHandlers():
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
 
 # 循環インポートを防ぐため、Blueprint定義後にViewとAPIをインポートする
 # E402: インポートが先頭にない (Blueprint登録のため意図的)

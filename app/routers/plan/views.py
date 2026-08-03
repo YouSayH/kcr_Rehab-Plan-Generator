@@ -44,7 +44,10 @@ def generate_plan():
     try:
         patient_id = int(request.form.get("patient_id"))
         therapist_notes = request.form.get("therapist_notes", "")
+        # テンプレートのJSへ埋め込むため、想定値以外は既定にフォールバックさせる
         model_choice = request.form.get("model_choice", "both")
+        if model_choice not in ("both", "general", "specialized"):
+            model_choice = "both"
 
         # 権限チェック
         if not has_permission_for_patient(current_user, patient_id):

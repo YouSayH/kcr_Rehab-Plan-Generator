@@ -81,6 +81,9 @@ def create_app(test_config=None):
     # パスワード変更が必要な職員を、変更画面以外へ進ませないためのガード
     register_password_change_guard(app)
 
+    # セキュリティレスポンスヘッダ
+    register_security_headers(app)
+
     # 初期管理者の作成 (職員が0件のときのみ)。テスト時は実行しません。
     if not app.config.get("TESTING"):
         bootstrap_initial_admin(app)
@@ -109,6 +112,56 @@ def bootstrap_initial_admin(app):
         database.engine.dispose()
 
 
+#: 現在使用している唯一の外部CDN
+_CDN = "https://cdn.jsdelivr.net"
+
+#: Content-Security-Policy の各ディレクティブ
+#:
+#: 【制限事項】テンプレートにインラインの <script> が多数あるため、
+#: script-src に 'unsafe-inline' が必要で、XSS対策としてのCSPの効果は限定的です。
+#: それでも connect-src / form-action / frame-ancestors を絞ることで、
+#: 万一スクリプトが実行された場合に患者情報を外部へ送信する経路と、
+#: クリックジャッキングは塞げます。
+#: インラインスクリプトを外部ファイルへ追い出せば 'unsafe-inline' を外せます。
+_CSP_DIRECTIVES = [
+    "default-src 'self'",
+    f"script-src 'self' 'unsafe-inline' {_CDN}",
+    f"style-src 'self' 'unsafe-inline' {_CDN}",
+    f"font-src 'self' data: {_CDN}",
+    "img-src 'self' data:",
+    # 患者情報の外部送信(fetch/XHR/WebSocket)を自オリジンに限定する
+    "connect-src 'self'",
+    # フォームの送信先を自オリジンに限定する
+    "form-action 'self'",
+    # クリックジャッキング対策
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "object-src 'none'",
+]
+
+
+def register_security_headers(app):
+    """全レスポンスにセキュリティヘッダを付与する。
+
+    CSP は CSP_REPORT_ONLY=1 で Report-Only に切り替えられます。
+    本番へ適用する前に、開発環境で違反が出ないか確認する用途です。
+    """
+    csp = "; ".join(_CSP_DIRECTIVES)
+    report_only = os.getenv("CSP_REPORT_ONLY", "").lower() in ("1", "true", "yes")
+    csp_header = "Content-Security-Policy-Report-Only" if report_only else "Content-Security-Policy"
+
+    @app.after_request
+    def set_security_headers(response):
+        response.headers.setdefault(csp_header, csp)
+        # MIMEスニッフィングによるスクリプト実行を防ぐ
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        # frame-ancestors 非対応ブラウザ向けの保険
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        # 患者IDを含むURLを外部サイトへ渡さない
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+        return response
+
+
 def register_password_change_guard(app):
     """must_change_password が立っている間、パスワード変更画面以外を遮断する。"""
     from flask import redirect, request, url_for
@@ -129,21 +182,18 @@ def register_password_change_guard(app):
 
 
 def configure_logging(app):
-    """ロギングの設定を行うヘルパー関数"""
-    log_directory = "logs"
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
-    log_file_path = os.path.join(log_directory, "gemini_prompts.log")
+    """ロギングの設定を行うヘルパー関数
 
-    # ハンドラが未設定の場合のみ設定 (リロード時の重複防止)
-    if not app.logger.hasHandlers():
-        app.logger.setLevel(logging.INFO)
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    実体は app/core/logging_config.py に集約している。
+    ローテーションを効かせるため、個々のモジュールでハンドラを追加しないこと。
+    """
+    from app.core.logging_config import configure_logging as setup
 
-        file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
-        file_handler.setFormatter(formatter)
-
-        app.logger.addHandler(file_handler)
+    # このパッケージ名が "app" のため、Flask の app.logger は
+    # logging.getLogger("app") と同一オブジェクトになる。
+    # つまり setup() の設定がそのまま app.logger にも効く（未捕捉例外の
+    # トレースバックもローテーション先と標準出力の両方に出る）。
+    setup()
 
 
 # ユーザーローダーの定義

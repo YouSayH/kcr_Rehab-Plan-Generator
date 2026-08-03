@@ -1111,7 +1111,7 @@
                 </table>
 
                 <!-- ▼▼▼ FIM推移グラフ表示エリア ▼▼▼ -->
-                {% if fim_history_json and fim_history_json|length > 1 %}
+                {% if fim_history and fim_history|length > 1 %}
                 <details style="margin-top: 40px; margin-bottom: 20px; border-top: 2px solid #ddd; padding-top: 20px;">
                     <summary
                         style="font-size: 1.2em; color: #0056b3; cursor: pointer; font-weight: bold; list-style: revert; margin-left: 10px;">
@@ -2622,8 +2622,10 @@
      <!-- <script src="{{ url_for('static', filename='lib/chart/chart.js') }}"></script> -->
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const fimHistoryData = {{ fim_history_json | safe if fim_history_json else 'null'
-        }};
+            {# | safe ではなく | tojson を使う。json.dumps は </script> を
+               エスケープしないため、自由記述欄に </script><script> を保存されると
+               ここで格納型XSSになる。tojson は < > & ' を \u00XX に変換する。 #}
+            const fimHistoryData = {{ fim_history | tojson }};
 
         if (fimHistoryData && fimHistoryData.length > 1) {
             const FIM_ITEMS = {

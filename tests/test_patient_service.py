@@ -84,8 +84,10 @@ def test_prepare_edit_page_data(mock_session_cls, mock_patient_crud):
 
     # 検証
     assert result["patient_data"]["name"] == "Test Taro"
-    assert "fim_history_json" in result
-    json_data = json.loads(result["fim_history_json"])
-    assert isinstance(json_data, list)
+    # テンプレート側で | tojson するため、JSON文字列ではなく素のリストを渡す
+    # (json.dumps は </script> をエスケープせず、| safe で出力するとXSSになる)
+    assert "fim_history" in result
+    chart_data = result["fim_history"]
+    assert isinstance(chart_data, list)
     # グラフ用データにもカラム値が含まれているか確認
-    assert json_data[0]["plan_id"] == 1
+    assert chart_data[0]["plan_id"] == 1
