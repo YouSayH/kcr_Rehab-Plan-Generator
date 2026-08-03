@@ -20,10 +20,11 @@ ENV MECABRC=/etc/mecabrc
 WORKDIR /app
 
 # 依存関係をインストール (ビルドキャッシュ活用のため先に実行)
-# 【重要】: requirements.txtに "gunicorn" と "mecab-python3" を追加してください
-COPY requirements.txt .
+# requirements.txt ではなく requirements.lock を使う。前者はバージョンを固定して
+# いても推移的依存が固定されないため、ビルドした日によってイメージの中身が変わる。
+COPY requirements.lock .
 RUN pip install --no-cache-dir --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.lock
 
 # ステージ2: ランタイムステージ
 FROM python:3.11-slim-bookworm

@@ -179,8 +179,15 @@ source venv_rehab/bin/activate
 ```
 
 ```bash
+# 直接依存はバージョン固定済みです
 pip install -r requirements.txt
+# テストも実行する場合
+pip install -r requirements-dev.txt
 ```
+
+> `requirements.lock` は Linux コンテナ用です。環境マーカーを持たないため、
+> Windows や macOS で使うとインストールに失敗します（例: `uvloop` は Windows 非対応）。
+> ローカル環境では上記の `requirements.txt` を使用してください。
 
 #### **データベースの構築と管理者アカウントの作成(Dockerを使わない場合)**
 **5-A. (Windows利用者向け) ターミナルの文字コード設定**
@@ -355,7 +362,8 @@ docker-compose down -v
 python -m venv venv_rehab
 # 有効化 (Windows)
 .\venv_rehab\Scripts\activate
-# 依存ライブラリをインストール
+# 依存ライブラリをインストール (直接依存はバージョン固定済み)
+# requirements.lock は Linux コンテナ専用のため、ローカル環境では使わないでください
 pip install -r requirements.txt
 ```
 
