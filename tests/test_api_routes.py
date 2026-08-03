@@ -96,12 +96,14 @@ def test_generate_rag_stream_api(login_staff, app, db_session, mocker):
     assert call_args.kwargs['rag_executor'] == mock_executor_instance
 
 
-def test_like_suggestion_api(login_staff, app, db_session, mocker):
+def test_like_suggestion_api(login_staff, app, db_session, mocker, assign_patient):
     """いいねAPI (/like_suggestion) のテスト"""
     # 1. データ準備
     patient = Patient(name="Like Test Patient", gender="女性")
     db_session.add(patient)
     db_session.commit()
+    # 担当患者でないと 403 になるため割り当てる
+    assign_patient(patient)
     staff = db_session.query(Staff).filter_by(username="test_user").first()
 
     # モック: plan_crud.save_suggestion_like をモックしてDB書き込みを確認

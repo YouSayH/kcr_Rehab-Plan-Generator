@@ -1,4 +1,6 @@
 import base64
+from datetime import datetime
+from io import BytesIO
 
 from flask import url_for
 
@@ -52,26 +54,29 @@ def test_preview_plan_api(login_staff, monkeypatch, app): # 【修正】appフ�
     assert expected_b64 in html_content
 
 
-def test_save_and_download_flow(login_staff, monkeypatch, tmp_path, app): # 【修正】appフィクスチャを追加
+def test_save_and_download_flow(login_staff, monkeypatch, app):
     """
     【遷移】保存処理 -> ダウンロード画面 -> 実際のファイルダウンロード の流れ
+
+    ダウンロードはファイル名ではなく plan_id で受け取り、その場でExcelを
+    生成して返す（ディスクに患者情報のExcelを残さないため）。
     """
     client = login_staff
+    plan_id = 42
 
     # --- モックの準備 ---
 
     # 1. 権限チェックパス
     monkeypatch.setattr("app.routers.plan.views.has_permission_for_patient", lambda user, pid: True)
 
-    # 2. 保存ワークフローのモック (ファイル名だけ返す)
-    expected_filename = "RehabPlan_Test_2025.xlsx"
-    monkeypatch.setattr("app.services.plan_service.execute_save_workflow", lambda *args, **kwargs: expected_filename)
+    # 2. 保存ワークフローのモック (plan_id を返す)
+    monkeypatch.setattr("app.services.plan_service.execute_save_workflow", lambda *args, **kwargs: plan_id)
 
     # --- 保存処理のテスト ---
 
-    # 【修正】リクエストコンテキスト内で url_for を実行
     with app.test_request_context():
         save_url = url_for('plan.save_plan')
+        expected_download_url = url_for('plan.download_file', plan_id=plan_id)
 
     response_save = client.post(save_url, data={
         "patient_id": 1,
@@ -79,23 +84,53 @@ def test_save_and_download_flow(login_staff, monkeypatch, tmp_path, app): # 【�
     })
 
     assert response_save.status_code == 200
-    assert expected_filename in response_save.data.decode('utf-8')
+    # ダウンロード画面が plan_id 経由のURLを案内していること
+    assert expected_download_url in response_save.data.decode('utf-8')
 
     # --- ダウンロード処理のテスト ---
 
-    # 一時ファイル作成
-    mock_output_dir = tmp_path / "output"
-    mock_output_dir.mkdir()
-    (mock_output_dir / expected_filename).write_text("fake excel content")
+    monkeypatch.setattr(
+        "app.crud.plan.get_plan_by_id",
+        lambda pid: {"plan_id": pid, "patient_id": 1, "created_at": datetime(2026, 7, 23, 10, 30, 0)},
+    )
+    monkeypatch.setattr(
+        writer, "create_plan_sheet", lambda plan_data, return_bytes=False: BytesIO(b"fake excel content")
+    )
 
-    monkeypatch.setattr(writer, "OUTPUT_DIR", str(mock_output_dir))
-
-    # 【修正】リクエストコンテキスト内で url_for を実行
-    with app.test_request_context():
-        download_url = url_for('plan.download_file', filename=expected_filename)
-
-    response_download = client.get(download_url)
+    response_download = client.get(expected_download_url)
 
     assert response_download.status_code == 200
-    assert "attachment" in response_download.headers.get("Content-Disposition", "")
-    assert expected_filename in response_download.headers.get("Content-Disposition", "")
+    disposition = response_download.headers.get("Content-Disposition", "")
+    assert "attachment" in disposition
+    # ファイル名に患者名を含めない（推測でのアクセスを避けるため）
+    assert f"RehabPlan_{plan_id}_20260723_103000.xlsx" in disposition
+    assert response_download.data == b"fake excel content"
+
+
+def test_download_denied_for_unassigned_patient(login_staff, monkeypatch, app):
+    """担当外の患者の計画書はダウンロードできないこと。"""
+    client = login_staff
+
+    monkeypatch.setattr(
+        "app.crud.plan.get_plan_by_id",
+        lambda pid: {"plan_id": pid, "patient_id": 999, "created_at": datetime(2026, 7, 23)},
+    )
+    # 例外を投げて検知するのは不可。download_file の Excel 生成は
+    # `except Exception` で囲まれており、AssertionError も握り潰されて
+    # 「リダイレクトされた」ように見えてしまう。呼び出しの記録で判定する。
+    called = []
+    monkeypatch.setattr(
+        writer, "create_plan_sheet",
+        lambda *a, **kw: called.append(True) or BytesIO(b"leaked"),
+    )
+
+    with app.test_request_context():
+        download_url = url_for('plan.download_file', plan_id=1)
+
+    response = client.get(download_url, follow_redirects=False)
+
+    assert not called, "権限が無いのにExcelが生成された"
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith("/")
+    assert "attachment" not in response.headers.get("Content-Disposition", "")
+    assert b"leaked" not in response.data

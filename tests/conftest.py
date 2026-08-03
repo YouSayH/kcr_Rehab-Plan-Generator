@@ -96,3 +96,22 @@ def login_staff(client, db_session):
     }, follow_redirects=True)
 
     return client
+
+
+@pytest.fixture(scope="function")
+def assign_patient(db_session):
+    """患者をログイン中の職員(test_user)の担当に割り当てるヘルパー。
+
+    患者データを扱うルートは担当患者であることを要求するため、
+    正常系のテストではこのフィクスチャで割り当てておく必要があります。
+    担当外からのアクセスが拒否されることを確かめたい場合は、
+    あえて割り当てずにテストしてください。
+    """
+    def _assign(patient, username="test_user"):
+        staff = db_session.query(Staff).filter_by(username=username).first()
+        assert staff is not None, f"職員 {username} が存在しません"
+        staff.assigned_patients.append(patient)
+        db_session.commit()
+        return patient
+
+    return _assign

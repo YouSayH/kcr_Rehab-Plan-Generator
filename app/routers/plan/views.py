@@ -2,7 +2,7 @@ import base64
 import logging
 import os
 
-from flask import Response, flash, jsonify, redirect, render_template, request, send_from_directory, url_for
+from flask import Response, flash, jsonify, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 import app.services.excel.writer as excel_writer
@@ -119,8 +119,8 @@ def save_plan():
 
         form_data = request.form.to_dict()
 
-        # Service層へ委譲：保存ワークフローを実行し、生成されたファイル名を取得
-        output_filename = plan_service.execute_save_workflow(
+        # Service層へ委譲：保存ワークフローを実行し、保存された計画書のIDを取得
+        new_plan_id = plan_service.execute_save_workflow(
             staff_id=current_user.id,
             patient_id=patient_id,
             form_data=form_data
@@ -128,7 +128,7 @@ def save_plan():
 
         return render_template(
             "download_and_redirect.html",
-            download_url=url_for("plan.download_file", filename=output_filename),
+            download_url=url_for("plan.download_file", plan_id=new_plan_id),
             redirect_url=url_for("plan.index"),
         )
 
@@ -216,13 +216,40 @@ def view_plan(plan_id):
         return redirect(url_for("plan.index"))
 
 
-@plan_bp.route("/download/<path:filename>")
+@plan_bp.route("/download/<int:plan_id>")
 @login_required
-def download_file(filename):
-    """ファイルを安全にダウンロードさせる"""
-    directory = os.path.abspath(excel_writer.OUTPUT_DIR)
-    try:
-        return send_from_directory(directory, filename, as_attachment=True)
-    except FileNotFoundError:
-        flash("ダウンロード対象のファイルが見つかりません。", "danger")
+def download_file(plan_id):
+    """計画書のExcelを生成してダウンロードさせる。
+
+    以前はファイル名を直接受け取って output/ 配下を返していたため、
+    (1) 担当患者かどうかの検証が無く、(2) ファイル名が
+    「患者名＋秒精度のタイムスタンプ」で推測可能だった。
+    plan_id で受け取って権限を照合し、その場で生成して返すことで、
+    ディスク上に患者情報のExcelを溜めないようにしている。
+    """
+    plan_data = plan_crud.get_plan_by_id(plan_id)
+    if not plan_data:
+        flash("ダウンロード対象の計画書が見つかりません。", "danger")
         return redirect(url_for("plan.index"))
+
+    if not has_permission_for_patient(current_user, plan_data["patient_id"]):
+        flash("この計画書をダウンロードする権限がありません。", "danger")
+        return redirect(url_for("plan.index"))
+
+    try:
+        excel_bytes = excel_writer.create_plan_sheet(plan_data, return_bytes=True)
+    except Exception as e:
+        logger.error(f"Excel生成中にエラー (plan_id={plan_id}): {e}")
+        flash("Excelファイルの生成中にエラーが発生しました。", "danger")
+        return redirect(url_for("plan.index"))
+
+    created_at = plan_data.get("created_at")
+    timestamp = created_at.strftime("%Y%m%d_%H%M%S") if hasattr(created_at, "strftime") else str(plan_id)
+    download_name = f"RehabPlan_{plan_id}_{timestamp}.xlsx"
+
+    return send_file(
+        excel_bytes,
+        as_attachment=True,
+        download_name=download_name,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )

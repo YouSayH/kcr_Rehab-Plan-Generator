@@ -1,10 +1,8 @@
 import json
 import logging
-import os
 
 from app.crud import patient as patient_crud
 from app.crud import plan as plan_crud
-from app.services.excel import writer as excel_writer
 
 logger = logging.getLogger(__name__)
 
@@ -48,11 +46,11 @@ def execute_save_workflow(staff_id, patient_id, form_data):
         form_data (dict): フォームから送信されたデータ
 
     Returns:
-        str: 生成されたExcelファイルのファイル名
+        int: 保存された計画書の plan_id
 
     Raises:
         ValueError: 計画データの再取得に失敗した場合
-        Exception: その他DB保存やファイル生成中にエラーが発生した場合
+        Exception: その他DB保存中にエラーが発生した場合
     """
     # 所感、AI提案テキスト、再生成履歴をフォームデータから分離
     therapist_notes = form_data.get("therapist_notes", "")
@@ -86,18 +84,15 @@ def execute_save_workflow(staff_id, patient_id, form_data):
     except (json.JSONDecodeError, TypeError) as e:
         logger.warning(f"再生成履歴の処理中にエラーが発生しました: {e}")
 
-    # Excel出力用に、DBに保存されたばかりの計画データをIDで再取得
+    # 保存内容が読み戻せることを確認する
+    # (Excelはダウンロード時に plan_id から都度生成するため、ここでは書き出さない。
+    #  ディスクに患者情報のExcelを溜めないようにするための構成)
     plan_data_for_excel = plan_crud.get_plan_by_id(new_plan_id)
     if not plan_data_for_excel:
         # このエラーは通常発生しないはず
         raise ValueError("保存した計画データの再取得に失敗しました。")
 
-    # Excelファイルを作成
-    # Excel出力関数にもいいね情報を渡す
-    output_filepath = excel_writer.create_plan_sheet(plan_data_for_excel)
-    output_filename = os.path.basename(output_filepath)
-
     # 一時的ないいね情報を削除
     plan_crud.delete_all_likes_for_patient(patient_id)
 
-    return output_filename
+    return new_plan_id
