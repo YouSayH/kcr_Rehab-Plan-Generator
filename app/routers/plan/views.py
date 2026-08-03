@@ -10,7 +10,9 @@ import app.services.plan_service as plan_service
 
 # アプリケーション内モジュール
 from app.constants import ITEM_KEY_TO_JAPANESE
-from app.core.database import SessionLocal  # 履歴取得クエリ用
+# モジュール単位でインポートする。`from ... import SessionLocal` にするとインポート時に
+# 束縛され、テストがセッションファクトリを差し替えても反映されないため。
+import app.core.database as database  # 履歴取得クエリ用
 from app.crud import patient as patient_crud
 from app.crud import plan as plan_crud
 from app.crud import staff as staff_crud
@@ -69,7 +71,7 @@ def generate_plan():
 
         # 履歴ドロップダウン用に、全計画書のIDと作成日時を準備
         # ここはCRUD化せず、SessionLocalとモデルを使って直接クエリを実行
-        session = SessionLocal()
+        session = database.SessionLocal()
         try:
             all_plans_query = (
                 session.query(RehabilitationPlan.plan_id, RehabilitationPlan.created_at)

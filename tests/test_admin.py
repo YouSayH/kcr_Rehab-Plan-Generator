@@ -26,7 +26,10 @@ def test_admin_signup_access_denied_for_staff(client, app, db_session):
 def test_admin_signup_access_allowed_for_admin(client, app, db_session):
     """管理者が管理者ページにアクセスできるか"""
     # 管理者を作成してログイン
-    admin = Staff(username="admin", password=generate_password_hash("pw"), role="admin", occupation="Dr")
+    # must_change_password はモデル既定が True のため、明示的に False にしないと
+    # パスワード変更の強制ガードにより管理画面へのアクセスが 302 になる。
+    admin = Staff(username="admin", password=generate_password_hash("pw"), role="admin", occupation="Dr",
+                  must_change_password=False)
     db_session.add(admin)
     db_session.commit()
 
@@ -43,7 +46,10 @@ def test_admin_signup_access_allowed_for_admin(client, app, db_session):
 def test_create_staff(client, app, db_session):
     """管理者が新規ユーザーを作成できるか"""
     # 管理者でログイン
-    admin = Staff(username="admin", password=generate_password_hash("pw"), role="admin", occupation="Dr")
+    # must_change_password はモデル既定が True のため、明示的に False にしないと
+    # パスワード変更の強制ガードにより管理画面へのアクセスが 302 になる。
+    admin = Staff(username="admin", password=generate_password_hash("pw"), role="admin", occupation="Dr",
+                  must_change_password=False)
     db_session.add(admin)
     db_session.commit()
     client.post("/login", data={"username": "admin", "password": "pw"}, follow_redirects=True)

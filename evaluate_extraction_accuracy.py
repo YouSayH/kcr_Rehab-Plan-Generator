@@ -246,6 +246,14 @@ def compare_values(key, expected, actual):
     - ブール値: 厳密比較
     - None: 厳密比較
     """
+    # ブール値
+    # bool は int のサブクラスなので、数値比較より先に判定しないとこの分岐に到達しない。
+    # また、抽出されなかった項目は None になるため、期待値が False の場合は
+    # None を「チェックされていない」とみなして一致と判定する
+    # (先に `actual is None` を見ると、期待値 False のケースが全て不一致になる)。
+    if isinstance(expected, bool):
+        return bool(actual) is expected
+
     if expected is None:
         return actual is None
 
@@ -259,10 +267,6 @@ def compare_values(key, expected, actual):
             return float(expected) == float(actual)
         except:
             return False
-
-    # ブール値
-    if isinstance(expected, bool):
-        return bool(actual) is expected
 
     # 文字列
     if isinstance(expected, str):

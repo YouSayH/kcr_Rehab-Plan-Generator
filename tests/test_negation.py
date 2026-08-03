@@ -1,6 +1,15 @@
 import pytest
-from app.services.extraction.nlp_loader import load_ginza
-from app.services.extraction.negation import NegationDetector
+
+# GiNZA (spacy + ja_ginza) は requirementsGPU.txt にしか無く、通常のテスト環境には
+# 入っていない。未インストール時はこのモジュール全体をスキップする。
+# importorskip を使わずに import すると、収集段階の ImportError でテストスイート
+# 全体が中断してしまう。
+pytest.importorskip("spacy", reason="GiNZA(spacy) 未インストールのためスキップします")
+
+from app.services.extraction.negation import NegationDetector  # noqa: E402
+from app.services.extraction.nlp_loader import load_ginza  # noqa: E402
+
+pytestmark = pytest.mark.nlp
 
 @pytest.fixture(scope="module")
 def negation_detector():

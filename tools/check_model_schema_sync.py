@@ -1,10 +1,13 @@
 """SQLAlchemyモデルと schema.sql の整合を検証する静的チェック。
 
-DB接続を必要とせず、CIで実行できます。以下の2点を検証します。
+DB接続を必要とせず、CIで実行できます。以下の4点を検証します。
 
 1. モデルのカラム集合と schema.sql の CREATE TABLE のカラム集合が一致すること
 2. schema.sql 内の INSERT が、同ファイルの CREATE TABLE に存在しないカラムを
    参照していないこと（MySQL の ERROR 1054 を事前に検出する）
+3. CREATE TABLE されるテーブルが全て DROP TABLE されていること
+4. テンプレートが参照する計画書項目名がモデルに実在すること
+   （綴り誤りがあるとチェックボックスが常に未チェック表示になる）
 
 使い方:
     python tools/check_model_schema_sync.py            # 作業ツリーの schema.sql を検証
@@ -24,9 +27,19 @@ import re
 import subprocess
 import sys
 
+import glob
+
 ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 SCHEMA_PATH = os.path.join(ROOT, "schema.sql")
 MODELS_DIR = os.path.join(ROOT, "app", "models")
+TEMPLATES_DIR = os.path.join(ROOT, "app", "web", "templates")
+
+# テンプレートに存在するが、対応するDBカラムがまだ無い項目。
+# 監査所見 fe-02 として別途追跡中で、フォームから送信されても無言で破棄されます。
+# カラムを追加するか input を削除したら、この一覧から消してください。
+KNOWN_MISSING_COLUMNS = {
+    "goal_s_env_disability_welfare_other_txt",
+}
 
 # CREATE TABLE 本体からカラム名を拾うための型キーワード
 _TYPE_KEYWORDS = r"BOOLEAN|INT\b|TEXT|VARCHAR|DATE\b|DECIMAL|TIMESTAMP|JSON"
@@ -138,6 +151,29 @@ def parse_inserts(sql):
     return inserts
 
 
+def check_templates(model_columns):
+    """テンプレートが参照する計画書項目名がモデルに実在するか検証する。
+
+    綴りを間違えても Jinja は静かに undefined を返すため、チェックボックスが
+    常に未チェック表示になるだけで、エラーにも警告にもなりません。
+    """
+    errors = []
+    for path in glob.glob(os.path.join(TEMPLATES_DIR, "**", "*.html"), recursive=True):
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+
+        names = set(re.findall(r'data-bind="([a-zA-Z0-9_]+)"', content))
+        names |= set(re.findall(r"patient_data\.([a-z][a-zA-Z0-9_]*)", content))
+
+        # 計画書の項目とみられる接尾辞のものだけを対象にする
+        suspects = {n for n in names if n.endswith(("_chk", "_txt", "_val", "_slct", "_date"))}
+
+        rel = os.path.relpath(path, ROOT).replace("\\", "/")
+        for name in sorted(suspects - model_columns - KNOWN_MISSING_COLUMNS):
+            errors.append(f"[{rel}] モデルに存在しない項目を参照しています: {name}")
+    return errors
+
+
 def check(git_rev=None):
     sql = strip_line_comments(load_schema_sql(git_rev))
     schema_tables = parse_create_tables(sql)
@@ -185,6 +221,16 @@ def check(git_rev=None):
                 + ", ".join(undefined[:5])
                 + (" ..." if len(undefined) > 5 else "")
             )
+
+    # --- 4. テンプレート vs モデル ---
+    all_model_columns = set()
+    for columns in model_tables.values():
+        all_model_columns |= columns
+
+    template_errors = check_templates(all_model_columns)
+    errors.extend(template_errors)
+    if not template_errors:
+        print(f"  OK  テンプレート: 参照している項目名は全てモデルに存在します")
 
     return errors
 

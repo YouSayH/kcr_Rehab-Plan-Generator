@@ -5,8 +5,11 @@ from flask_login import current_user, login_required, login_user, logout_user
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.auth_models import Staff  # Flask-Login用
+
+# モジュール単位でインポートする。`from ... import SessionLocal` にするとインポート時に
+# 束縛され、テストがセッションファクトリを差し替えても反映されないため。
+import app.core.database as database
 from app.core.bootstrap import MIN_PASSWORD_LENGTH
-from app.core.database import SessionLocal
 
 # CRUDと、トークン保存用にDBセッションとDBモデルを直接インポート
 from app.crud import staff as staff_crud
@@ -40,7 +43,7 @@ def login():
 
             # トークン保存 (ここはCRUD関数がないため直接DB操作)
             try:
-                db = SessionLocal()
+                db = database.SessionLocal()
                 # app.models.Staff (DBStaff) を使用
                 db_staff = db.query(DBStaff).filter(DBStaff.id == staff.id).first()
                 if db_staff:

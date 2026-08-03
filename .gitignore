@@ -47,3 +47,5 @@ app/web/static/lib/*
 
 # incident-copilot（pytrace の実行記録。ローカル専用）
 .py-trace/
+.cdp-trace/
+.story/

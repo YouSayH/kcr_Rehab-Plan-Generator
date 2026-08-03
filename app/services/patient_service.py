@@ -1,7 +1,9 @@
 import json
 import logging
 
-from app.core.database import SessionLocal
+# モジュール単位でインポートする。`from ... import SessionLocal` にするとインポート時に
+# 束縛され、テストがセッションファクトリを差し替えても反映されないため。
+import app.core.database as database
 from app.crud import patient as patient_crud
 from app.models import Patient, RehabilitationPlan
 
@@ -89,7 +91,7 @@ def prepare_edit_page_data(patient_id: int = None) -> dict:
         "error_message": None
     }
 
-    session = SessionLocal()
+    session = database.SessionLocal()
     try:
         # プルダウン用に全患者のリストを取得
         result["all_patients"] = patient_crud.get_all_patients()

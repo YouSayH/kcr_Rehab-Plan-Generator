@@ -81,7 +81,10 @@ def login_staff(client, db_session):
             username=username,
             password=generate_password_hash(password),
             occupation="PT",
-            role="staff"
+            role="staff",
+            # 通常業務中の職員を想定する。既定値の True のままだと
+            # パスワード変更の強制ガードにより全リクエストが 302 になる。
+            must_change_password=False,
         )
         db_session.add(staff)
         db_session.commit()

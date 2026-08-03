@@ -32,7 +32,9 @@ def test_normalize_patient_form_data():
 
 # --- 2. 編集ページ用データ準備ロジックのテスト ---
 @patch("app.services.patient_service.patient_crud")
-@patch("app.services.patient_service.SessionLocal")
+# patient_service は `import app.core.database as database` でモジュール参照するため、
+# 差し替え対象は database モジュール側の SessionLocal になる。
+@patch("app.core.database.SessionLocal")
 def test_prepare_edit_page_data(mock_session_cls, mock_patient_crud):
     """
     編集ページ表示に必要なデータセットが正しく構築されるか検証

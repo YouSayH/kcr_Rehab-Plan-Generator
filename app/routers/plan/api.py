@@ -4,7 +4,9 @@ import logging
 from flask import Response, jsonify, request
 from flask_login import current_user, login_required
 
-from app.core.database import SessionLocal
+# モジュール単位でインポートする。`from ... import SessionLocal` にするとインポート時に
+# 束縛され、テストがセッションファクトリを差し替えても反映されないため。
+import app.core.database as database
 from app.crud import patient as patient_crud
 from app.crud import plan as plan_crud
 
@@ -217,7 +219,7 @@ def get_plan_history(patient_id):
         return jsonify({"error": "権限がありません。"}), 403
 
     # 【修正】履歴リストの取得 (CRUDにはないためSessionLocalを使用)
-    session = SessionLocal()
+    session = database.SessionLocal()
     try:
         plans = (
             session.query(RehabilitationPlan.plan_id, RehabilitationPlan.created_at)

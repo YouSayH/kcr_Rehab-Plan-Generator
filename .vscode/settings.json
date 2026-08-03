@@ -1,0 +1,60 @@
+{
+  // Incident Copilot: 拡張が叩くバックエンドAPIのベースURL。docker-compose の ports を
+  // "8010:8000"（他アプリとの競合回避でホスト側を8010へずらした）にしたため、既定の 8000 でなく 8010 を明示する。
+  // 未設定だと ApiClient.getBaseUrl() が http://localhost:8000 にフォールバックし、履歴取得/マッチングが届かない。
+  "incident-copilot.apiBaseUrl": "http://localhost:8010",
+
+  // Incident Copilot: artisan をコンテナ越しに実行する（設計書29 L1 実DB照合・route:list 精度向上）。
+  // 拡張はこの文字列を execFile で実行するだけ（シェル非経由）。DB 認証情報には触れない
+  // ＝アプリがコンテナ内で自分の接続を使い read 専用の introspection（information_schema を tinker で SELECT・#137）を行う。
+  // このリポジトリの構成: サービス名 app（docker-compose.yml）・Laravel は ./laravel（working_dir /var/www）。
+  // -T はコンテナ exec で疑似TTYを無効化（非対話実行に必須。無いと "the input device is not a TTY" で失敗）。
+  "incident-copilot.api.artisanCommand": "docker compose exec -T app php artisan",
+
+  // ── VS Code 軽量化（2026-07-25 の `code --status` 実測に基づく）──
+  // 実測: 空きメモリ 1.70GB / 15.69GB・file-watcher 2本で 152MB・typingsInstaller 115MB。
+  //
+  // ファイル監視の対象から生成物と依存物を外す。VS Code の file-watcher は
+  // **ワークスペースフォルダ単位**に作られ、そのフォルダの実効設定を読む
+  // ＝この settings.json が効くのは php-selfmade フォルダのみ（他フォルダはユーザー設定側で外す）。
+  // ★既定値は node_modules を "**/node_modules/*/**"（各パッケージ直下だけ）しか外さないので、
+  //   "**/node_modules/**" を明示して丸ごと外す。
+  // ★ここに拡張自身が監視するパス（composer.json / .incident-copilot/routes.json＝
+  //   graphFreshnessWatcher の LEDGER_GLOB）を入れてはいけない。鮮度保持が無言で壊れる。
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/vendor/**": true,
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/out/**": true,
+    "**/dist/**": true,
+    "**/.cdp-trace/**": true,
+    "**/storage/framework/**": true,
+    "**/storage/logs/**": true,
+    "**/bootstrap/cache/**": true,
+    "**/__pycache__/**": true,
+    "**/.venv/**": true,
+    "**/.history/**": true
+  },
+
+  // 検索（Ctrl+Shift+F）の対象からも同じものを外す。
+  // ★Intelephense の解析対象はこの設定とは無関係なので、vendor を外しても
+  //   Laravel クラスの補完・定義ジャンプは失われない。
+  //   （intelephense.files.exclude で vendor を外すと補完が壊れる＝そちらは触らない）
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/vendor": true,
+    "**/out": true,
+    "**/dist": true,
+    "**/.cdp-trace": true,
+    "**/storage/framework": true,
+    "**/storage/logs": true,
+    "**/.history": true
+  },
+
+  // @types の自動ダウンロード（typingsInstaller.js＝実測 115MB の常駐プロセス）を止める。
+  // この repo は必要な @types を package.json で明示的に持つため、自動取得は不要。
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "incident-copilot.api.pythonCommand": "docker compose exec -T web python",
+  "incident-copilot.db.pythonEngine": "app.core.database:engine"
+}
