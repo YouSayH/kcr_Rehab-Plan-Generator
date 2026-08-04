@@ -27,14 +27,34 @@ _FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 _configured = False
 
 
-def _build_handler():
-    os.makedirs(LOG_DIRECTORY, exist_ok=True)
-    handler = logging.handlers.RotatingFileHandler(
-        os.path.join(LOG_DIRECTORY, LOG_FILENAME),
-        maxBytes=MAX_BYTES,
-        backupCount=BACKUP_COUNT,
-        encoding="utf-8",
-    )
+def _build_file_handler():
+    """ローテーション付きのファイルハンドラを返す。作れない場合は None。
+
+    ログディレクトリに書けないことは、アプリを止める理由にはなりません。
+    特にコンテナを非rootで動かす構成では、Linuxホスト上のバインドマウントが
+    root所有で作られて書き込めないことがあります。ここで例外を送出すると
+    create_app が失敗し、gunicorn の --preload と restart: always が合わさって
+    無限再起動になり、ログが書けないという些細な理由でサービスが停止します。
+    """
+    try:
+        os.makedirs(LOG_DIRECTORY, exist_ok=True)
+        handler = logging.handlers.RotatingFileHandler(
+            os.path.join(LOG_DIRECTORY, LOG_FILENAME),
+            maxBytes=MAX_BYTES,
+            backupCount=BACKUP_COUNT,
+            encoding="utf-8",
+        )
+    except OSError as e:
+        # ここではまだロガーを設定できていないので標準エラーへ直接出す
+        print(
+            f"[警告] ログファイル {LOG_DIRECTORY}/{LOG_FILENAME} を開けません ({e})。"
+            "標準出力へのログ出力のみで続行します。"
+            "コンテナ実行時は、マウント元ディレクトリの所有者を"
+            "実行ユーザー(uid 1000)に合わせてください。",
+            file=sys.stderr,
+        )
+        return None
+
     handler.setFormatter(logging.Formatter(_FORMAT))
     return handler
 
@@ -57,7 +77,9 @@ def configure_logging(level=logging.INFO):
     for existing in list(root.handlers):
         root.removeHandler(existing)
 
-    root.addHandler(_build_handler())
+    file_handler = _build_file_handler()
+    if file_handler is not None:
+        root.addHandler(file_handler)
 
     # 標準出力にも出す。propagate=False にすると gunicorn がルートロガーへ
     # 張っている console ハンドラへ届かなくなり、`docker compose logs` に

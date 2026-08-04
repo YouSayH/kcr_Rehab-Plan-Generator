@@ -131,6 +131,24 @@ def test_app_logger_writes_to_stdout(app):
     )
 
 
+def test_hsts_not_sent_over_plain_http(client):
+    """HTTP運用中に HSTS を送らないこと。
+
+    送ってしまうと、ブラウザが以後HTTPSへ強制リダイレクトするようになり、
+    TLS未導入の環境ではアクセス不能になる。
+    """
+    response = client.get("/login")
+
+    assert "Strict-Transport-Security" not in response.headers
+
+
+def test_hsts_sent_over_https(client):
+    """HTTPS経由なら HSTS を送ること。"""
+    response = client.get("/login", base_url="https://localhost")
+
+    assert response.headers.get("Strict-Transport-Security", "").startswith("max-age=")
+
+
 def test_model_choice_is_whitelisted(login_staff, app, db_session, assign_patient, mocker):
     """model_choice に想定外の値を渡しても、そのままJSに埋め込まれないこと。"""
     patient = Patient(name="モデル選択 検証", gender="男")

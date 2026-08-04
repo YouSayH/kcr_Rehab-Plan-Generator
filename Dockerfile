@@ -54,9 +54,18 @@ COPY . .
 
 RUN chmod -R a+r /var/lib/mecab
 
-# 非rootユーザーの作成と切り替え (セキュリティ強化)
-# RUN useradd --system --uid 1000 appuser
-# USER appuser
+# 非rootユーザーで実行する。
+# web は nginx 経由で外部からのHTTPを受ける唯一のアプリプロセスであり、
+# Flask/Jinja2/openpyxl/ChromaDB のいずれかに深刻な脆弱性が出た場合、
+# root のままだとバインドマウントされたホスト側のディレクトリ
+# (output・logs・rag_db_data) を自由に読み書きされる。
+# アプリが書き込むディレクトリは事前に作って所有者を合わせておく
+# (マウントされない場合でも起動できるようにするため)。
+RUN useradd --system --uid 1000 --create-home appuser \
+    && mkdir -p /app/logs /app/output \
+    && chown -R appuser:appuser /app
+
+USER appuser
 
 # Cloud Runのデフォルトポート8080を公開
 EXPOSE 8080

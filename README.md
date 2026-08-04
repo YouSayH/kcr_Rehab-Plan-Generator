@@ -332,6 +332,20 @@ docker-compose run --user root web python Rehab_RAG/experiments/hybrid_search_ex
 docker-compose up --build -d
 ```
 
+> **Linux ホストで動かす場合の事前準備**
+>
+> アプリのコンテナは非rootユーザー（uid 1000）で動きます。マウント元のディレクトリが
+> 存在しないと Docker が root 所有で作成してしまい、コンテナから書き込めません。
+> 起動前に一度だけ実行してください（Windows / macOS の Docker Desktop では不要です）。
+>
+> ```bash
+> mkdir -p logs rag_db_data
+> sudo chown -R 1000:1000 logs rag_db_data
+> ```
+>
+> ログが書けない場合でもアプリは停止せず、標準出力（`docker compose logs web`）へ
+> 出力を続けます。
+
   * `--build`: `Dockerfile` に変更があった場合にイメージを再構築します。
   * `-d`: コンテナをバックグラウンドで実行します。
 

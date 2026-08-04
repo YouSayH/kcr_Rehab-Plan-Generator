@@ -22,7 +22,7 @@ services:
   web:
     build: . # カレントディレクトリのDockerfileを使用
     container_name: rehab_app_web
-    user: root
+    # user は指定しない。Dockerfile の USER appuser (uid 1000) で実行する。
     restart: always
     expose:            # Docker内部でのみ8080番を開放
       - "8080"

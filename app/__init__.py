@@ -3,9 +3,10 @@ import os
 from datetime import timedelta
 
 from dotenv import load_dotenv
-from flask import Flask, session
+from flask import Flask, request, session
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # 自作モジュールのインポート
 from app.auth_models import Staff
@@ -62,6 +63,19 @@ def create_app(test_config=None):
     # SECRET_KEYの検証 (テスト時以外)
     if not app.config.get("SECRET_KEY") and not (test_config and test_config.get("TESTING")):
         raise ValueError("環境変数 'SECRET_KEY' が .env ファイルに設定されていません。")
+
+    # リバースプロキシ配下で動くための設定。
+    # nginx が付ける X-Forwarded-Proto / X-Forwarded-For を信頼し、
+    # request.is_secure や request.remote_addr を元のリクエストに合わせる。
+    # HTTPS化した際に Secure Cookie の付与と flask_wtf の Referer 検証が
+    # 正しく働くようにするためのもの。
+    # プロキシを介さずに直接公開する場合はヘッダを偽装できるため
+    # TRUSTED_PROXY_COUNT=0 で無効化すること。
+    proxy_count = int(os.getenv("TRUSTED_PROXY_COUNT", "1"))
+    if proxy_count > 0:
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app, x_for=proxy_count, x_proto=proxy_count, x_host=proxy_count
+        )
 
     # 拡張機能の初期化
     csrf.init_app(app)
@@ -159,6 +173,14 @@ def register_security_headers(app):
         response.headers.setdefault("X-Frame-Options", "DENY")
         # 患者IDを含むURLを外部サイトへ渡さない
         response.headers.setdefault("Referrer-Policy", "same-origin")
+
+        # HSTS は HTTPS のときだけ付ける。HTTP運用中に付けると、
+        # ブラウザがHTTPSへ強制リダイレクトするようになりアクセス不能になる。
+        # ProxyFix により request.is_secure はプロキシ終端のスキームを反映する。
+        if request.is_secure:
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+            )
         return response
 
 

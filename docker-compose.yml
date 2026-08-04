@@ -20,7 +20,7 @@ services:
   web:
     build: . # カレントディレクトリのDockerfileを使用
     container_name: rehab_app_web
-    user: root
+    # user は指定しない。Dockerfile の USER appuser (uid 1000) で実行する。
     restart: always
     expose:            # Docker内部でのみ8080番を開放
       - "8080"
@@ -35,9 +35,11 @@ services:
       # ※パスは rag_config.yaml の active_pipeline の設定に合わせてください
       # 例: active_pipeline: "raptor_experiment" の場合
       - ./rag_db_data:/app/Rehab_RAG/experiments/hybrid_search_experiment/db
-      # 生成されたExcelをローカルでも確認 (任意)
-      - ./output:/app/output
       # ログをローカルでも確認 (任意)
+      # 【Linuxホストの場合】このディレクトリが存在しないと Docker が root 所有で
+      # 作成し、非rootで動くコンテナが書き込めません。事前に
+      #   mkdir -p logs rag_db_data && sudo chown -R 1000:1000 logs rag_db_data
+      # を実行してください（書けない場合もアプリは標準出力へのログ出力で継続します）。
       - ./logs:/app/logs
 
     networks:
