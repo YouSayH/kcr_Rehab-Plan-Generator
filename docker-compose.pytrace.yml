@@ -1,0 +1,22 @@
+# pytrace（incident-copilot の Python センサー）で実行を記録するときだけ重ねるオーバーレイ。
+# incident-copilot が自動生成。
+#
+# 使い方:
+#   docker compose -f <base compose> -f docker-compose.pytrace.yml up -d web
+# 元に戻す:
+#   docker compose up -d web     （base だけで再作成すれば元の command に戻る）
+#
+# base の compose / Dockerfile / .env は変更しない。イメージの再ビルドも不要
+# （command とマウントの差し替えだけなので既存イメージのままコンテナが再作成される）。
+services:
+  web:
+    # 起動コマンドだけ差し替える。待ち受けは 0.0.0.0（コンテナ外から届かせるため）
+    command: ["python", "-m", "pytrace", "run:app", "--server", "wsgi", "--host", "0.0.0.0", "--port", "8080"]
+    environment:
+      # センサー本体を import 可能にする（アプリの依存には足さない）
+      PYTHONPATH: /opt/pytrace
+    volumes:
+      # センサー本体を読み取り専用で持ち込む
+      - ../php-selfmade/pytrace:/opt/pytrace/pytrace:ro
+      # 記録をホストから読めるようにする（拡張はワークスペース直下の .py-trace を探す）
+      - ./.py-trace:/app/.py-trace

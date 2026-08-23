@@ -1,10 +1,12 @@
 import json
 import logging
 
-from flask import Response, jsonify, request
+from flask import Response, g, jsonify, request
 from flask_login import current_user, login_required
 
-from app.core.database import SessionLocal
+# モジュール単位でインポートする。`from ... import SessionLocal` にするとインポート時に
+# 束縛され、テストがセッションファクトリを差し替えても反映されないため。
+import app.core.database as database
 from app.crud import patient as patient_crud
 from app.crud import plan as plan_crud
 
@@ -17,6 +19,7 @@ from app.services.rag_manager import (
     DEFAULT_RAG_PIPELINE,
     get_rag_executor,
 )
+from app.utils.decorators import patient_access_required
 from app.utils.helpers import has_permission_for_patient
 
 # Blueprintのインポート
@@ -122,10 +125,13 @@ def generate_rag_stream(pipeline_name):
 
 @plan_bp.route("/like_suggestion", methods=["POST"])
 @login_required
+@patient_access_required()
 def like_suggestion():
     """AI提案の「いいね」評価を保存するAPIエンドポイント"""
     data = request.get_json()
-    patient_id = data.get("patient_id")
+    # デコレータが検証した値をそのまま使う。ここでリクエストを読み直すと、
+    # 検証した patient_id と実際に書き込む patient_id がずれる余地が残る。
+    patient_id = g.patient_id
     item_key = data.get("item_key")
     liked_model = data.get("liked_model")  # 'general', 'specialized', または null
 
@@ -160,7 +166,7 @@ def regenerate_item():
         item_key = data.get("item_key")
         current_text = data.get("current_text", "")
         instruction = data.get("instruction", "")
-        # therapist_notes = data.get("therapist_notes", "") # 必要であれば取得
+        therapist_notes = data.get("therapist_notes", "")
         model_type = data.get("model_type")  # 'general' or 'specialized'
         pipeline_name = data.get("pipeline_name", DEFAULT_RAG_PIPELINE)
 
@@ -175,6 +181,11 @@ def regenerate_item():
         patient_data = patient_crud.get_patient_data_for_plan(patient_id)
         if not patient_data:
             return Response("患者データが見つかりません。", status=404)
+
+        # 所見を引き継ぐ。渡さないと prepare_patient_facts が既定値の「特になし」を
+        # 入れてしまい、「独居のため屋内歩行自立が必須」といった初回生成の前提が
+        # 失われたまま書き直され、UI上は「具体化しただけ」に見えてしまう。
+        patient_data["therapist_notes"] = therapist_notes
 
         # モデルタイプに応じてRAG Executorを準備
         rag_executor = None
@@ -217,7 +228,7 @@ def get_plan_history(patient_id):
         return jsonify({"error": "権限がありません。"}), 403
 
     # 【修正】履歴リストの取得 (CRUDにはないためSessionLocalを使用)
-    session = SessionLocal()
+    session = database.SessionLocal()
     try:
         plans = (
             session.query(RehabilitationPlan.plan_id, RehabilitationPlan.created_at)

@@ -1,4 +1,4 @@
-from sqlalchemy import TIMESTAMP, Column, ForeignKey, Integer, String, Table
+from sqlalchemy import TIMESTAMP, Boolean, Column, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
 
 from .base import Base
@@ -25,6 +25,10 @@ class Staff(Base):
     created_at = Column(TIMESTAMP)
 
     session_token = Column(String(255), nullable=True, index=True)
+
+    # TRUEの間はパスワード変更画面以外を使用できない (初回ログイン時の強制変更に使用)
+    must_change_password = Column(Boolean, nullable=False, default=True)
+    password_updated_at = Column(TIMESTAMP, nullable=True)
 
     # Staffから担当のPatientを 'assigned_patients' という名前で参照
     # secondary引数にはTableオブジェクトを直接渡す

@@ -1,5 +1,12 @@
 import pytest
-from app.services.extraction.fast_extractor import FastExtractor
+
+# FastExtractor は GiNZA (spacy + ja_ginza) を必要とする。通常のテスト環境には
+# 入っていないため、未インストール時はこのモジュール全体をスキップする。
+pytest.importorskip("spacy", reason="GiNZA(spacy) 未インストールのためスキップします")
+
+from app.services.extraction.fast_extractor import FastExtractor  # noqa: E402
+
+pytestmark = pytest.mark.nlp
 
 @pytest.fixture(scope="module")
 def extractor():

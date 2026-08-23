@@ -1,8 +1,11 @@
 import json
 import logging
 
-from app.core.database import SessionLocal
+# モジュール単位でインポートする。`from ... import SessionLocal` にするとインポート時に
+# 束縛され、テストがセッションファクトリを差し替えても反映されないため。
+import app.core.database as database
 from app.crud import patient as patient_crud
+from app.crud import staff as staff_crud
 from app.models import Patient, RehabilitationPlan
 
 logger = logging.getLogger(__name__)
@@ -77,22 +80,32 @@ def normalize_form_data(form_data: dict) -> dict:
 
     return normalized_data
 
-def prepare_edit_page_data(patient_id: int = None) -> dict:
+def prepare_edit_page_data(patient_id: int = None, user=None) -> dict:
     """
     編集ページ表示用のデータを取得・整形する
+
+    Args:
+        patient_id: 表示対象の患者ID。None なら新規登録画面として扱う。
+        user: 操作中のユーザー。プルダウンに出す患者を担当患者のみに絞るために使う。
+            None の場合は全患者を返す（呼び出し側で絞り込み済みの場合を想定）。
     """
     result = {
         "patient_data": {},
         "plan_history": [],
-        "fim_history_json": None,
+        "fim_history": None,
         "all_patients": [],
         "error_message": None
     }
 
-    session = SessionLocal()
+    session = database.SessionLocal()
     try:
-        # プルダウン用に全患者のリストを取得
-        result["all_patients"] = patient_crud.get_all_patients()
+        # プルダウン用の患者リスト。
+        # 一般職員に全患者を見せると、担当外の患者の氏名とIDが漏れるうえ、
+        # そのIDを使って他画面へアクセスする手掛かりになるため担当患者のみに絞る。
+        if user is not None and getattr(user, "role", None) != "admin":
+            result["all_patients"] = staff_crud.get_assigned_patients(user.id)
+        else:
+            result["all_patients"] = patient_crud.get_all_patients()
 
         if patient_id:
             # 1. 最新7件の計画書データを取得
@@ -121,7 +134,14 @@ def prepare_edit_page_data(patient_id: int = None) -> dict:
                     {c.name: getattr(p, c.name) for c in p.__table__.columns}
                     for p in reversed(latest_plans)  # 古い順に並べ替え
                 ]
-                result["fim_history_json"] = json.dumps(fim_history_for_chart, default=str)
+                # JSON文字列ではなく素のオブジェクトを渡し、テンプレート側で
+                # | tojson を使う。json.dumps は </script> をエスケープしないため、
+                # 併存疾患欄などの自由記述に </script><script> を保存されると
+                # <script> 内に生出力した時点で格納型XSSになる。
+                # 日付は従来と同じ文字列表現に正規化しておく (JS側が new Date() で読む)。
+                result["fim_history"] = json.loads(
+                    json.dumps(fim_history_for_chart, default=str)
+                )
 
                 # 履歴ドロップダウン用に、全計画書のIDと作成日時を準備
                 all_plans_query = (

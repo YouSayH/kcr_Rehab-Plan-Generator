@@ -1,0 +1,6 @@
+# 開発・テスト用の依存関係
+# 本番イメージ (Dockerfile) には含めません。
+#   pip install -r requirements.txt -r requirements-dev.txt
+
+pytest
+pytest-mock

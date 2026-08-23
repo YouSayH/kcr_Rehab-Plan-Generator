@@ -55,5 +55,7 @@ class MultiQueryGenerator:
         if query not in queries:
             queries.insert(0, query)
 
-        print(f"  - 生成された検索クエリ: {queries}")
+        # クエリには患者の臨床情報がそのまま含まれる。標準出力は docker logs に
+        # 残り、担当患者チェックとは無関係に閲覧できるため件数のみを出す。
+        print(f"  - 検索クエリを {len(queries)} 件生成しました")
         return queries

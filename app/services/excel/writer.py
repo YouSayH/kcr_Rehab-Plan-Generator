@@ -87,8 +87,16 @@ def _write_selection_fields(wb, plan_data):
                     print(f"   [情報] 選択肢処理: {db_key}={user_value} -> {address}={write_val}")
 
 def create_plan_sheet(plan_data, return_bytes=False):
-    """【リファクタリング版】Excelに計画書を書き込む"""
-    if not os.path.exists(OUTPUT_DIR):
+    """Excelに計画書を書き込む。
+
+    return_bytes=True ならディスクを経由せずバイト列を返す。
+    アプリ本体はこちらしか使わない（患者情報を含むExcelをディスクに
+    溜めないため）。ファイル出力はテストと手元での確認用。
+    """
+    # 出力ディレクトリの作成は、実際にファイルへ書き出すときだけ行う。
+    # return_bytes=True でも無条件に作ろうとすると、書き込み権限の無い
+    # 環境（非rootで動かすコンテナなど）でダウンロードが失敗する。
+    if not return_bytes and not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
 
     try:

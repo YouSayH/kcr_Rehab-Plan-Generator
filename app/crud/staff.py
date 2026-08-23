@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy.exc import IntegrityError
 
 import app.core.database as database
@@ -22,6 +24,45 @@ def get_staff_by_id(staff_id: int):
         if staff:
             return {c.name: getattr(staff, c.name) for c in staff.__table__.columns}
         return None
+    finally:
+        db.close()
+
+
+def update_password(staff_id: int, hashed_password: str):
+    """パスワードを更新し、変更強制フラグを解除する。
+
+    パスワード変更は「漏れたかもしれない資格情報を無効化する」操作でもあるため、
+    session_token も破棄して、他端末に残っているセッションを即座に失効させます。
+    """
+    db = database.SessionLocal()
+    try:
+        staff = db.query(Staff).filter(Staff.id == staff_id).first()
+        if not staff:
+            return False
+        staff.password = hashed_password
+        staff.must_change_password = False
+        staff.password_updated_at = datetime.now()
+        staff.session_token = None
+        db.commit()
+        return True
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def clear_session_token(staff_id: int):
+    """DB側のセッショントークンを破棄する（ログアウト時に使用）。"""
+    db = database.SessionLocal()
+    try:
+        staff = db.query(Staff).filter(Staff.id == staff_id).first()
+        if staff:
+            staff.session_token = None
+            db.commit()
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 

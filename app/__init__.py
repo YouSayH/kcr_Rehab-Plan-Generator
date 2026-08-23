@@ -3,9 +3,10 @@ import os
 from datetime import timedelta
 
 from dotenv import load_dotenv
-from flask import Flask, session
+from flask import Flask, request, session
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # 自作モジュールのインポート
 from app.auth_models import Staff
@@ -37,7 +38,23 @@ def create_app(test_config=None):
     # 基本設定
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
     # 9時間後(労働時間8時間+1時間)にタイムアウトする設定
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=540)
+    session_lifetime = timedelta(minutes=540)
+    app.config["PERMANENT_SESSION_LIFETIME"] = session_lifetime
+
+    # CSRFトークンの有効期限をセッションと揃える。
+    # Flask-WTF の既定は1時間で、セッションより先にトークンだけが切れる。
+    # 計画書の編集は所見の記入やAI生成の確認で1時間を超えることがあり、
+    # 保存ボタンを押した瞬間に400になって入力内容が全て失われる。
+    app.config["WTF_CSRF_TIME_LIMIT"] = int(session_lifetime.total_seconds())
+
+    # セッションCookieの保護。HTTPONLY は既定でTrueだが、意図を明示しておく。
+    # SECURE は HTTPS 化(add-03)の際に True にする。HTTP運用のまま True にすると
+    # Cookieが送信されずログインできなくなるため、環境変数で切り替える。
+    app.config["SESSION_COOKIE_HTTPONLY"] = True
+    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+    app.config["SESSION_COOKIE_SECURE"] = os.getenv("SESSION_COOKIE_SECURE", "").lower() in (
+        "1", "true", "yes"
+    )
 
     # テスト設定の適用 (テスト時はこれで上書きされます)
     if test_config:
@@ -46,6 +63,19 @@ def create_app(test_config=None):
     # SECRET_KEYの検証 (テスト時以外)
     if not app.config.get("SECRET_KEY") and not (test_config and test_config.get("TESTING")):
         raise ValueError("環境変数 'SECRET_KEY' が .env ファイルに設定されていません。")
+
+    # リバースプロキシ配下で動くための設定。
+    # nginx が付ける X-Forwarded-Proto / X-Forwarded-For を信頼し、
+    # request.is_secure や request.remote_addr を元のリクエストに合わせる。
+    # HTTPS化した際に Secure Cookie の付与と flask_wtf の Referer 検証が
+    # 正しく働くようにするためのもの。
+    # プロキシを介さずに直接公開する場合はヘッダを偽装できるため
+    # TRUSTED_PROXY_COUNT=0 で無効化すること。
+    proxy_count = int(os.getenv("TRUSTED_PROXY_COUNT", "1"))
+    if proxy_count > 0:
+        app.wsgi_app = ProxyFix(
+            app.wsgi_app, x_for=proxy_count, x_proto=proxy_count, x_host=proxy_count
+        )
 
     # 拡張機能の初期化
     csrf.init_app(app)
@@ -62,6 +92,16 @@ def create_app(test_config=None):
     app.register_blueprint(plan_bp)
     app.register_blueprint(patient_bp)
 
+    # パスワード変更が必要な職員を、変更画面以外へ進ませないためのガード
+    register_password_change_guard(app)
+
+    # セキュリティレスポンスヘッダ
+    register_security_headers(app)
+
+    # 初期管理者の作成 (職員が0件のときのみ)。テスト時は実行しません。
+    if not app.config.get("TESTING"):
+        bootstrap_initial_admin(app)
+
     # 起動時の情報をログ出力
     llm_client_type = os.getenv("LLM_CLIENT_TYPE", "gemini")
     app.logger.info(f"App initialized with LLM Client: {llm_client_type}")
@@ -69,22 +109,113 @@ def create_app(test_config=None):
     return app
 
 
+def bootstrap_initial_admin(app):
+    """職員が0件のとき、環境変数から初期管理者を作成する。"""
+    # 遅延インポート: DB接続を伴うため、テスト用の設定適用より後に読み込む
+    import app.core.database as database
+    from app.core.bootstrap import ensure_initial_admin
+
+    try:
+        ensure_initial_admin()
+    except Exception:
+        # DB未起動などで失敗してもアプリ自体は起動させる
+        app.logger.exception("初期管理者の作成処理でエラーが発生しました。")
+    finally:
+        # gunicorn は --preload で起動するため、ここで張った接続が fork 後の
+        # 全ワーカーに共有されてしまう。プールを破棄して各ワーカーに張り直させる。
+        database.engine.dispose()
+
+
+#: 現在使用している唯一の外部CDN
+_CDN = "https://cdn.jsdelivr.net"
+
+#: Content-Security-Policy の各ディレクティブ
+#:
+#: 【制限事項】テンプレートにインラインの <script> が多数あるため、
+#: script-src に 'unsafe-inline' が必要で、XSS対策としてのCSPの効果は限定的です。
+#: それでも connect-src / form-action / frame-ancestors を絞ることで、
+#: 万一スクリプトが実行された場合に患者情報を外部へ送信する経路と、
+#: クリックジャッキングは塞げます。
+#: インラインスクリプトを外部ファイルへ追い出せば 'unsafe-inline' を外せます。
+_CSP_DIRECTIVES = [
+    "default-src 'self'",
+    f"script-src 'self' 'unsafe-inline' {_CDN}",
+    f"style-src 'self' 'unsafe-inline' {_CDN}",
+    f"font-src 'self' data: {_CDN}",
+    "img-src 'self' data:",
+    # 患者情報の外部送信(fetch/XHR/WebSocket)を自オリジンに限定する
+    "connect-src 'self'",
+    # フォームの送信先を自オリジンに限定する
+    "form-action 'self'",
+    # クリックジャッキング対策
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "object-src 'none'",
+]
+
+
+def register_security_headers(app):
+    """全レスポンスにセキュリティヘッダを付与する。
+
+    CSP は CSP_REPORT_ONLY=1 で Report-Only に切り替えられます。
+    本番へ適用する前に、開発環境で違反が出ないか確認する用途です。
+    """
+    csp = "; ".join(_CSP_DIRECTIVES)
+    report_only = os.getenv("CSP_REPORT_ONLY", "").lower() in ("1", "true", "yes")
+    csp_header = "Content-Security-Policy-Report-Only" if report_only else "Content-Security-Policy"
+
+    @app.after_request
+    def set_security_headers(response):
+        response.headers.setdefault(csp_header, csp)
+        # MIMEスニッフィングによるスクリプト実行を防ぐ
+        response.headers.setdefault("X-Content-Type-Options", "nosniff")
+        # frame-ancestors 非対応ブラウザ向けの保険
+        response.headers.setdefault("X-Frame-Options", "DENY")
+        # 患者IDを含むURLを外部サイトへ渡さない
+        response.headers.setdefault("Referrer-Policy", "same-origin")
+
+        # HSTS は HTTPS のときだけ付ける。HTTP運用中に付けると、
+        # ブラウザがHTTPSへ強制リダイレクトするようになりアクセス不能になる。
+        # ProxyFix により request.is_secure はプロキシ終端のスキームを反映する。
+        if request.is_secure:
+            response.headers.setdefault(
+                "Strict-Transport-Security", "max-age=31536000; includeSubDomains"
+            )
+        return response
+
+
+def register_password_change_guard(app):
+    """must_change_password が立っている間、パスワード変更画面以外を遮断する。"""
+    from flask import redirect, request, url_for
+    from flask_login import current_user
+
+    # 変更前でもアクセスを許可するエンドポイント
+    allowed_endpoints = {"auth.change_password", "auth.logout", "auth.login", "static"}
+
+    @app.before_request
+    def require_password_change():
+        if not current_user.is_authenticated:
+            return None
+        if not getattr(current_user, "must_change_password", False):
+            return None
+        if request.endpoint in allowed_endpoints:
+            return None
+        return redirect(url_for("auth.change_password"))
+
+
 def configure_logging(app):
-    """ロギングの設定を行うヘルパー関数"""
-    log_directory = "logs"
-    if not os.path.exists(log_directory):
-        os.makedirs(log_directory)
-    log_file_path = os.path.join(log_directory, "gemini_prompts.log")
+    """ロギングの設定を行うヘルパー関数
 
-    # ハンドラが未設定の場合のみ設定 (リロード時の重複防止)
-    if not app.logger.hasHandlers():
-        app.logger.setLevel(logging.INFO)
-        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    実体は app/core/logging_config.py に集約している。
+    ローテーションを効かせるため、個々のモジュールでハンドラを追加しないこと。
+    """
+    from app.core.logging_config import configure_logging as setup
 
-        file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
-        file_handler.setFormatter(formatter)
-
-        app.logger.addHandler(file_handler)
+    # このパッケージ名が "app" のため、Flask の app.logger は
+    # logging.getLogger("app") と同一オブジェクトになる。
+    # つまり setup() の設定がそのまま app.logger にも効く（未捕捉例外の
+    # トレースバックもローテーション先と標準出力の両方に出る）。
+    setup()
 
 
 # ユーザーローダーの定義
@@ -109,4 +240,5 @@ def load_user(staff_id):
         username=staff_info["username"],
         role=staff_info["role"],
         occupation=staff_info["occupation"],
+        must_change_password=bool(staff_info.get("must_change_password")),
     )

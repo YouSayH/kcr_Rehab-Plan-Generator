@@ -435,7 +435,9 @@
 
 
 
-            const modelToGenerate = "{{ model_to_generate|safe }}";
+            {# |safe で文字列リテラルに直接埋めない。サーバ側でホワイトリスト検証
+               しているが、JS文脈へのエスケープは tojson に任せる。 #}
+            const modelToGenerate = {{ model_to_generate | tojson }};
             const suggestionContainers = document.querySelectorAll('.suggestion-container');
             const modelNames = ["通常モデル", "特化モデル(RAG)"];
 
@@ -1086,6 +1088,17 @@
                 const ragSourceContainer = document.getElementById('rag-source-container');
                 const ragSourceList = document.getElementById('rag-source-list');
 
+                // Markdown を描画する前に生のHTMLを無害化する。
+                // marked は既定で入力中のHTMLタグをそのまま出力するため、
+                // ナレッジベース側の文書にタグが混入すると実行されてしまう。
+                // Markdown記法自体は < > を必要としないので、表示は損なわれない。
+                function escapeHtmlForMarkdown(text) {
+                    return String(text == null ? '' : text)
+                        .replace(/&/g, '&amp;')
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;');
+                }
+
                 ragEventSource.addEventListener('context_update', function (event) {
                     const contexts = JSON.parse(event.data);
                     ragSourceList.innerHTML = '';
@@ -1108,21 +1121,44 @@
                                 mermaidCode = originalContent.trim();
                             }
 
+                            const sectionPath = [ctx.section, ctx.subsection, ctx.subsubsection].filter(s => s && s !== 'N/A').join(' > ');
+
+                            // ヘッダ部（出典・疾患名）はテキストとして組み立てる。
+                            // テンプレートリテラルで innerHTML に流すと、メタデータに
+                            // "><script> を仕込まれた時点で属性から脱出できてしまう。
+                            const header = document.createElement('div');
+                            header.className = 'd-flex w-100 justify-content-between';
+                            const title = document.createElement('h5');
+                            title.className = 'mb-1';
+                            title.textContent = `出典[${ctx.id}]: ${ctx.source || 'N/A'}`;
+                            const disease = document.createElement('small');
+                            disease.className = 'text-muted';
+                            disease.textContent = ctx.disease || '';
+                            header.appendChild(title);
+                            header.appendChild(disease);
+                            listItem.appendChild(header);
+
                             if (isMermaid) {
-                                contentHtml = `<div class="mermaid">${mermaidCode}</div>`;
+                                // mermaid は textContent から図を描画する
+                                const mermaidDiv = document.createElement('div');
+                                mermaidDiv.className = 'mermaid';
+                                mermaidDiv.textContent = mermaidCode;
+                                listItem.appendChild(mermaidDiv);
                             } else {
-                                contentHtml = `<div class="markdown-body mt-2">${marked.parse(originalContent)}</div>`;
+                                // 本文はMarkdownとして描画するが、生のHTMLは通さない。
+                                // ナレッジベースに <img src=x onerror=...> を含む文書が
+                                // 1件混入すると、参照情報を開いた時点で実行されるため。
+                                const body = document.createElement('div');
+                                body.className = 'markdown-body mt-2';
+                                body.innerHTML = marked.parse(escapeHtmlForMarkdown(originalContent));
+                                listItem.appendChild(body);
                             }
 
-                            const sectionPath = [ctx.section, ctx.subsection, ctx.subsubsection].filter(s => s && s !== 'N/A').join(' > ');
-                            listItem.innerHTML = `
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">出典[${ctx.id}]: ${ctx.source || 'N/A'}</h5>
-                            <small class="text-muted">${ctx.disease || ''}</small>
-                        </div>
-                        ${contentHtml}
-                        <small class="text-muted">セクション: ${sectionPath || 'N/A'}</small>
-                    `;
+                            const section = document.createElement('small');
+                            section.className = 'text-muted';
+                            section.textContent = `セクション: ${sectionPath || 'N/A'}`;
+                            listItem.appendChild(section);
+
                             ragSourceList.appendChild(listItem);
                         });
                         ragSourceContainer.style.display = 'block';

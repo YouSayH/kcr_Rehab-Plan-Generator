@@ -1,3 +1,11 @@
+# 【このファイルは使用されていません】
+# 内容は requirements.txt + requirements-dev.txt と同一で、バージョンも固定されていません。
+# README・Dockerfile・CI のいずれからも参照されていないため、こちらを使うと
+# 固定済みの構成と異なるバージョンが入ります。以下を使用してください:
+#   本番/実行時 : requirements.lock (Dockerfile が使用)
+#   直接依存の一覧: requirements.txt
+#   開発・テスト : requirements-dev.txt
+
 Flask
 Flask-Login
 Flask-WTF

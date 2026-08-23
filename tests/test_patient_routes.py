@@ -92,12 +92,14 @@ def test_edit_patient_info_existing(login_staff, app, db_session):
     assert "Existing Patient" in response.data.decode("utf-8")
 
 
-def test_save_patient_info_update(login_staff, app, db_session):
+def test_save_patient_info_update(login_staff, app, db_session, assign_patient):
     """既存患者情報の更新テスト"""
     # 1. データ準備
     patient = Patient(name="Update Target", gender="男性")
     db_session.add(patient)
     db_session.commit()
+    # 担当患者でないと更新は拒否されるため割り当てる
+    assign_patient(patient)
 
     with app.test_request_context():
         target_url = url_for('patient.save_patient_info')

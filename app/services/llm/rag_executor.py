@@ -18,20 +18,10 @@ if os.path.exists(REHAB_RAG_PATH) and REHAB_RAG_PATH not in sys.path:
 elif not os.path.exists(REHAB_RAG_PATH):
     print(f"WARNING: Rehab_RAG path not found at: {REHAB_RAG_PATH}")
 
-log_directory = "logs"
-if not os.path.exists(log_directory):
-    os.makedirs(log_directory)
-log_file_path = os.path.join(log_directory, "gemini_prompts.log")
-
-# ロガーの設定 (ファイル出力のみ、フォーマット指定)
-# すでにgemini_client.pyで設定されている場合は不要だが、念のため追加
-logger = logging.getLogger(__name__)  # 新しいロガーインスタンスを取得
-if not logger.hasHandlers():  # ハンドラが未設定の場合のみ設定
-    logger.setLevel(logging.INFO)
-    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    file_handler = logging.FileHandler(log_file_path, mode="a", encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+# ハンドラは持たせず、app.core.logging_config が "app" ロガーに設定した
+# ローテーション付きハンドラへ伝播させる。個別に FileHandler を足すと
+# 同じファイルを複数のハンドラが開き、ローテーションが壊れる。
+logger = logging.getLogger(__name__)
 
 
 def get_instance(module_name, class_name, params={}):
@@ -209,7 +199,10 @@ class RAGExecutor:
 
 
     def execute(self, patient_facts: dict):
-        print(f"DEBUG [rag_executor.py]: '担当者からの所見' received = {patient_facts.get('担当者からの所見')}")
+        # 担当者所見は自由記述で患者の生活背景まで書かれるため、内容は出力しない
+        # (print は docker logs に残り、閲覧に権限チェックが掛からない)
+        notes = patient_facts.get("担当者からの所見")
+        logger.debug(f"担当者からの所見: {'あり' if notes else 'なし'}")
         if not self.llm or not self.retriever:
             error_msg = "必須コンポーネントが初期化されていません。"
             if not self.llm:
@@ -224,7 +217,8 @@ class RAGExecutor:
         query_for_retrieval = json.dumps(patient_facts, ensure_ascii=False, indent=2, default=str)
         # default=str は datetime オブジェクトなどを文字列に変換するため
 
-        print(f"\n[患者情報全体から生成された検索クエリ]:\n{query_for_retrieval}")
+        # 検索クエリは患者情報から組み立てられるため内容は出力しない
+        logger.debug(f"検索クエリを生成しました ({len(query_for_retrieval)}文字)")
 
         # selfRAGの判断
         if self.judge and not self.judge.judge(query_for_retrieval):
@@ -248,9 +242,10 @@ class RAGExecutor:
         print("関連文書検索中")
         all_docs = {}
         if self.retriever:
-            for q in search_queries:
+            for idx, q in enumerate(search_queries, 1):
                 if len(search_queries) > 1:
-                    print(f"  - クエリ '{q}' で検索")
+                    # クエリ本文は患者情報から組み立てられているため出力しない
+                    logger.debug(f"  - クエリ {idx}/{len(search_queries)} で検索")
                 results = self.retriever.retrieve(q, n_results=20)
                 if results and results.get("documents") and results["documents"][0]:
                     for i, doc_text in enumerate(results["documents"][0]):
@@ -311,14 +306,13 @@ class RAGExecutor:
         # patient_factsの中に patient_id が含まれていることを想定
         p_id = patient_facts.get("patient_id") or patient_facts.get("id") or "Unknown"
         logger.info(f"--- Generating Final Answer with RAG [Patient ID: {p_id}] ---")
-        # logger.info("Final Prompt:\n" + final_prompt) # ← 個人情報を含むためコメントアウト（無効化）
 
-        print("LLMで回答生成開始")
-
-        logger.info("--- Generating Final Answer with RAG ---")  # loggerを使用
-        logger.info("Final Prompt:\n" + final_prompt)  # loggerを使用
-
-        print("LLMで回答生成開始")
+        # プロンプト全文には性別・算定病名・併存疾患・FIM/BI・栄養状態・
+        # 担当者所見が含まれる。ログは logs/ にローテーションなしで永続化され、
+        # 担当患者チェックとも無関係に閲覧できるため、既定では出力しない。
+        # デバッグで必要な場合のみ LOG_PROMPTS=1 で明示的に有効化する。
+        if os.getenv("LOG_PROMPTS") == "1":
+            logger.debug("Final Prompt:\n" + final_prompt)
         response = self.llm.generate(final_prompt, response_schema=RehabPlanSchema)
 
         # Pydanticモデルのインスタンス or エラー辞書 が返ってくる

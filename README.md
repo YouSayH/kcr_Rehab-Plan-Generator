@@ -179,8 +179,15 @@ source venv_rehab/bin/activate
 ```
 
 ```bash
+# 直接依存はバージョン固定済みです
 pip install -r requirements.txt
+# テストも実行する場合
+pip install -r requirements-dev.txt
 ```
+
+> `requirements.lock` は Linux コンテナ用です。環境マーカーを持たないため、
+> Windows や macOS で使うとインストールに失敗します（例: `uvloop` は Windows 非対応）。
+> ローカル環境では上記の `requirements.txt` を使用してください。
 
 #### **データベースの構築と管理者アカウントの作成(Dockerを使わない場合)**
 **5-A. (Windows利用者向け) ターミナルの文字コード設定**
@@ -298,11 +305,11 @@ NEO4J_PASSWORD="your_neo4j_password"
 
 この方法が最も簡単で、MySQLやPython、MeCabの環境構築をDockerが全て行います。
 
-#### ステップ1: 最初の管理者パスワードのハッシュを生成
+#### ステップ1: 初期管理者アカウントの設定
 
-`schema.sql` にはデフォルトの管理者パスワード（のハッシュ値）が含まれていますが、セキュリティのために変更することを推奨します。
+`.env` に `INITIAL_ADMIN_USER` と `INITIAL_ADMIN_PASSWORD` を設定してください。職員が1人も登録されていない場合にのみ、アプリの起動時にこの値で管理者が作成されます。パスワードは12文字以上が必要で、**初回ログイン時に変更が強制されます**。
 
-ローカルのPowerShellで `Create-Hash.ps1` を実行（またはPythonで `create_hash.py` を実行）して新しいハッシュ値を生成し、`schema.sql` 末尾の`INSERT INTO staff`文にある`password`の値を置き換えてください。
+`schema.sql` に固定の管理者アカウントを埋め込む方式は廃止しました。すべてのデプロイ環境に既知のログイン情報が存在することになり、パスワードを変更しても新しい環境を作るたびに復活してしまうためです。
 
 #### ステップ2: RAGデータベースの構築
 
@@ -325,6 +332,20 @@ docker-compose run --user root web python Rehab_RAG/experiments/hybrid_search_ex
 docker-compose up --build -d
 ```
 
+> **Linux ホストで動かす場合の事前準備**
+>
+> アプリのコンテナは非rootユーザー（uid 1000）で動きます。マウント元のディレクトリが
+> 存在しないと Docker が root 所有で作成してしまい、コンテナから書き込めません。
+> 起動前に一度だけ実行してください（Windows / macOS の Docker Desktop では不要です）。
+>
+> ```bash
+> mkdir -p logs rag_db_data
+> sudo chown -R 1000:1000 logs rag_db_data
+> ```
+>
+> ログが書けない場合でもアプリは停止せず、標準出力（`docker compose logs web`）へ
+> 出力を続けます。
+
   * `--build`: `Dockerfile` に変更があった場合にイメージを再構築します。
   * `-d`: コンテナをバックグラウンドで実行します。
 
@@ -333,7 +354,9 @@ docker-compose up --build -d
 #### ステップ4: アプリケーションへのアクセス
 
 Webブラウザで **`http://localhost:5000`** にアクセスします。
-ログイン画面が表示されたら、`schema.sql` で設定した管理者アカウント（デフォルト: `admin` / `adminpass`）でログインしてください。
+ログイン画面が表示されたら、`.env` の `INITIAL_ADMIN_USER` / `INITIAL_ADMIN_PASSWORD` に設定したアカウントでログインしてください。初回ログイン時はパスワード変更画面へ誘導され、変更するまで他の画面は利用できません。
+
+サンプルデータ（患者・計画書）には担当割り当てが含まれていないため、ログイン後に管理画面の「担当患者の割り当て」から設定してください。
 
 #### Dockerの停止
 
@@ -353,7 +376,8 @@ docker-compose down -v
 python -m venv venv_rehab
 # 有効化 (Windows)
 .\venv_rehab\Scripts\activate
-# 依存ライブラリをインストール
+# 依存ライブラリをインストール (直接依存はバージョン固定済み)
+# requirements.lock は Linux コンテナ専用のため、ローカル環境では使わないでください
 pip install -r requirements.txt
 ```
 

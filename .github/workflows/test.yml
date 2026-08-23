@@ -1,0 +1,42 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # MeCab はテスト実行時に mecab-python3 が読み込むため、辞書ごと入れておく
+      - name: MeCab をインストール
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends mecab libmecab-dev mecab-ipadic-utf8
+
+      # 本番イメージと同じ requirements.lock を使う。requirements.txt を使うと
+      # 推移的依存が固定されず、CI とイメージで別のバージョンを検証してしまう。
+      - name: 依存関係をインストール
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.lock -r requirements-dev.txt
+
+      # DBに接続せず、モデル定義と schema.sql の食い違いを検出する。
+      # モデルと schema.sql がずれると計画書の保存・参照が全滅するため、
+      # テストより先に、最も安いこのチェックで落とす。
+      - name: モデルと schema.sql の整合を検証
+        run: python tools/check_model_schema_sync.py
+
+      - name: テストを実行
+        env:
+          MECABRC: /etc/mecabrc
+        run: pytest -q
